@@ -17,16 +17,17 @@
   --text:#e4e0d8;--muted:#4a4a4a;--muted2:#333;--soft:#888;
   --gold:#c8a96e;--gold-dim:#6b5530;--gold-bg:#1a1508;
   --green:#4caf7d;--green-bg:#0e1f14;
-  --red:#e05a5a;--blue:#5b8dee;--purple:#9b7fe8;
+  --red:#e05a5a;--blue:#5b8dee;
+  --sidebar-w:220px;
   --font-h:'Syne',sans-serif;--font-m:'DM Mono',monospace;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{font-size:15px;-webkit-font-smoothing:antialiased;}
-body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height:100vh;line-height:1.5;}
+html{font-size:14px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height:100vh;line-height:1.5;overflow-x:hidden;}
 ::-webkit-scrollbar{width:3px;height:3px;}
 ::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
 
-/* auth */
+/* ── AUTH ── */
 #auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
 .auth-wrap{width:100%;max-width:340px;}
 .auth-logo{font-family:var(--font-h);font-size:3rem;font-weight:800;letter-spacing:-0.04em;margin-bottom:2px;}
@@ -39,60 +40,86 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height
 .btn-google:hover{opacity:0.9;}
 #auth-err{font-size:0.7rem;color:var(--red);margin-top:10px;text-align:center;min-height:14px;}
 
-/* shell */
-#app{display:none;}
-.shell{max-width:1600px;margin:0 auto;padding:28px 40px 100px;}
+/* ── APP SHELL ── */
+#app{display:none;min-height:100vh;}
+.app-layout{display:flex;min-height:100vh;}
 
-/* header */
-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;padding-bottom:16px;border-bottom:1px solid var(--border);}
-.logo{font-family:var(--font-h);font-weight:800;font-size:1.25rem;letter-spacing:-0.03em;}
+/* ── SIDEBAR ── */
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);}
+.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
+.logo{font-family:var(--font-h);font-weight:800;font-size:1.3rem;letter-spacing:-0.03em;}
 .logo span{color:var(--gold);}
-.hdr-r{display:flex;align-items:center;gap:10px;}
-.hdr-meta{font-size:0.62rem;color:var(--muted);text-align:right;line-height:1.8;}
-.hdr-meta strong{color:var(--soft);font-weight:400;display:block;font-size:0.76rem;}
-.user-pill{display:flex;align-items:center;gap:6px;background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:3px 9px 3px 4px;cursor:pointer;transition:border-color 0.15s;}
-.user-pill:hover{border-color:var(--border3);}
-.uav{width:19px;height:19px;border-radius:50%;background:var(--gold-dim);object-fit:cover;}
-.uname{font-size:0.65rem;color:var(--soft);max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sync-dot{width:5px;height:5px;border-radius:50%;background:var(--muted2);transition:background 0.3s;margin-left:2px;}
+.logo-sub{font-size:0.56rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:1px;}
+.sidebar-user{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;}
+.sidebar-user:hover .uname{color:var(--text);}
+.uav{width:24px;height:24px;border-radius:50%;background:var(--gold-dim);object-fit:cover;flex-shrink:0;}
+.uname{font-size:0.68rem;color:var(--soft);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sync-dot{width:5px;height:5px;border-radius:50%;background:var(--muted2);transition:background 0.3s;flex-shrink:0;}
 .sync-dot.syncing{background:var(--gold);animation:blink 0.8s infinite;}
 .sync-dot.synced{background:var(--green);}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
+.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.nav-section{margin-bottom:18px;}
+.nav-section-label{font-size:0.56rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);padding:0 8px;margin-bottom:5px;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;transition:all 0.15s;color:var(--soft);font-size:0.73rem;border:1px solid transparent;user-select:none;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-dim);}
+.nav-item .ni-icon{font-size:0.9rem;width:16px;text-align:center;flex-shrink:0;}
+.nav-item .ni-label{flex:1;}
+.sidebar-bottom{padding:12px 10px;border-top:1px solid var(--border);}
+.streak-pill{display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:7px;}
+.streak-num{font-family:var(--font-h);font-size:1.4rem;font-weight:800;color:var(--gold);line-height:1;letter-spacing:-0.02em;}
+.streak-info{font-size:0.62rem;color:var(--soft);line-height:1.5;}
+.streak-info strong{color:var(--gold);display:block;font-size:0.65rem;}
 
-/* streak banner */
-#streak-banner{display:flex;align-items:center;gap:12px;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:8px;padding:10px 14px;margin-bottom:18px;}
-.streak-num{font-family:var(--font-h);font-size:1.6rem;font-weight:800;color:var(--gold);line-height:1;letter-spacing:-0.03em;}
-.streak-lbl{font-size:0.65rem;color:var(--soft);line-height:1.5;}
-.streak-lbl strong{color:var(--gold);display:block;font-size:0.7rem;}
+/* ── MAIN CONTENT ── */
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:50;}
+.topbar-left{display:flex;align-items:center;gap:12px;}
+.hamburger{display:none;background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px;transition:color 0.15s;}
+.hamburger:hover{color:var(--text);}
+.page-title{font-family:var(--font-h);font-size:1rem;font-weight:700;color:var(--text);}
+.page-title span{color:var(--gold);}
+.topbar-right{display:flex;align-items:center;gap:10px;}
+.date-pill{font-size:0.65rem;color:var(--muted);}
+.date-pill strong{color:var(--soft);display:block;font-size:0.72rem;}
+#install-btn{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.62rem;padding:4px 9px;cursor:pointer;transition:all 0.15s;display:none;}
+#install-btn:hover{color:var(--gold);border-color:var(--gold-dim);}
+.content{padding:24px 28px 80px;}
 
-/* nav */
-nav{display:flex;gap:1px;margin-bottom:24px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:3px;flex-wrap:wrap;}
-.nb{background:none;border:none;color:var(--muted);font-family:var(--font-m);font-size:0.65rem;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border-radius:5px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
-.nb:hover{color:var(--soft);}
-.nb.active{background:var(--surface2);color:var(--gold);border:1px solid var(--border2);}
+/* ── OVERLAY ── */
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;}
+#sidebar-overlay.show{display:block;}
 
-/* pages */
+/* ── SUNDAY BANNER ── */
+.sunday-banner{display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--gold-dim);border-radius:8px;padding:11px 14px;margin-bottom:16px;}
+.sunday-banner.show{display:flex;}
+.sunday-banner .sb-text{font-size:0.72rem;color:var(--soft);line-height:1.5;flex:1;}
+.sunday-banner .sb-text strong{color:var(--gold);display:block;}
+
+/* ── CFG BANNER ── */
+#cfg-banner{background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:7px;padding:10px 14px;margin-bottom:16px;font-size:0.7rem;color:var(--gold);display:none;cursor:pointer;}
+
+/* ── PAGES ── */
 .page{display:none;}
 .page.active{display:block;animation:fu 0.18s ease;}
 @keyframes fu{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
 
-/* grid */
+/* ── GRID ── */
 .grid{display:grid;gap:12px;}
-.ga{grid-template-columns:repeat(auto-fit,minmax(360px,1fr));}
+.ga{grid-template-columns:repeat(auto-fit,minmax(320px,1fr));}
 .g2{grid-template-columns:1fr 1fr;}
 .g3{grid-template-columns:1fr 1fr 1fr;}
-@media(max-width:580px){.g2,.g3,.ga{grid-template-columns:1fr;}}
 
-/* card */
+/* ── CARD ── */
 .card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;}
 .clbl{font-size:0.58rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);margin-bottom:9px;}
 
-/* stat */
-.stat{font-family:var(--font-h);font-size:2.4rem;font-weight:800;line-height:1;color:var(--gold);letter-spacing:-0.03em;}
+/* ── STAT ── */
 .stat-sm{font-family:var(--font-h);font-size:1.6rem;font-weight:800;line-height:1;color:var(--gold);letter-spacing:-0.02em;}
 .stat-sub{font-size:0.62rem;color:var(--muted);margin-top:3px;}
 
-/* inputs */
+/* ── INPUTS ── */
 input,select,textarea{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--text);font-family:var(--font-m);font-size:0.76rem;padding:7px 10px;outline:none;transition:border-color 0.15s;width:100%;}
 input:focus,select:focus,textarea:focus{border-color:var(--gold-dim);}
 input::placeholder,textarea::placeholder{color:var(--muted);}
@@ -101,7 +128,7 @@ textarea{resize:none;line-height:1.6;}
 input[type=date],input[type=time]{color-scheme:dark;}
 label.lbl{font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;}
 
-/* buttons */
+/* ── BUTTONS ── */
 .btn{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.68rem;padding:6px 11px;cursor:pointer;transition:all 0.15s;white-space:nowrap;}
 .btn:hover{color:var(--gold);border-color:var(--gold-dim);}
 .btn-gold{background:var(--gold);border:none;border-radius:6px;color:#080808;font-family:var(--font-m);font-size:0.7rem;font-weight:500;padding:8px 14px;cursor:pointer;transition:opacity 0.15s;}
@@ -109,30 +136,34 @@ label.lbl{font-size:0.6rem;letter-spacing:0.1em;text-transform:uppercase;color:v
 .btn-x{background:none;border:none;color:var(--muted2);cursor:pointer;font-size:0.76rem;transition:color 0.15s;padding:0;line-height:1;flex-shrink:0;}
 .btn-x:hover{color:var(--red);}
 
-/* utils */
+/* ── CONFIRM DELETE ── */
+.del-confirm{display:inline-flex;align-items:center;gap:4px;}
+.del-confirm .del-yes{color:var(--red);font-size:0.62rem;cursor:pointer;border:none;background:none;font-family:var(--font-m);}
+.del-confirm .del-no{color:var(--muted);font-size:0.62rem;cursor:pointer;border:none;background:none;font-family:var(--font-m);}
+
+/* ── UTILS ── */
 .row{display:flex;gap:7px;align-items:center;}
 .col{display:flex;flex-direction:column;gap:7px;}
 .sb{justify-content:space-between;}
 hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 .empty{font-size:0.7rem;color:var(--muted);padding:10px 0;font-style:italic;}
-.tag{font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:4px;padding:2px 6px;}
 
-/* mood */
+/* ── MOOD ── */
 .mood-row{display:flex;gap:5px;margin-top:6px;}
 .mood-btn{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;padding:8px 2px;text-align:center;cursor:pointer;font-size:1rem;transition:all 0.15s;line-height:1;user-select:none;}
 .mood-btn:hover{border-color:var(--gold-dim);}
 .mood-btn.sel{border-color:var(--gold);background:var(--gold-bg);}
 .mood-lbl{font-size:0.56rem;color:var(--muted);margin-top:2px;}
-.trigger-row{display:flex;gap:6px;margin-top:8px;align-items:flex-start;}
-.trigger-row textarea{flex:1;height:52px;font-size:0.72rem;}
+.trigger-field{margin-top:8px;}
+.trigger-field textarea{height:50px;font-size:0.72rem;}
 
-/* energy */
+/* ── ENERGY ── */
 .e-row{display:flex;gap:3px;align-items:center;margin-top:6px;}
 .e-pip{flex:1;height:4px;background:var(--border2);border-radius:2px;cursor:pointer;transition:background 0.12s;}
 .e-pip.lit{background:var(--gold);}
 .e-lbl{font-size:0.6rem;color:var(--muted);width:24px;text-align:right;flex-shrink:0;}
 
-/* gym */
+/* ── GYM ── */
 .gym-tiles{display:flex;gap:7px;margin-top:6px;}
 .gym-tile{flex:1;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:11px 5px;text-align:center;cursor:pointer;transition:all 0.15s;user-select:none;}
 .gym-tile:hover{border-color:var(--gold-dim);}
@@ -143,95 +174,121 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 .gt-chk{font-size:0.56rem;color:var(--green);margin-top:2px;opacity:0;transition:opacity 0.2s;}
 .gym-tile.done .gt-chk{opacity:1;}
 
-/* quick log */
-#quick-log-banner{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:12px 14px;margin-bottom:14px;display:none;}
-#quick-log-banner.show{display:block;}
-.ql-title{font-size:0.65rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:8px;}
-
-/* priorities */
-.p-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;transition:all 0.15s;}
-.p-item.done{border-color:var(--green);opacity:0.4;}
-.p-check{width:14px;height:14px;border-radius:3px;border:1px solid var(--border3);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.58rem;color:var(--green);transition:all 0.15s;}
-.p-check:hover{border-color:var(--gold-dim);}
-.p-check.chk{background:var(--green-bg);border-color:var(--green);}
-.p-area{font-size:0.56rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);width:66px;flex-shrink:0;}
-.p-text{flex:1;font-size:0.74rem;}
-.p-text.dt{text-decoration:line-through;color:var(--muted);}
-
-/* sessions */
-.sess-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
-.sess-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;font-size:0.68rem;}
-.sess-date{color:var(--muted);width:62px;flex-shrink:0;}
-.sess-feel{font-size:0.9rem;flex-shrink:0;}
-.sess-note{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-/* journal */
-.jp{background:var(--gold-bg);border:1px solid var(--gold-dim);border-left:3px solid var(--gold);border-radius:7px;padding:12px 14px;margin-bottom:12px;}
-.jp-lbl{font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;}
-.jp-text{font-size:0.8rem;color:var(--text);line-height:1.6;font-style:italic;}
-.jp-sub{font-size:0.65rem;color:var(--soft);margin-top:4px;}
-.je-item{background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:11px 13px;margin-bottom:7px;}
-.je-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;}
-.je-date{font-size:0.6rem;color:var(--muted);}
-.je-type{font-size:0.56rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);}
-.je-prompt{font-size:0.63rem;color:var(--muted);margin-bottom:5px;font-style:italic;}
-.je-body{font-size:0.74rem;color:var(--text);line-height:1.6;white-space:pre-wrap;}
-
-/* score pips */
-.score-pips{display:flex;gap:3px;}
-.sp{width:19px;height:19px;border-radius:3px;background:var(--surface2);border:1px solid var(--border2);font-size:0.6rem;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;}
-.sp.lit{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:600;}
-.sa-lbl{font-size:0.58rem;color:var(--muted);margin-bottom:3px;letter-spacing:0.08em;text-transform:uppercase;}
-.sa-block{margin-right:12px;margin-bottom:7px;}
-
-/* bar chart */
+/* ── BAR CHART ── */
 .bar-row{display:flex;align-items:center;gap:7px;margin-bottom:6px;}
 .bar-key{font-size:0.6rem;color:var(--muted);width:28px;text-align:right;flex-shrink:0;}
 .bar-track{flex:1;height:4px;background:var(--border2);border-radius:2px;overflow:hidden;}
 .bar-fill{height:100%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);}
-.bar-val{font-size:0.6rem;color:var(--muted);width:18px;flex-shrink:0;}
+.bar-val{font-size:0.6rem;color:var(--muted);width:20px;flex-shrink:0;}
 
-/* heatmap */
+/* ── HEATMAP ── */
 .heatmap{display:flex;gap:3px;}
 .hm-col{display:flex;flex-direction:column;gap:3px;}
-.hm-cell{width:10px;height:10px;border-radius:2px;background:var(--border2);transition:transform 0.1s;}
+.hm-cell{width:10px;height:10px;border-radius:2px;background:var(--border2);transition:transform 0.1s;cursor:default;}
 .hm-cell:hover{transform:scale(1.4);z-index:1;position:relative;}
 .hm-cell[data-v="1"]{background:#1a2a1a;}
 .hm-cell[data-v="2"]{background:#253d25;}
 .hm-cell[data-v="3"]{background:#326632;}
 .hm-cell[data-v="4"]{background:var(--green);}
 
-/* review */
-.rev-card{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;margin-bottom:7px;}
+/* ── PRIORITIES ── */
+.p-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;transition:all 0.15s;}
+.p-item.done{border-color:var(--green);opacity:0.4;}
+.p-check{width:14px;height:14px;border-radius:3px;border:1px solid var(--border3);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:0.58rem;color:var(--green);transition:all 0.15s;}
+.p-check:hover{border-color:var(--gold-dim);}
+.p-check.chk{background:var(--green-bg);border-color:var(--green);}
+.p-area{font-size:0.56rem;letter-spacing:0.1em;text-transform:uppercase;width:66px;flex-shrink:0;font-weight:600;}.p-area.area-professional{color:var(--gold);}.p-area.area-health{color:var(--green);}.p-area.area-personal{color:var(--blue);}
+.p-text{flex:1;font-size:0.74rem;}
+.p-text.dt{text-decoration:line-through;color:var(--muted);}
 
-/* uni log */
+/* ── SESSIONS ── */
+.sess-list{display:flex;flex-direction:column;gap:5px;max-height:220px;overflow-y:auto;}
+.sess-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:6px;font-size:0.68rem;}
+.sess-date{color:var(--muted);width:62px;flex-shrink:0;}
+.sess-feel{font-size:0.9rem;flex-shrink:0;}
+.sess-note{color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+
+/* ── JOURNAL PROMPT ── */
+.jp{background:var(--gold-bg);border:1px solid var(--gold-dim);border-left:3px solid var(--gold);border-radius:7px;padding:12px 14px;margin-bottom:12px;}
+.jp-lbl{font-size:0.58rem;letter-spacing:0.12em;text-transform:uppercase;color:var(--gold);margin-bottom:5px;}
+.jp-text{font-size:0.8rem;color:var(--text);line-height:1.6;font-style:italic;}
+.jp-sub{font-size:0.65rem;color:var(--soft);margin-top:4px;}
+.je-item{background:var(--surface2);border:1px solid var(--border2);border-radius:7px;padding:11px 13px;margin-bottom:7px;}
+.je-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;gap:6px;}
+.je-date{font-size:0.6rem;color:var(--muted);flex-shrink:0;}
+.je-type{font-size:0.56rem;letter-spacing:0.1em;text-transform:uppercase;color:var(--gold);}
+.je-prompt{font-size:0.63rem;color:var(--muted);margin-bottom:5px;font-style:italic;}
+.je-body{font-size:0.74rem;color:var(--text);line-height:1.6;white-space:pre-wrap;}
+
+/* ── SCORE PIPS ── */
+.score-pips{display:flex;gap:3px;flex-wrap:wrap;}
+.sp{width:19px;height:19px;border-radius:3px;background:var(--surface2);border:1px solid var(--border2);font-size:0.6rem;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.1s;}
+.sp.lit{background:var(--gold);color:var(--bg);border-color:var(--gold);font-weight:600;}
+.sa-lbl{font-size:0.58rem;color:var(--muted);margin-bottom:3px;letter-spacing:0.08em;text-transform:uppercase;}
+.sa-block{margin-right:12px;margin-bottom:7px;}
+
+/* ── UNI TABLE ── */
 .uni-table{width:100%;border-collapse:collapse;font-size:0.7rem;margin-top:8px;}
 .uni-table th{background:var(--surface2);color:var(--muted);font-size:0.58rem;letter-spacing:0.1em;text-transform:uppercase;padding:7px 8px;text-align:left;border-bottom:1px solid var(--border2);white-space:nowrap;}
 .uni-table td{padding:7px 8px;border-bottom:1px solid var(--border);vertical-align:top;line-height:1.5;}
 .uni-table tr:last-child td{border-bottom:none;}
 .uni-table tr:hover td{background:var(--surface2);}
+.uni-filter{display:flex;gap:8px;margin-bottom:10px;}
+.uni-filter select{flex:0 0 220px;}
 
-/* section title */
-.stitle{font-family:var(--font-h);font-size:1.4rem;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:16px;}
+/* ── REVIEW ── */
+.rev-card{background:var(--surface2);border:1px solid var(--border2);border-radius:8px;padding:11px 13px;margin-bottom:7px;}
+.empty-state{text-align:center;padding:24px 12px;color:var(--muted);}
+.empty-state .es-icon{font-size:1.6rem;margin-bottom:8px;opacity:0.4;}
+.empty-state .es-text{font-size:0.72rem;line-height:1.6;}
+.empty-state .es-hint{font-size:0.65rem;color:var(--muted2);margin-top:4px;}
+.reading-streak-pill{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;margin-top:8px;}
+.rs-num{font-family:var(--font-h);font-size:1.1rem;font-weight:800;color:var(--blue);line-height:1;}
+.rs-info{font-size:0.6rem;color:var(--soft);line-height:1.5;}
+.rs-info strong{color:var(--blue);display:block;font-size:0.62rem;}
+.padel-progress{margin-top:10px;}
+.padel-progress-bar{height:5px;background:var(--border2);border-radius:3px;overflow:hidden;margin-top:4px;}
+.padel-progress-fill{height:100%;border-radius:3px;background:var(--green);transition:width 0.5s cubic-bezier(0.4,0,0.2,1);}
+.phone-trend{display:flex;align-items:center;gap:6px;margin-top:6px;font-size:0.7rem;}
+.trend-up{color:var(--red);}
+.trend-down{color:var(--green);}
+.trend-flat{color:var(--muted);}
+
+/* ── SECTION TITLE ── */
+.stitle{font-family:var(--font-h);font-size:1.3rem;font-weight:800;color:var(--text);letter-spacing:-0.02em;margin-bottom:14px;}
 .stitle span{color:var(--gold);}
 
-/* sunday mode */
-.sunday-banner{background:var(--surface);border:1px solid var(--gold-dim);border-radius:8px;padding:12px 14px;margin-bottom:16px;display:none;}
-.sunday-banner.show{display:flex;align-items:center;gap:10px;}
-.sunday-banner .sb-icon{font-size:1.4rem;}
-.sunday-banner .sb-text{font-size:0.72rem;color:var(--soft);line-height:1.5;}
-.sunday-banner .sb-text strong{color:var(--gold);display:block;}
+/* ── YESTERDAY BADGE ── */
+.yday-btn{font-size:0.6rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border2);border-radius:4px;padding:2px 7px;cursor:pointer;transition:all 0.15s;font-family:var(--font-m);}
+.yday-btn.active{color:var(--gold);border-color:var(--gold-dim);background:var(--gold-bg);}
 
-/* toast */
+/* ── EDIT MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;animation:fu 0.15s ease;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:20px;width:100%;max-width:480px;max-height:80vh;overflow-y:auto;}
+.modal-title{font-family:var(--font-h);font-size:1rem;font-weight:700;margin-bottom:14px;color:var(--text);}
+.modal-actions{display:flex;gap:8px;margin-top:12px;}
+
+/* ── TOAST ── */
 #toast{position:fixed;bottom:18px;right:18px;background:var(--surface2);border:1px solid var(--border2);border-left:3px solid var(--gold);border-radius:6px;padding:8px 13px;font-size:0.7rem;color:var(--text);opacity:0;transform:translateY(5px);transition:all 0.18s;pointer-events:none;z-index:9999;}
 #toast.show{opacity:1;transform:translateY(0);}
 
-/* cfg */
-#cfg-banner{background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:7px;padding:10px 14px;margin-bottom:16px;font-size:0.7rem;color:var(--gold);display:none;cursor:pointer;}
-
-/* install prompt */
-#install-btn{display:none;background:var(--surface);border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.65rem;padding:5px 10px;cursor:pointer;transition:all 0.15s;}
-#install-btn:hover{color:var(--gold);border-color:var(--gold-dim);}
+/* ── MOBILE ── */
+@media(max-width:900px){
+  .sidebar{transform:translateX(-100%);}
+  .sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;}
+  .hamburger{display:block;}
+  .topbar{padding:12px 16px;}
+  .content{padding:16px 14px 80px;}
+  .ga{grid-template-columns:1fr;}
+  .g2,.g3{grid-template-columns:1fr;}
+  #install-btn{display:none!important;}
+  .uni-filter{flex-direction:column;}
+  .uni-filter select{flex:none;width:100%;}
+}
+@media(min-width:901px) and (max-width:1200px){
+  .ga{grid-template-columns:1fr 1fr;}
+}
 </style>
 </head>
 <body>
@@ -255,434 +312,483 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
 <!-- APP -->
 <div id="app">
-<div class="shell">
+  <div class="app-layout">
 
-  <div id="cfg-banner" onclick="showCfg()">⚠ Firebase not configured — running offline. Tap for setup.</div>
-
-  <header>
-    <div>
-      <div class="logo">JE<span>.</span></div>
-      <div style="font-size:0.58rem;color:var(--muted);margin-top:1px;letter-spacing:0.1em;text-transform:uppercase;">Personal OS</div>
-    </div>
-    <div class="hdr-r">
-      <button id="install-btn" onclick="installPWA()">+ Install app</button>
-      <div class="hdr-meta">
-        <strong id="hdr-date"></strong>
-        <span id="hdr-week"></span>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-logo">
+        <div class="logo">JE<span>.</span></div>
+        <div class="logo-sub">Personal OS</div>
       </div>
-      <div class="user-pill" onclick="doSignOut()">
+      <div class="sidebar-user" onclick="doSignOut()">
         <img id="uav" class="uav" src="" onerror="this.style.display='none'">
         <span id="uname" class="uname">—</span>
         <div class="sync-dot" id="sync-dot"></div>
       </div>
-    </div>
-  </header>
-
-  <div id="streak-banner">
-    <div class="streak-num" id="streak-num">0</div>
-    <div class="streak-lbl"><strong id="streak-txt">Start your streak</strong>Log mood + one other field daily to keep it going.</div>
-  </div>
-
-  <div class="sunday-banner" id="sunday-banner">
-    <div class="sb-icon">📋</div>
-    <div class="sb-text"><strong>It's Sunday — review day.</strong>Take 20 minutes. Score the week, log what went well, set next week's priorities.</div>
-    <button class="btn-gold" style="margin-left:auto;flex-shrink:0;" onclick="nav('review',null)">Open review →</button>
-  </div>
-
-  <nav>
-    <button class="nb active" onclick="nav('today',this)">Today</button>
-    <button class="nb" onclick="nav('priorities',this)">Priorities</button>
-    <button class="nb" onclick="nav('padel',this)">Padel</button>
-    <button class="nb" onclick="nav('journal',this)">Journal</button>
-    <button class="nb" onclick="nav('review',this)">Review</button>
-    <button class="nb" onclick="nav('uni',this)">Uni Log</button>
-    <button class="nb" onclick="nav('stats',this)">Stats</button>
-  </nav>
-
-  <!-- TODAY -->
-  <div class="page active" id="page-today">
-
-    <!-- Quick log -->
-    <div id="quick-log-banner">
-      <div class="ql-title">⚡ Quick log — low energy mode</div>
-      <div class="row" style="flex-wrap:wrap;gap:6px;">
-        <div style="flex:1;min-width:180px;">
-          <div class="clbl">Mood</div>
-          <div class="mood-row" id="ql-mood">
-            <div class="mood-btn" onclick="setMood(1,true)" data-v="1"><div>😴</div></div>
-            <div class="mood-btn" onclick="setMood(2,true)" data-v="2"><div>😐</div></div>
-            <div class="mood-btn" onclick="setMood(3,true)" data-v="3"><div>🙂</div></div>
-            <div class="mood-btn" onclick="setMood(4,true)" data-v="4"><div>😀</div></div>
-            <div class="mood-btn" onclick="setMood(5,true)" data-v="5"><div>🔥</div></div>
+      <nav class="sidebar-nav">
+        <div class="nav-section">
+          <div class="nav-section-label">Daily</div>
+          <div class="nav-item active" onclick="nav('today',this)" id="ni-today">
+            <span class="ni-icon">◈</span><span class="ni-label">Today</span>
           </div>
         </div>
-        <div style="flex:1;min-width:160px;">
-          <div class="clbl">One line</div>
-          <div class="row">
-            <input type="text" id="ql-line" placeholder="One thought..." style="flex:1;">
-            <button class="btn-gold" onclick="saveQuickLog()">Done</button>
+        <div class="nav-section">
+          <div class="nav-section-label">Track</div>
+          <div class="nav-item" onclick="nav('priorities',this)" id="ni-priorities">
+            <span class="ni-icon">⊹</span><span class="ni-label">Priorities</span>
+          </div>
+          <div class="nav-item" onclick="nav('padel',this)" id="ni-padel">
+            <span class="ni-icon">◎</span><span class="ni-label">Padel</span>
+          </div>
+          <div class="nav-item" onclick="nav('journal',this)" id="ni-journal">
+            <span class="ni-icon">◇</span><span class="ni-label">Journal</span>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="grid ga">
-
-      <!-- Mood + triggers -->
-      <div class="card">
-        <div class="clbl">Mood + energy — today</div>
-        <div class="mood-row" id="mood-row">
-          <div class="mood-btn" onclick="setMood(1)" data-v="1"><div>😴</div><div class="mood-lbl">Low</div></div>
-          <div class="mood-btn" onclick="setMood(2)" data-v="2"><div>😐</div><div class="mood-lbl">Flat</div></div>
-          <div class="mood-btn" onclick="setMood(3)" data-v="3"><div>🙂</div><div class="mood-lbl">Good</div></div>
-          <div class="mood-btn" onclick="setMood(4)" data-v="4"><div>😀</div><div class="mood-lbl">Great</div></div>
-          <div class="mood-btn" onclick="setMood(5)" data-v="5"><div>🔥</div><div class="mood-lbl">Fired</div></div>
-        </div>
-        <div class="trigger-row" id="trigger-wrap" style="display:none;">
-          <textarea id="mood-trigger" placeholder="What's driving this mood?"></textarea>
-          <button class="btn" onclick="saveTrigger()">Save</button>
-        </div>
-        <div style="margin-top:12px;">
-          <div class="clbl" style="margin-bottom:3px;">Energy</div>
-          <div class="e-row">
-            <div class="e-pip" onclick="setEnergy(1)" data-v="1"></div><div class="e-pip" onclick="setEnergy(2)" data-v="2"></div>
-            <div class="e-pip" onclick="setEnergy(3)" data-v="3"></div><div class="e-pip" onclick="setEnergy(4)" data-v="4"></div>
-            <div class="e-pip" onclick="setEnergy(5)" data-v="5"></div><div class="e-pip" onclick="setEnergy(6)" data-v="6"></div>
-            <div class="e-pip" onclick="setEnergy(7)" data-v="7"></div><div class="e-pip" onclick="setEnergy(8)" data-v="8"></div>
-            <div class="e-pip" onclick="setEnergy(9)" data-v="9"></div><div class="e-pip" onclick="setEnergy(10)" data-v="10"></div>
-            <div class="e-lbl" id="e-lbl">—</div>
+        <div class="nav-section">
+          <div class="nav-section-label">Review</div>
+          <div class="nav-item" onclick="nav('review',this)" id="ni-review">
+            <span class="ni-icon">◻</span><span class="ni-label">Weekly Review</span>
+          </div>
+          <div class="nav-item" onclick="nav('uni',this)" id="ni-uni">
+            <span class="ni-icon">◈</span><span class="ni-label">Uni Log</span>
           </div>
         </div>
-      </div>
-
-      <!-- Gym -->
-      <div class="card">
-        <div class="clbl">Gym — tick when done</div>
-        <div class="gym-tiles">
-          <div class="gym-tile" id="gym-push" onclick="toggleGym('push')"><div class="gt-icon">🏋️</div><div class="gt-lbl">Push</div><div class="gt-chk">✓</div></div>
-          <div class="gym-tile" id="gym-pull" onclick="toggleGym('pull')"><div class="gt-icon">💪</div><div class="gt-lbl">Pull</div><div class="gt-chk">✓</div></div>
-          <div class="gym-tile" id="gym-legs" onclick="toggleGym('legs')"><div class="gt-icon">🦵</div><div class="gt-lbl">Legs</div><div class="gt-chk">✓</div></div>
-        </div>
-      </div>
-
-      <!-- Reading -->
-      <div class="card">
-        <div class="clbl">Reading</div>
-        <div class="row">
-          <input type="number" id="r-pages" placeholder="Pages" min="0" style="width:75px;">
-          <input type="number" id="r-mins" placeholder="Mins" min="0" style="width:65px;">
-          <button class="btn" onclick="logReading()">Log</button>
-        </div>
-        <div class="row" style="margin-top:12px;gap:14px;">
-          <div><div class="stat-sm" id="r-pages-wk">0</div><div class="stat-sub">pages / wk</div></div>
-          <div style="width:1px;height:28px;background:var(--border);"></div>
-          <div><div class="stat-sm" id="r-mins-wk">0</div><div class="stat-sub">mins / wk</div></div>
-        </div>
-      </div>
-
-      <!-- Phone usage -->
-      <div class="card">
-        <div class="clbl">Phone usage — today</div>
-        <div class="row" style="margin-top:4px;">
-          <input type="number" id="phone-hrs" placeholder="Hours" min="0" max="24" step="0.5" style="width:80px;">
-          <select id="phone-feel" style="flex:1;">
-            <option value="">How did it feel?</option>
-            <option value="fine">Fine — intentional</option>
-            <option value="bit much">Bit much</option>
-            <option value="wasted">Wasted time</option>
-            <option value="avoidance">Avoidance</option>
-          </select>
-          <button class="btn" onclick="logPhone()">Log</button>
-        </div>
-        <div class="row" style="margin-top:10px;gap:14px;">
-          <div><div class="stat-sm" id="phone-today">—</div><div class="stat-sub">hrs today</div></div>
-          <div><div class="stat-sm" id="phone-avg">—</div><div class="stat-sub">wk avg</div></div>
-        </div>
-      </div>
-
-      <!-- Small wins -->
-      <div class="card">
-        <div class="clbl">Small wins — today</div>
-        <div class="row" style="margin-top:4px;">
-          <input type="text" id="win-input" placeholder="One thing you finished or did well..." onkeydown="if(event.key==='Enter')logWin()">
-          <button class="btn" onclick="logWin()">Add</button>
-        </div>
-        <div id="win-list" style="margin-top:8px;"></div>
-      </div>
-
-      <!-- Gratitude -->
-      <div class="card">
-        <div class="clbl">Gratitude — one line</div>
-        <div class="row" style="margin-top:4px;">
-          <input type="text" id="grat-input" placeholder="Something specific, however small...">
-          <button class="btn" onclick="saveGratitude()">Save</button>
-        </div>
-        <div id="grat-saved" style="margin-top:8px;font-size:0.74rem;color:var(--soft);font-style:italic;"></div>
-      </div>
-
-      <!-- Resistance -->
-      <div class="card">
-        <div class="clbl">Resistance log — what did you avoid?</div>
-        <div class="row" style="margin-top:4px;">
-          <input type="text" id="resist-input" placeholder="Be honest. What did you sidestep today?" onkeydown="if(event.key==='Enter')logResistance()">
-          <button class="btn" onclick="logResistance()">Log</button>
-        </div>
-        <div id="resist-list" style="margin-top:8px;"></div>
-      </div>
-
-      <!-- Priorities snap -->
-      <div class="card">
-        <div class="clbl">This week's priorities</div>
-        <div id="today-p-snap"></div>
-      </div>
-
-      <!-- Today prompt -->
-      <div class="card">
-        <div class="clbl">Today's prompt</div>
-        <div id="today-jp"></div>
-        <button class="btn" style="margin-top:8px;" onclick="nav('journal',null)">Open journal →</button>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- PRIORITIES -->
-  <div class="page" id="page-priorities">
-    <div class="stitle">Priorities <span>/ week</span></div>
-    <div class="card">
-      <div class="clbl" id="p-week-lbl"></div>
-      <div class="col" id="p-list" style="margin-bottom:4px;min-height:20px;"></div>
-      <hr>
-      <div class="row">
-        <select id="p-area" style="width:108px;flex-shrink:0;"><option>Professional</option><option>Health</option><option>Personal</option></select>
-        <input type="text" id="p-input" placeholder="Add a priority..." onkeydown="if(event.key==='Enter')addPriority()">
-        <button class="btn-gold" onclick="addPriority()">Add</button>
-      </div>
-    </div>
-    <div style="margin-top:12px;">
-      <div class="clbl" style="margin-bottom:8px;">Current obsession</div>
-      <div class="card">
-        <textarea id="obsession-input" placeholder="What's genuinely captured your attention this week? Could be anything." rows="2"></textarea>
-        <div class="row" style="margin-top:7px;">
-          <button class="btn-gold" onclick="saveObsession()">Save</button>
-          <div id="obsession-saved" style="font-size:0.7rem;color:var(--soft);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- PADEL -->
-  <div class="page" id="page-padel">
-    <div class="stitle">Padel <span>/ log</span></div>
-    <div class="grid ga">
-      <div class="card">
-        <div class="clbl">Log a session</div>
-        <div class="col" style="margin-top:4px;">
-          <div class="row">
-            <input type="date" id="pd-date" style="flex:1;">
-            <select id="pd-feel" style="flex:1;">
-              <option value="🔥">🔥 On fire</option>
-              <option value="😊">😊 Good</option>
-              <option value="😐" selected>😐 Average</option>
-              <option value="😤">😤 Frustrating</option>
-              <option value="😴">😴 Off day</option>
-            </select>
-          </div>
-          <textarea id="pd-note" placeholder="Notes — what worked, what to work on..." rows="2"></textarea>
-          <div><button class="btn-gold" onclick="logPadel()">Log Session</button></div>
-        </div>
-        <div class="row" style="margin-top:14px;gap:18px;">
-          <div><div class="stat-sm" id="pd-month">0</div><div class="stat-sub">this month</div></div>
-          <div><div class="stat-sm" id="pd-total">0</div><div class="stat-sub">total</div></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="clbl">Session history</div>
-        <div class="sess-list" id="pd-list"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- JOURNAL -->
-  <div class="page" id="page-journal">
-    <div class="stitle">Journal <span>/ reflect</span></div>
-    <div class="grid ga">
-      <div class="card">
-        <div class="clbl">Prompt</div>
-        <div id="j-prompt-display"></div>
-        <div class="col" style="margin-top:4px;">
-          <div class="row">
-            <select id="j-type" style="flex:0 0 138px;">
-              <option value="daily">Daily reflection</option>
-              <option value="insight">Book / podcast insight</option>
-              <option value="goal">Goal thinking</option>
-              <option value="weekly">Weekly prompt</option>
-              <option value="free">Free write</option>
-            </select>
-            <button class="btn" onclick="newPrompt()">New prompt</button>
-          </div>
-          <textarea id="j-entry" placeholder="Write here..." rows="6"></textarea>
-          <div><button class="btn-gold" onclick="saveJournal()">Save Entry</button></div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="clbl">Past entries</div>
-        <div style="max-height:460px;overflow-y:auto;" id="j-list"></div>
-      </div>
-    </div>
-
-    <!-- Decision log -->
-    <div style="margin-top:12px;">
-      <div class="stitle" style="font-size:1.1rem;margin-bottom:10px;">Decision <span>/ log</span></div>
-      <div class="grid ga">
-        <div class="card">
-          <div class="clbl">Log a decision</div>
-          <div class="col" style="margin-top:4px;">
-            <input type="text" id="dec-title" placeholder="What decision did you make?">
-            <select id="dec-area"><option>Professional</option><option>Financial</option><option>Personal</option><option>Health</option><option>Relationship</option></select>
-            <textarea id="dec-reasoning" placeholder="Your reasoning at the time — be specific..." rows="3"></textarea>
-            <div><button class="btn-gold" onclick="saveDecision()">Log Decision</button></div>
+        <div class="nav-section">
+          <div class="nav-section-label">Insight</div>
+          <div class="nav-item" onclick="nav('stats',this)" id="ni-stats">
+            <span class="ni-icon">◫</span><span class="ni-label">Stats</span>
           </div>
         </div>
-        <div class="card">
-          <div class="clbl">Decision history</div>
-          <div style="max-height:300px;overflow-y:auto;" id="dec-list"></div>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="streak-pill">
+          <div class="streak-num" id="streak-num">0</div>
+          <div class="streak-info"><strong id="streak-txt">Start streak</strong><span id="streak-best"></span></div>
         </div>
+        <div class="reading-streak-pill">
+          <div class="rs-num" id="rs-num">0</div>
+          <div class="rs-info"><strong id="rs-txt">Reading streak</strong>consecutive days</div>
+        </div>
+        <button class="btn" style="width:100%;margin-top:8px;font-size:0.65rem;" onclick="exportJSON()">⬇ Export data backup</button>
       </div>
-    </div>
+    </aside>
 
-    <!-- Drained vs charged -->
-    <div style="margin-top:12px;">
-      <div class="stitle" style="font-size:1.1rem;margin-bottom:10px;">Energy <span>/ map</span></div>
-      <div class="card">
-        <div class="clbl">What drained you vs charged you this week?</div>
-        <div class="grid g2" style="margin-top:6px;">
-          <div>
-            <label class="lbl">⬇ Drained me</label>
-            <textarea id="drained-input" placeholder="People, tasks, situations, environments..." rows="3"></textarea>
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+
+    <!-- MAIN -->
+    <main class="main">
+      <div class="topbar">
+        <div class="topbar-left">
+          <button class="hamburger" onclick="toggleSidebar()">☰</button>
+          <div class="page-title" id="page-title">Today <span id="page-title-date"></span></div>
+        </div>
+        <div class="topbar-right">
+          <div class="date-pill">
+            <strong id="hdr-date"></strong>
+            <span id="hdr-week"></span>
           </div>
-          <div>
-            <label class="lbl">⬆ Charged me</label>
-            <textarea id="charged-input" placeholder="What gave you energy this week?" rows="3"></textarea>
+          <button id="install-btn" onclick="installPWA()">+ Install</button>
+        </div>
+      </div>
+
+      <div class="content">
+        <div id="cfg-banner" onclick="showCfg()">⚠ Firebase not configured — running offline. Tap for setup.</div>
+        <div class="sunday-banner" id="sunday-banner">
+          <div style="font-size:1.3rem;">📋</div>
+          <div class="sb-text"><strong>It's Sunday — review day.</strong>20 minutes. Score the week, set next week's priorities.</div>
+          <button class="btn-gold" style="flex-shrink:0;" onclick="nav('review',document.getElementById('ni-review'))">Open →</button>
+        </div>
+
+        <!-- TODAY -->
+        <div class="page active" id="page-today">
+
+          <!-- Yesterday toggle -->
+          <div class="row" style="margin-bottom:14px;gap:8px;">
+            <span style="font-size:0.68rem;color:var(--soft);">Logging for:</span>
+            <button class="yday-btn" id="yday-btn" onclick="toggleYday()">Yesterday</button>
+            <span id="logging-for" style="font-size:0.65rem;color:var(--gold);display:none;">← logging yesterday</span>
+          </div>
+
+          <div class="grid ga">
+
+            <!-- Mood + energy -->
+            <div class="card">
+              <div class="clbl">Mood + energy</div>
+              <div class="mood-row">
+                <div class="mood-btn" onclick="setMood(1)" data-v="1"><div>😴</div><div class="mood-lbl">Low</div></div>
+                <div class="mood-btn" onclick="setMood(2)" data-v="2"><div>😐</div><div class="mood-lbl">Flat</div></div>
+                <div class="mood-btn" onclick="setMood(3)" data-v="3"><div>🙂</div><div class="mood-lbl">Good</div></div>
+                <div class="mood-btn" onclick="setMood(4)" data-v="4"><div>😀</div><div class="mood-lbl">Great</div></div>
+                <div class="mood-btn" onclick="setMood(5)" data-v="5"><div>🔥</div><div class="mood-lbl">Fired</div></div>
+              </div>
+              <div class="trigger-field" id="trigger-wrap">
+                <div style="margin-top:10px;margin-bottom:4px;font-size:0.62rem;color:var(--muted);">What's driving this?</div>
+                <div class="row">
+                  <textarea id="mood-trigger" placeholder="Anything behind this mood — good or bad..." style="height:48px;flex:1;"></textarea>
+                  <button class="btn" onclick="saveTrigger()">Save</button>
+                </div>
+              </div>
+              <div style="margin-top:12px;">
+                <div class="clbl" style="margin-bottom:3px;">Energy</div>
+                <div class="e-row">
+                  <div class="e-pip" onclick="setEnergy(1)" data-v="1"></div><div class="e-pip" onclick="setEnergy(2)" data-v="2"></div>
+                  <div class="e-pip" onclick="setEnergy(3)" data-v="3"></div><div class="e-pip" onclick="setEnergy(4)" data-v="4"></div>
+                  <div class="e-pip" onclick="setEnergy(5)" data-v="5"></div><div class="e-pip" onclick="setEnergy(6)" data-v="6"></div>
+                  <div class="e-pip" onclick="setEnergy(7)" data-v="7"></div><div class="e-pip" onclick="setEnergy(8)" data-v="8"></div>
+                  <div class="e-pip" onclick="setEnergy(9)" data-v="9"></div><div class="e-pip" onclick="setEnergy(10)" data-v="10"></div>
+                  <div class="e-lbl" id="e-lbl">—</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gym -->
+            <div class="card">
+              <div class="clbl">Gym — tick when done</div>
+              <div class="gym-tiles">
+                <div class="gym-tile" id="gym-push" onclick="toggleGym('push')"><div class="gt-icon">🏋️</div><div class="gt-lbl">Push</div><div class="gt-chk">✓</div></div>
+                <div class="gym-tile" id="gym-pull" onclick="toggleGym('pull')"><div class="gt-icon">💪</div><div class="gt-lbl">Pull</div><div class="gt-chk">✓</div></div>
+                <div class="gym-tile" id="gym-legs" onclick="toggleGym('legs')"><div class="gt-icon">🦵</div><div class="gt-lbl">Legs</div><div class="gt-chk">✓</div></div>
+              </div>
+            </div>
+
+            <!-- Reading -->
+            <div class="card">
+              <div class="clbl">Reading</div>
+              <div class="row">
+                <input type="number" id="r-pages" placeholder="Pages" min="0" style="width:80px;">
+                <input type="number" id="r-mins" placeholder="Mins" min="0" style="width:70px;">
+                <button class="btn" onclick="logReading()">Log</button>
+              </div>
+              <div class="row" style="margin-top:12px;gap:14px;">
+                <div><div class="stat-sm" id="r-pages-wk">0</div><div class="stat-sub">pages / wk</div></div>
+                <div style="width:1px;height:28px;background:var(--border);"></div>
+                <div><div class="stat-sm" id="r-mins-wk">0</div><div class="stat-sub">mins / wk</div></div>
+              </div>
+            </div>
+
+            <!-- Phone -->
+            <div class="card">
+              <div class="clbl">Phone usage</div>
+              <div class="row">
+                <input type="number" id="phone-hrs" placeholder="Hours" min="0" max="24" step="0.5" style="width:80px;">
+                <select id="phone-feel" style="flex:1;">
+                  <option value="">How did it feel?</option>
+                  <option value="fine">Fine — intentional</option>
+                  <option value="bit much">Bit much</option>
+                  <option value="wasted">Wasted time</option>
+                  <option value="avoidance">Avoidance</option>
+                </select>
+                <button class="btn" onclick="logPhone()">Log</button>
+              </div>
+              <div class="row" style="margin-top:10px;gap:14px;">
+                <div><div class="stat-sm" id="phone-today">—</div><div class="stat-sub">hrs today</div></div>
+                <div><div class="stat-sm" id="phone-avg">—</div><div class="stat-sub">wk avg (logged days)</div></div>
+              </div>
+              <div class="phone-trend" id="phone-trend"></div>
+            </div>
+
+            <!-- Small wins -->
+            <div class="card">
+              <div class="clbl">Small wins</div>
+              <div class="row">
+                <input type="text" id="win-input" placeholder="One thing finished or done well..." onkeydown="if(event.key==='Enter')logWin()">
+                <button class="btn" onclick="logWin()">Add</button>
+              </div>
+              <div id="win-list" style="margin-top:8px;"></div>
+            </div>
+
+            <!-- Gratitude -->
+            <div class="card">
+              <div class="clbl">Gratitude — one line</div>
+              <div class="row">
+                <input type="text" id="grat-input" placeholder="Something specific, however small...">
+                <button class="btn" onclick="saveGratitude()">Save</button>
+              </div>
+              <div id="grat-saved" style="margin-top:8px;font-size:0.74rem;color:var(--soft);font-style:italic;"></div>
+            </div>
+
+            <!-- Resistance -->
+            <div class="card">
+              <div class="clbl">Resistance — what did you avoid?</div>
+              <div class="row">
+                <input type="text" id="resist-input" placeholder="Be honest." onkeydown="if(event.key==='Enter')logResistance()">
+                <button class="btn" onclick="logResistance()">Log</button>
+              </div>
+              <div id="resist-list" style="margin-top:8px;"></div>
+            </div>
+
+            <!-- Priorities snap -->
+            <div class="card">
+              <div class="row sb" style="margin-bottom:8px;">
+                <div class="clbl" style="margin:0;">This week's priorities</div>
+                <button class="btn" style="font-size:0.6rem;padding:3px 8px;" onclick="nav('priorities',document.getElementById('ni-priorities'))">Edit →</button>
+              </div>
+              <div id="today-p-snap"></div>
+            </div>
+
+            <!-- Today prompt -->
+            <div class="card">
+              <div class="clbl">Today's prompt</div>
+              <div id="today-jp"></div>
+              <button class="btn" style="margin-top:8px;" onclick="nav('journal',document.getElementById('ni-journal'))">Open journal →</button>
+            </div>
+
           </div>
         </div>
-        <div style="margin-top:8px;"><button class="btn-gold" onclick="saveEnergyMap()">Save</button></div>
-        <div id="energy-map-history" style="margin-top:12px;"></div>
-      </div>
-    </div>
-  </div>
 
-  <!-- REVIEW -->
-  <div class="page" id="page-review">
-    <div class="stitle">Weekly <span>/ review</span></div>
-    <div class="card">
-      <div class="clbl" id="rev-week-lbl"></div>
-      <div style="margin-top:6px;">
-        <div class="clbl" style="margin-bottom:5px;">Score the week</div>
-        <div style="display:flex;flex-wrap:wrap;">
-          <div class="sa-block"><div class="sa-lbl">Professional</div><div class="score-pips" id="sc-professional" data-score="0"></div></div>
-          <div class="sa-block"><div class="sa-lbl">Health</div><div class="score-pips" id="sc-health" data-score="0"></div></div>
-          <div class="sa-block"><div class="sa-lbl">Personal</div><div class="score-pips" id="sc-personal" data-score="0"></div></div>
+        <!-- PRIORITIES -->
+        <div class="page" id="page-priorities">
+          <div class="stitle">Priorities <span>/ week</span></div>
+          <div class="card">
+            <div class="clbl" id="p-week-lbl"></div>
+            <div class="col" id="p-list" style="margin-bottom:4px;min-height:20px;"></div>
+            <hr>
+            <div class="row">
+              <select id="p-area" style="width:108px;flex-shrink:0;"><option>Professional</option><option>Health</option><option>Personal</option></select>
+              <input type="text" id="p-input" placeholder="Add a priority..." onkeydown="if(event.key==='Enter')addPriority()">
+              <button class="btn-gold" onclick="addPriority()">Add</button>
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="clbl" style="margin-bottom:8px;">Current obsession</div>
+            <div class="card">
+              <textarea id="obsession-input" placeholder="What's genuinely captured your attention this week?" rows="2"></textarea>
+              <div class="row" style="margin-top:7px;">
+                <button class="btn-gold" onclick="saveObsession()">Save</button>
+                <div id="obsession-saved" style="font-size:0.7rem;color:var(--soft);font-style:italic;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></div>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="grid g2" style="margin-top:12px;">
-        <div><label class="lbl">What went well</label><textarea id="rv-well" placeholder="One thing that worked..." rows="3"></textarea></div>
-        <div><label class="lbl">What to fix</label><textarea id="rv-fix" placeholder="One thing to change..." rows="3"></textarea></div>
-        <div style="grid-column:1/-1;"><label class="lbl">Weekly win 🏆</label><textarea id="rv-win" placeholder="One thing this week you're proud of — however small..." rows="2"></textarea></div>
-        <div style="grid-column:1/-1;"><label class="lbl">Notes / reflection</label><textarea id="rv-notes" placeholder="Anything else..." rows="2"></textarea></div>
-      </div>
-      <div style="margin-top:10px;"><button class="btn-gold" onclick="saveReview()">Save Review</button></div>
-    </div>
-    <div style="margin-top:12px;">
-      <div class="clbl" style="margin-bottom:8px;">Previous reviews</div>
-      <div id="rev-history"></div>
-    </div>
-  </div>
 
-  <!-- UNI LOG -->
-  <div class="page" id="page-uni">
-    <div class="stitle">Uni <span>/ study log</span></div>
-    <div class="card" style="margin-bottom:12px;">
-      <div class="clbl">Log an activity</div>
-      <div class="grid g2" style="margin-top:6px;">
-        <div><label class="lbl">Date</label><input type="date" id="uni-date"></div>
-        <div><label class="lbl">Module</label>
-          <select id="uni-module">
-            <option value="CSC-10076">CSC-10076 — Programming for Data Scientists</option>
-            <option value="CSC-10077">CSC-10077 — Maths and Statistics</option>
-            <option value="CSC-10082">CSC-10082 — Data Ethics, Security and Governance</option>
-            <option value="CSC-10078">CSC-10078 — Professional Skills</option>
-          </select>
+        <!-- PADEL -->
+        <div class="page" id="page-padel">
+          <div class="stitle">Padel <span>/ log</span></div>
+          <div class="grid ga">
+            <div class="card">
+              <div class="clbl">Log a session</div>
+              <div class="col" style="margin-top:4px;">
+                <div class="row">
+                  <input type="date" id="pd-date" style="flex:1;">
+                  <select id="pd-feel" style="flex:1;">
+                    <option value="🔥">🔥 On fire</option>
+                    <option value="😊">😊 Good</option>
+                    <option value="😐" selected>😐 Average</option>
+                    <option value="😤">😤 Frustrating</option>
+                    <option value="😴">😴 Off day</option>
+                  </select>
+                </div>
+                <textarea id="pd-note" placeholder="Notes — what worked, what to work on..." rows="2"></textarea>
+                <div><button class="btn-gold" onclick="logPadel()">Log Session</button></div>
+              </div>
+              <div class="row" style="margin-top:14px;gap:18px;">
+                <div><div class="stat-sm" id="pd-month">0</div><div class="stat-sub">this month</div></div>
+                <div><div class="stat-sm" id="pd-total">0</div><div class="stat-sub">total</div></div>
+              </div>
+              <div class="padel-progress">
+                <div style="display:flex;justify-content:space-between;align-items:center;">
+                  <div style="font-size:0.6rem;color:var(--muted);">Monthly target</div>
+                  <div style="font-size:0.6rem;color:var(--soft);" id="pd-target-lbl">0 / 8</div>
+                </div>
+                <div class="padel-progress-bar"><div class="padel-progress-fill" id="pd-target-fill" style="width:0%;"></div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="clbl">Session history</div>
+              <div class="sess-list" id="pd-list"></div>
+            </div>
+          </div>
         </div>
-        <div style="grid-column:1/-1;"><label class="lbl">Details of activity</label><textarea id="uni-details" placeholder="What did you do — lecture, tutorial, independent study, project work..." rows="2"></textarea></div>
-        <div style="grid-column:1/-1;"><label class="lbl">Resultant learning</label><textarea id="uni-learning" placeholder="What did you actually learn or produce?" rows="2"></textarea></div>
-        <div style="grid-column:1/-1;"><label class="lbl">Mapping to KSBs</label><textarea id="uni-ksbs" placeholder="e.g. K1, K3, S2, B4 — list all that apply..." rows="1"></textarea></div>
-        <div><label class="lbl">Time assigned (e.g. 12:00–15:00)</label><input type="text" id="uni-time-range" placeholder="09:00–12:00"></div>
-        <div><label class="lbl">Off-the-job hours</label><input type="number" id="uni-otj" placeholder="2.5" min="0" max="24" step="0.5"></div>
-      </div>
-      <div style="margin-top:10px;">
-        <button class="btn-gold" onclick="logUni()">Log Activity</button>
-      </div>
-    </div>
 
-    <div class="card">
-      <div class="row sb" style="margin-bottom:10px;">
-        <div class="clbl" style="margin:0;">Activity log</div>
-        <div class="row" style="gap:6px;">
-          <div style="font-size:0.68rem;color:var(--soft);">Total OTJ: <span id="uni-total-otj" style="color:var(--gold);font-weight:600;">0h</span></div>
-          <button class="btn" onclick="copyUniTable()">Copy table</button>
+        <!-- JOURNAL -->
+        <div class="page" id="page-journal">
+          <div class="stitle">Journal <span>/ reflect</span></div>
+          <div class="grid ga">
+            <div class="card">
+              <div class="clbl">Prompt</div>
+              <div id="j-prompt-display"></div>
+              <div class="col" style="margin-top:4px;">
+                <div class="row">
+                  <select id="j-type" style="flex:0 0 145px;">
+                    <option value="daily">Daily reflection</option>
+                    <option value="insight">Book / podcast insight</option>
+                    <option value="goal">Goal thinking</option>
+                    <option value="weekly">Weekly prompt</option>
+                    <option value="free">Free write</option>
+                  </select>
+                  <button class="btn" onclick="newPrompt()">New prompt</button>
+                </div>
+                <textarea id="j-entry" placeholder="Write here..." rows="6"></textarea>
+                <div><button class="btn-gold" onclick="saveJournal()">Save Entry</button></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="clbl">Past entries</div>
+              <div style="max-height:460px;overflow-y:auto;" id="j-list"></div>
+            </div>
+          </div>
+
+          <!-- Decision log -->
+          <div style="margin-top:14px;">
+            <div class="stitle" style="font-size:1.1rem;margin-bottom:10px;">Decision <span>/ log</span></div>
+            <div class="grid ga">
+              <div class="card">
+                <div class="clbl">Log a decision</div>
+                <div class="col" style="margin-top:4px;">
+                  <input type="text" id="dec-title" placeholder="What decision did you make?">
+                  <select id="dec-area"><option>Professional</option><option>Financial</option><option>Personal</option><option>Health</option><option>Relationship</option></select>
+                  <textarea id="dec-reasoning" placeholder="Your reasoning at the time — be specific..." rows="3"></textarea>
+                  <div><button class="btn-gold" onclick="saveDecision()">Log Decision</button></div>
+                </div>
+              </div>
+              <div class="card">
+                <div class="clbl">Decision history</div>
+                <div style="max-height:300px;overflow-y:auto;" id="dec-list"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Energy map -->
+          <div style="margin-top:14px;">
+            <div class="stitle" style="font-size:1.1rem;margin-bottom:10px;">Energy <span>/ map</span></div>
+            <div class="card">
+              <div class="clbl">What drained you vs charged you this week?</div>
+              <div class="grid g2" style="margin-top:6px;">
+                <div><label class="lbl">⬇ Drained me</label><textarea id="drained-input" placeholder="People, tasks, environments..." rows="3"></textarea></div>
+                <div><label class="lbl">⬆ Charged me</label><textarea id="charged-input" placeholder="What gave you energy?" rows="3"></textarea></div>
+              </div>
+              <div style="margin-top:8px;"><button class="btn-gold" onclick="saveEnergyMap()">Save</button></div>
+              <div id="energy-map-history" style="margin-top:12px;"></div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div style="overflow-x:auto;">
-        <table class="uni-table" id="uni-table">
-          <thead>
-            <tr>
-              <th>Date</th><th>Module</th><th>Activity</th><th>Learning</th><th>KSBs</th><th>Time assigned</th><th>OTJ hrs</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="uni-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
 
-  <!-- STATS -->
-  <div class="page" id="page-stats">
-    <div class="stitle">Stats <span>/ overview</span></div>
-    <div class="grid ga">
-      <div class="card"><div class="clbl">Gym — sessions / month</div><div id="gym-chart" style="margin-top:6px;"></div></div>
-      <div class="card"><div class="clbl">Padel — sessions / month</div><div id="pd-chart" style="margin-top:6px;"></div></div>
-      <div class="card">
-        <div class="clbl">Mood — 30 days</div>
-        <div style="margin-top:6px;overflow-x:auto;"><div class="heatmap" id="mood-hm"></div></div>
-        <div style="font-size:0.56rem;color:var(--muted);margin-top:5px;">← 30 days ago · today →</div>
-      </div>
-      <div class="card">
-        <div class="clbl">Phone usage — 14 days</div>
-        <div id="phone-chart" style="margin-top:6px;"></div>
-      </div>
-      <div class="card">
-        <div class="clbl">Reading — all time</div>
-        <div class="row" style="margin-top:6px;gap:16px;">
-          <div><div class="stat-sm" id="st-pages">0</div><div class="stat-sub">pages</div></div>
-          <div><div class="stat-sm" id="st-mins">0</div><div class="stat-sub">minutes</div></div>
-          <div><div class="stat-sm" id="st-days">0</div><div class="stat-sub">days</div></div>
+        <!-- REVIEW -->
+        <div class="page" id="page-review">
+          <div class="stitle">Weekly <span>/ review</span></div>
+          <div class="card">
+            <div class="clbl" id="rev-week-lbl"></div>
+            <div style="margin-top:6px;">
+              <div class="clbl" style="margin-bottom:5px;">Score the week</div>
+              <div style="display:flex;flex-wrap:wrap;">
+                <div class="sa-block"><div class="sa-lbl">Professional</div><div class="score-pips" id="sc-professional" data-score="0"></div></div>
+                <div class="sa-block"><div class="sa-lbl">Health</div><div class="score-pips" id="sc-health" data-score="0"></div></div>
+                <div class="sa-block"><div class="sa-lbl">Personal</div><div class="score-pips" id="sc-personal" data-score="0"></div></div>
+              </div>
+            </div>
+            <div class="grid g2" style="margin-top:12px;">
+              <div><label class="lbl">What went well</label><textarea id="rv-well" placeholder="One thing that worked..." rows="3"></textarea></div>
+              <div><label class="lbl">What to fix</label><textarea id="rv-fix" placeholder="One thing to change..." rows="3"></textarea></div>
+              <div style="grid-column:1/-1;"><label class="lbl">Weekly win 🏆</label><textarea id="rv-win" placeholder="One thing this week you're proud of..." rows="2"></textarea></div>
+              <div style="grid-column:1/-1;"><label class="lbl">Notes</label><textarea id="rv-notes" placeholder="Anything else..." rows="2"></textarea></div>
+            </div>
+            <div style="margin-top:10px;"><button class="btn-gold" onclick="saveReview()">Save Review</button></div>
+          </div>
+          <div style="margin-top:12px;">
+            <div class="clbl" style="margin-bottom:8px;">Previous reviews</div>
+            <div id="rev-history"></div>
+          </div>
         </div>
-      </div>
-      <div class="card">
-        <div class="clbl">Weekly review scores</div>
-        <div id="rev-chart" style="margin-top:6px;"></div>
-      </div>
-      <div class="card" style="grid-column:1/-1;">
-        <div class="clbl">Resistance patterns — what you avoid most</div>
-        <div id="resist-chart" style="margin-top:6px;"></div>
-      </div>
-    </div>
-  </div>
 
+        <!-- UNI LOG -->
+        <div class="page" id="page-uni">
+          <div class="stitle">Uni <span>/ study log</span></div>
+          <div class="card" style="margin-bottom:12px;">
+            <div class="clbl">Log an activity</div>
+            <div class="grid g2" style="margin-top:6px;">
+              <div><label class="lbl">Date</label><input type="date" id="uni-date"></div>
+              <div><label class="lbl">Module</label>
+                <select id="uni-module">
+                  <option value="CSC-10076">CSC-10076 — Programming for Data Scientists</option>
+                  <option value="CSC-10077">CSC-10077 — Maths and Statistics</option>
+                  <option value="CSC-10082">CSC-10082 — Data Ethics, Security and Governance</option>
+                  <option value="CSC-10078">CSC-10078 — Professional Skills</option>
+                </select>
+              </div>
+              <div style="grid-column:1/-1;"><label class="lbl">Details of activity</label><textarea id="uni-details" placeholder="What did you do — lecture, tutorial, independent study..." rows="2"></textarea></div>
+              <div style="grid-column:1/-1;"><label class="lbl">Resultant learning</label><textarea id="uni-learning" placeholder="What did you actually learn or produce?" rows="2"></textarea></div>
+              <div style="grid-column:1/-1;"><label class="lbl">Mapping to KSBs</label><textarea id="uni-ksbs" placeholder="e.g. K1, K3, S2, B4" rows="1"></textarea></div>
+              <div><label class="lbl">Time assigned (e.g. 12:00–15:00)</label><input type="text" id="uni-time-range" placeholder="09:00–12:00"></div>
+              <div><label class="lbl">Off-the-job hours</label><input type="number" id="uni-otj" placeholder="2.5" min="0" max="24" step="0.5"></div>
+            </div>
+            <div style="margin-top:10px;"><button class="btn-gold" onclick="logUni()">Log Activity</button></div>
+          </div>
+          <div class="card">
+            <div class="row sb" style="margin-bottom:10px;">
+              <div class="clbl" style="margin:0;">Activity log</div>
+              <div class="row" style="gap:8px;">
+                <div style="font-size:0.68rem;color:var(--soft);">Total OTJ: <span id="uni-total-otj" style="color:var(--gold);font-weight:600;">0h</span></div>
+                <button class="btn" onclick="copyUniTable()">Copy table</button>
+              </div>
+            </div>
+            <div class="uni-filter">
+              <select id="uni-filter-module" onchange="renderUni()">
+                <option value="">All modules</option>
+                <option value="CSC-10076">CSC-10076 — Programming</option>
+                <option value="CSC-10077">CSC-10077 — Maths & Stats</option>
+                <option value="CSC-10082">CSC-10082 — Data Ethics</option>
+                <option value="CSC-10078">CSC-10078 — Professional Skills</option>
+              </select>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="uni-table" id="uni-table">
+                <thead><tr><th>Date</th><th>Module</th><th>Activity</th><th>Learning</th><th>KSBs</th><th>Time</th><th>OTJ hrs</th><th></th></tr></thead>
+                <tbody id="uni-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- STATS -->
+        <div class="page" id="page-stats">
+          <div class="stitle">Stats <span>/ overview</span></div>
+          <div class="grid ga">
+            <div class="card"><div class="clbl">Gym — sessions / month</div><div id="gym-chart" style="margin-top:6px;"></div></div>
+            <div class="card"><div class="clbl">Padel — sessions / month</div><div id="pd-chart" style="margin-top:6px;"></div></div>
+            <div class="card">
+              <div class="clbl">Mood — 30 days</div>
+              <div style="margin-top:6px;overflow-x:auto;"><div class="heatmap" id="mood-hm"></div></div>
+              <div style="font-size:0.56rem;color:var(--muted);margin-top:5px;">← 30 days ago · today →</div>
+            </div>
+            <div class="card">
+              <div class="clbl">Phone usage — 14 days</div>
+              <div id="phone-chart" style="margin-top:6px;"></div>
+            </div>
+            <div class="card">
+              <div class="clbl">Reading — all time</div>
+              <div class="row" style="margin-top:6px;gap:16px;">
+                <div><div class="stat-sm" id="st-pages">0</div><div class="stat-sub">pages</div></div>
+                <div><div class="stat-sm" id="st-mins">0</div><div class="stat-sub">minutes</div></div>
+                <div><div class="stat-sm" id="st-days">0</div><div class="stat-sub">days</div></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="clbl">Weekly review scores</div>
+              <div id="rev-chart" style="margin-top:6px;"></div>
+            </div>
+            <div class="card" style="grid-column:1/-1;">
+              <div class="clbl">Resistance — recent patterns</div>
+              <div id="resist-chart" style="margin-top:6px;"></div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
 </div>
-</div>
+
 <div id="toast"></div>
+<div id="edit-modal" style="display:none;" class="modal-overlay" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal">
+    <div class="modal-title" id="edit-modal-title">Edit entry</div>
+    <div id="edit-modal-fields"></div>
+    <div class="modal-actions">
+      <button class="btn-gold" onclick="saveEdit()">Save</button>
+      <button class="btn" onclick="closeEditModal()">Cancel</button>
+    </div>
+  </div>
+</div>
 
 <script type="module">
 import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -692,7 +798,7 @@ import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, deleteD
   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-// 🔧 PASTE YOUR FIREBASE CONFIG HERE
+// 🔧 FIREBASE CONFIG
 const FIREBASE_CONFIG = {
   apiKey:            "AIzaSyB5QdQaXq72UNK1oCRDfZPZHm2-31LBsz0",
   authDomain:        "joelos.firebaseapp.com",
@@ -705,7 +811,7 @@ const FIREBASE_CONFIG = {
 
 const LIVE = FIREBASE_CONFIG.apiKey !== "PASTE_HERE";
 let auth, db, uid = null;
-const C = {}; // cache
+const C = {};
 
 if (LIVE) {
   const app = initializeApp(FIREBASE_CONFIG);
@@ -717,91 +823,68 @@ if (LIVE) {
   boot(null);
 }
 
-// ── PWA manifest injection ────────────────
-const manifest = { name:'JE OS', short_name:'JE OS', start_url:'./', display:'standalone', background_color:'#080808', theme_color:'#080808', icons:[{src:'https://placehold.co/192x192/080808/c8a96e?text=JE',sizes:'192x192',type:'image/png'}] };
-const blob = new Blob([JSON.stringify(manifest)],{type:'application/json'});
-document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
-
-let deferredPrompt = null;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt=e; document.getElementById('install-btn').style.display='block'; });
-window.installPWA = async () => { if(!deferredPrompt)return; deferredPrompt.prompt(); const r=await deferredPrompt.userChoice; if(r.outcome==='accepted') document.getElementById('install-btn').style.display='none'; deferredPrompt=null; };
+// PWA
+const manifest={name:'JE OS',short_name:'JE OS',start_url:'./',display:'standalone',background_color:'#080808',theme_color:'#080808',icons:[{src:'https://placehold.co/192x192/080808/c8a96e?text=JE',sizes:'192x192',type:'image/png'}]};
+const blob=new Blob([JSON.stringify(manifest)],{type:'application/json'});
+document.getElementById('pwa-manifest').href=URL.createObjectURL(blob);
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredPrompt=e;document.getElementById('install-btn').style.display='block';});
+window.installPWA=async()=>{if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;document.getElementById('install-btn').style.display='none';deferredPrompt=null;};
 
 // ── auth ──────────────────────────────────
-window.signIn = async () => {
-  document.getElementById('auth-err').textContent='';
-  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
-  catch(e) { document.getElementById('auth-err').textContent=e.message; }
-};
-window.doSignOut = async () => { if(!LIVE)return; if(confirm('Sign out?')) await fbOut(auth); };
-if (LIVE) onAuthStateChanged(auth, u => {
-  if (u) {
-    uid=u.uid;
-    const av=document.getElementById('uav');
-    if(u.photoURL){av.src=u.photoURL;av.style.display='block';}
-    document.getElementById('uname').textContent=u.displayName||u.email;
-    document.getElementById('auth-screen').style.display='none';
-    document.getElementById('app').style.display='block';
-    boot(u);
-  } else { uid=null; document.getElementById('auth-screen').style.display='flex'; document.getElementById('app').style.display='none'; }
+window.signIn=async()=>{document.getElementById('auth-err').textContent='';try{await signInWithPopup(auth,new GoogleAuthProvider());}catch(e){document.getElementById('auth-err').textContent=e.message;}};
+window.doSignOut=async()=>{if(!LIVE)return;if(confirm('Sign out?'))await fbOut(auth);};
+if(LIVE)onAuthStateChanged(auth,u=>{
+  if(u){uid=u.uid;const av=document.getElementById('uav');if(u.photoURL){av.src=u.photoURL;av.style.display='block';}document.getElementById('uname').textContent=u.displayName||u.email;document.getElementById('auth-screen').style.display='none';document.getElementById('app').style.display='block';boot(u);}
+  else{uid=null;document.getElementById('auth-screen').style.display='flex';document.getElementById('app').style.display='none';}
 });
 
 // ── firestore ─────────────────────────────
-const up = s=>`users/${uid}/${s}`;
-const sync = s=>{ const d=document.getElementById('sync-dot'); if(!d)return; d.className='sync-dot'+(s?' '+s:''); if(s==='synced')setTimeout(()=>d.classList.remove('synced'),1600); };
-
-async function fsGet(path) {
-  if(!LIVE||!uid) return C[path]??null;
-  sync('syncing');
-  try { const s=await getDoc(doc(db,path)); sync('synced'); const v=s.exists()?s.data():null; C[path]=v; return v; }
-  catch(e){ sync(''); return C[path]??null; }
-}
-async function fsSet(path,data) {
-  C[path]=data;
-  if(!LIVE||!uid)return;
-  sync('syncing');
-  try { await setDoc(doc(db,path),data,{merge:true}); sync('synced'); }
-  catch(e){ sync(''); }
-}
-async function fsColGet(col) {
-  if(!LIVE||!uid) return C[col]??[];
-  sync('syncing');
-  try {
-    let snap; try{snap=await getDocs(query(collection(db,col),orderBy('date','asc')));}catch{snap=await getDocs(collection(db,col));}
-    const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.date??'').localeCompare(b.date??''));
-    C[col]=items; sync('synced'); return items;
-  }catch(e){ sync(''); return C[col]??[]; }
-}
-async function fsColAdd(col,data) {
-  if(!LIVE||!uid){ const a=C[col]??[]; const i={...data,id:Date.now()+''}; a.push(i); C[col]=a; return i; }
-  sync('syncing');
-  try{ const r=await addDoc(collection(db,col),data); sync('synced'); return {id:r.id,...data}; }
-  catch(e){ sync(''); return null; }
-}
-async function fsColDel(col,id) {
-  if(C[col])C[col]=C[col].filter(i=>i.id!==id);
-  if(!LIVE||!uid)return;
-  sync('syncing');
-  try{ await deleteDoc(doc(db,col+'/'+id)); sync('synced'); }catch(e){ sync(''); }
-}
+const up=s=>`users/${uid}/${s}`;
+const sync=s=>{const d=document.getElementById('sync-dot');if(!d)return;d.className='sync-dot'+(s?' '+s:'');if(s==='synced')setTimeout(()=>d.classList.remove('synced'),1600);};
+async function fsGet(path){if(!LIVE||!uid)return C[path]??null;sync('syncing');try{const s=await getDoc(doc(db,path));sync('synced');const v=s.exists()?s.data():null;C[path]=v;return v;}catch(e){sync('');return C[path]??null;}}
+async function fsSet(path,data){C[path]=data;if(!LIVE||!uid)return;sync('syncing');try{await setDoc(doc(db,path),data,{merge:true});sync('synced');}catch(e){sync('');}}
+async function fsColGet(col){if(!LIVE||!uid)return C[col]??[];sync('syncing');try{let snap;try{snap=await getDocs(query(collection(db,col),orderBy('date','asc')));}catch{snap=await getDocs(collection(db,col));}const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>(a.date??'').localeCompare(b.date??''));C[col]=items;sync('synced');return items;}catch(e){sync('');return C[col]??[];}}
+async function fsColAdd(col,data){if(!LIVE||!uid){const a=C[col]??[];const i={...data,id:Date.now()+''};a.push(i);C[col]=a;return i;}sync('syncing');try{const r=await addDoc(collection(db,col),data);sync('synced');return{id:r.id,...data};}catch(e){sync('');return null;}}
+async function fsColDel(col,id){if(C[col])C[col]=C[col].filter(i=>i.id!==id);if(!LIVE||!uid)return;sync('syncing');try{await deleteDoc(doc(db,col+'/'+id));sync('synced');}catch(e){sync('');}}
 
 // ── dates ─────────────────────────────────
-const todayKey=()=>new Date().toISOString().slice(0,10);
-const weekKey=()=>{ const d=new Date(),day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); };
-const fmtDate=iso=>new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
-const monthKey=iso=>iso.slice(0,7);
-const isSunday=()=>new Date().getDay()===0;
+let loggingYday = false;
+const realToday = ()=>new Date().toISOString().slice(0,10);
+const todayKey  = ()=>{ if(loggingYday){const d=new Date();d.setDate(d.getDate()-1);return d.toISOString().slice(0,10);}return realToday(); };
+const weekKey   = ()=>{const d=new Date(),day=d.getDay()||7;d.setDate(d.getDate()-day+1);return d.toISOString().slice(0,10);};
+const fmtDate   = iso=>new Date(iso+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+const monthKey  = iso=>iso.slice(0,7);
+const isSunday  = ()=>new Date().getDay()===0;
 
 // ── toast ─────────────────────────────────
-window.toast=msg=>{ const e=document.getElementById('toast'); e.textContent=msg; e.classList.add('show'); setTimeout(()=>e.classList.remove('show'),2000); };
+window.toast=msg=>{const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);};
+
+// ── sidebar ───────────────────────────────
+window.toggleSidebar=()=>{const s=document.getElementById('sidebar');const o=document.getElementById('sidebar-overlay');s.classList.toggle('open');o.classList.toggle('show');};
+window.closeSidebar=()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');};
 
 // ── nav ───────────────────────────────────
-window.nav=(id,btn)=>{
+const PAGE_TITLES={today:'Today',priorities:'Priorities',padel:'Padel',journal:'Journal',review:'Weekly Review',uni:'Uni Log',stats:'Stats'};
+window.nav=(id,el)=>{
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  if(btn)btn.classList.add('active');
-  else document.querySelectorAll('.nb').forEach(b=>{ if(b.getAttribute('onclick')?.includes(`'${id}'`))b.classList.add('active'); });
+  if(el)el.classList.add('active');
+  document.getElementById('page-title').innerHTML=PAGE_TITLES[id]||id;
+  closeSidebar();
   ({today:renderToday,priorities:renderPriorities,padel:renderPadel,journal:renderJournal,review:renderReview,uni:renderUni,stats:renderStats})[id]?.();
+};
+
+// ── yesterday toggle ──────────────────────
+window.toggleYday=()=>{
+  loggingYday=!loggingYday;
+  const btn=document.getElementById('yday-btn');
+  const lbl=document.getElementById('logging-for');
+  btn.classList.toggle('active',loggingYday);
+  lbl.style.display=loggingYday?'block':'none';
+  renderToday();
+  toast(loggingYday?'Logging for yesterday':'Logging for today');
 };
 
 // ── header ────────────────────────────────
@@ -809,25 +892,32 @@ function updateHeader(){
   const d=new Date();
   document.getElementById('hdr-date').textContent=d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long'});
   document.getElementById('hdr-week').textContent=`W/c ${fmtDate(weekKey())}`;
-  if(isSunday()) document.getElementById('sunday-banner').classList.add('show');
+  document.getElementById('page-title-date').textContent='';
+  if(isSunday())document.getElementById('sunday-banner').classList.add('show');
 }
 
 // ── streak ────────────────────────────────
 async function updateStreak(){
-  let streak=0;
+  let streak=0,longest=0,run=0,readStreak=0,readRun=0;
   for(let i=0;i<365;i++){
-    const d=new Date(); d.setDate(d.getDate()-i);
-    const k=d.toISOString().slice(0,10);
+    const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);
     const v=await fsGet(up(`daily/${k}`));
-    if(!v||!v.mood)break;
-    streak++;
+    // main streak
+    if(v?.mood){if(i===streak)streak++;run++;longest=Math.max(longest,run);}else{run=0;}
+    // reading streak
+    if(v?.reading?.pages>0||v?.reading?.mins>0){if(i===readStreak)readStreak++;readRun++;}else{readRun=0;}
   }
   document.getElementById('streak-num').textContent=streak;
-  document.getElementById('streak-txt').textContent=streak===0?'Start your streak':streak===1?'1 day streak 🔥':`${streak} day streak 🔥`;
+  document.getElementById('streak-txt').textContent=streak===0?'Start streak':streak===1?'1 day 🔥':`${streak} days 🔥`;
+  const bestEl=document.getElementById('streak-best');
+  if(bestEl)bestEl.textContent=longest>streak?`Best: ${longest} days`:'';
+  const rsNum=document.getElementById('rs-num');const rsTxt=document.getElementById('rs-txt');
+  if(rsNum)rsNum.textContent=readStreak;
+  if(rsTxt)rsTxt.textContent=readStreak===0?'Reading streak':readStreak===1?'1 day 📚':`${readStreak} days 📚`;
 }
 
 // ── journal prompts ───────────────────────
-const PROMPTS = {
+const PROMPTS={
   daily:[
     {text:"What's the one thing you're avoiding today that would actually move something forward?",sub:"Activation energy check."},
     {text:"On a scale of 1-10, how much of today was spent on your own priorities vs reacting to everything else?",sub:"Time ownership."},
@@ -862,32 +952,49 @@ const PROMPTS = {
   goal:[
     {text:"Pick one goal. What's the actual next physical action — not a project, a single action?",sub:"GTD clarity."},
     {text:"Is the goal you're chasing right now yours, or is it partly about proving something to someone else?",sub:"Motivation audit."},
-    {text:"What's the honest gap between where you are and where you want to be professionally? What closes it slightly?",sub:"Career gap."},
+    {text:"What's the honest gap between where you are professionally and where you want to be? What closes it slightly?",sub:"Career gap."},
     {text:"What would have to be true for the sports data path to actually work out? Are those things in your control?",sub:"Path clarity."},
     {text:"Are you building toward something or running from something? Both are fine — just know which it is.",sub:"Direction check."},
   ],
   free:[
     {text:"What's on your mind right now? Don't edit it. Just write.",sub:"Brain dump."},
-    {text:"What do you actually want? Not what you think you should want — what do you actually want?",sub:"Honest wants."},
+    {text:"What do you actually want? Not what you think you should want.",sub:"Honest wants."},
     {text:"What's something you haven't said out loud to anyone yet?",sub:"Unspoken."},
   ],
 };
 let currentPrompt=null;
-const getPromptForToday=()=>{ const idx=Math.floor(Date.now()/86400000)%PROMPTS.daily.length; return PROMPTS.daily[idx]; };
-window.newPrompt=()=>{ const type=document.getElementById('j-type').value; const pool=PROMPTS[type]||PROMPTS.daily; currentPrompt=pool[Math.floor(Math.random()*pool.length)]; document.getElementById('j-prompt-display').innerHTML=renderJP(currentPrompt); };
+const getPromptForToday=()=>PROMPTS.daily[Math.floor(Date.now()/86400000)%PROMPTS.daily.length];
+window.newPrompt=()=>{const type=document.getElementById('j-type').value;const pool=PROMPTS[type]||PROMPTS.daily;currentPrompt=pool[Math.floor(Math.random()*pool.length)];document.getElementById('j-prompt-display').innerHTML=renderJP(currentPrompt);};
 const renderJP=p=>`<div class="jp"><div class="jp-lbl">Prompt</div><div class="jp-text">${p.text}</div>${p.sub?`<div class="jp-sub">${p.sub}</div>`:''}</div>`;
+
+// ── confirm delete helper ─────────────────
+function confirmDel(el, onConfirm) {
+  el.innerHTML='';
+  const wrap=document.createElement('span');
+  wrap.className='del-confirm';
+  wrap.innerHTML='Delete? <button class="del-yes">Yes</button> <button class="del-no">No</button>';
+  wrap.querySelector('.del-yes').onclick=onConfirm;
+  wrap.querySelector('.del-no').onclick=()=>{el.innerHTML='';el.appendChild(makeDelBtn(el,onConfirm));};
+  el.appendChild(wrap);
+}
+function makeDelBtn(container, onConfirm){
+  const b=document.createElement('button');
+  b.className='btn-x';b.textContent='✕';
+  b.onclick=()=>confirmDel(container,onConfirm);
+  return b;
+}
 
 // ── TODAY ─────────────────────────────────
 async function renderToday(){
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   document.querySelectorAll('.mood-btn').forEach(b=>b.classList.toggle('sel',parseInt(b.dataset.v)===(data.mood||0)));
-  document.querySelectorAll('#ql-mood .mood-btn').forEach(b=>b.classList.toggle('sel',parseInt(b.dataset.v)===(data.mood||0)));
   const e=data.energy||0;
   document.querySelectorAll('.e-pip').forEach(p=>p.classList.toggle('lit',parseInt(p.dataset.v)<=e));
   document.getElementById('e-lbl').textContent=e?e+'/10':'—';
   ['push','pull','legs'].forEach(t=>document.getElementById('gym-'+t).classList.toggle('done',!!(data.gym||{})[t]));
-  if(data.mood_trigger) document.getElementById('mood-trigger').value=data.mood_trigger;
-  if(data.gratitude){ document.getElementById('grat-input').value=data.gratitude; document.getElementById('grat-saved').textContent=data.gratitude; }
+  if(data.mood_trigger)document.getElementById('mood-trigger').value=data.mood_trigger;
+  if(data.gratitude){document.getElementById('grat-input').value=data.gratitude;document.getElementById('grat-saved').textContent=data.gratitude;}
+  else{document.getElementById('grat-input').value='';document.getElementById('grat-saved').textContent='';}
   renderWins(data.wins||[]);
   renderResistList(data.resistance||[]);
   await renderReadingTotals();
@@ -896,39 +1003,29 @@ async function renderToday(){
   const wdata=await fsGet(up(`weeks/${weekKey()}`))||{};
   const plist=wdata.priorities||[];
   const psnap=document.getElementById('today-p-snap');
-  psnap.innerHTML=plist.length?plist.map(p=>`<div class="p-item ${p.done?'done':''}" style="margin-bottom:4px;"><div class="p-area">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div>${p.done?'<span style="color:var(--green);font-size:0.72rem;">✓</span>':''}</div>`).join(''):'<div class="empty">No priorities set yet</div>';
-  // today prompt
+  const aC2=a=>'area-'+a.toLowerCase();
+  psnap.innerHTML=plist.length?plist.map(p=>`<div class="p-item ${p.done?'done':''}" style="margin-bottom:4px;"><div class="p-area ${aC2(p.area)}">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div>${p.done?'<span style="color:var(--green);font-size:0.72rem;">✓</span>':''}</div>`).join(''):'<div class="empty-state"><div class="es-icon">⊹</div><div class="es-text">No priorities yet</div><div class="es-hint">Go to Priorities ↓</div></div>';
+  // prompt
   currentPrompt=currentPrompt||getPromptForToday();
   document.getElementById('today-jp').innerHTML=renderJP(getPromptForToday());
-  // quick log show if afternoon
-  const hr=new Date().getHours();
-  if(hr>=20) document.getElementById('quick-log-banner').classList.add('show');
   await updateStreak();
 }
 
-window.setMood=async(v,quick=false)=>{
+window.setMood=async v=>{
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
-  data.mood=v; await fsSet(up(`daily/${todayKey()}`),data);
+  data.mood=v;await fsSet(up(`daily/${todayKey()}`),data);
   document.querySelectorAll('.mood-btn').forEach(b=>b.classList.toggle('sel',parseInt(b.dataset.v)===v));
-  // show trigger field for low moods
-  if(!quick){
-    const show=v<=2;
-    document.getElementById('trigger-wrap').style.display=show?'flex':'none';
-    if(show&&data.mood_trigger) document.getElementById('mood-trigger').value=data.mood_trigger;
-  }
-  if(!quick)toast('Mood saved');
+  toast('Mood saved');
 };
 window.saveTrigger=async()=>{
-  const val=document.getElementById('mood-trigger').value.trim();
-  if(!val)return;
+  const val=document.getElementById('mood-trigger').value.trim();if(!val)return;
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
-  data.mood_trigger=val; await fsSet(up(`daily/${todayKey()}`),data);
-  document.getElementById('trigger-wrap').style.display='none';
-  toast('Trigger noted');
+  data.mood_trigger=val;await fsSet(up(`daily/${todayKey()}`),data);
+  toast('Noted');
 };
 window.setEnergy=async v=>{
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
-  data.energy=v; await fsSet(up(`daily/${todayKey()}`),data);
+  data.energy=v;await fsSet(up(`daily/${todayKey()}`),data);
   document.querySelectorAll('.e-pip').forEach(p=>p.classList.toggle('lit',parseInt(p.dataset.v)<=v));
   document.getElementById('e-lbl').textContent=v+'/10';
 };
@@ -947,14 +1044,12 @@ window.logReading=async()=>{
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   data.reading={pages:(data.reading?.pages||0)+p,mins:(data.reading?.mins||0)+m};
   await fsSet(up(`daily/${todayKey()}`),data);
-  document.getElementById('r-pages').value='';
-  document.getElementById('r-mins').value='';
-  toast(`+${p}p +${m}m`);
-  renderReadingTotals();
+  document.getElementById('r-pages').value='';document.getElementById('r-mins').value='';
+  toast(`+${p}p +${m}m`);renderReadingTotals();
 };
 async function renderReadingTotals(){
-  const wk=weekKey(); let wp=0,wm=0;
-  for(let i=0;i<7;i++){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); if(k>=wk){ const v=await fsGet(up(`daily/${k}`)); if(v?.reading){wp+=v.reading.pages||0;wm+=v.reading.mins||0;} }}
+  const wk=weekKey();let wp=0,wm=0;
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);if(k>=wk){const v=await fsGet(up(`daily/${k}`));if(v?.reading){wp+=v.reading.pages||0;wm+=v.reading.mins||0;}}}
   document.getElementById('r-pages-wk').textContent=wp;
   document.getElementById('r-mins-wk').textContent=wm;
 }
@@ -963,76 +1058,73 @@ window.logPhone=async()=>{
   const feel=document.getElementById('phone-feel').value;
   if(isNaN(hrs)){toast('Enter hours');return;}
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
-  data.phone={hrs,feel}; await fsSet(up(`daily/${todayKey()}`),data);
-  document.getElementById('phone-hrs').value='';
-  document.getElementById('phone-feel').value='';
-  toast('Phone usage logged');
-  renderPhoneToday();
+  data.phone={hrs,feel};await fsSet(up(`daily/${todayKey()}`),data);
+  document.getElementById('phone-hrs').value='';document.getElementById('phone-feel').value='';
+  toast('Phone usage logged');renderPhoneToday();
 };
 async function renderPhoneToday(){
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   document.getElementById('phone-today').textContent=data.phone?.hrs!==undefined?data.phone.hrs+'h':'—';
-  let sum=0,days=0;
-  for(let i=0;i<7;i++){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); const v=await fsGet(up(`daily/${k}`)); if(v?.phone?.hrs!==undefined){sum+=v.phone.hrs;days++;} }
-  document.getElementById('phone-avg').textContent=days?((sum/days).toFixed(1))+'h':'—';
+  // this week avg
+  let sum=0,days=0,lastSum=0,lastDays=0;
+  for(let i=0;i<7;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const v=await fsGet(up(`daily/${k}`));if(v?.phone?.hrs!==undefined){sum+=v.phone.hrs;days++;}}
+  for(let i=7;i<14;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const v=await fsGet(up(`daily/${k}`));if(v?.phone?.hrs!==undefined){lastSum+=v.phone.hrs;lastDays++;}}
+  const thisAvg=days?(sum/days):null;
+  const lastAvg=lastDays?(lastSum/lastDays):null;
+  document.getElementById('phone-avg').textContent=thisAvg!==null?thisAvg.toFixed(1)+'h':'—';
+  const trendEl=document.getElementById('phone-trend');
+  if(trendEl&&thisAvg!==null&&lastAvg!==null){
+    const diff=thisAvg-lastAvg;const abs=Math.abs(diff).toFixed(1);
+    if(Math.abs(diff)<0.2){trendEl.innerHTML=`<span class='trend-flat'>→ Same as last week (${lastAvg.toFixed(1)}h)</span>`;}
+    else if(diff<0){trendEl.innerHTML=`<span class='trend-down'>↓ ${abs}h less than last week — good</span>`;}
+    else{trendEl.innerHTML=`<span class='trend-up'>↑ ${abs}h more than last week</span>`;}
+  }else if(trendEl){trendEl.innerHTML='';}
 }
 window.logWin=async()=>{
-  const val=document.getElementById('win-input').value.trim();
-  if(!val)return;
+  const val=document.getElementById('win-input').value.trim();if(!val)return;
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   data.wins=[...(data.wins||[]),val];
   await fsSet(up(`daily/${todayKey()}`),data);
   document.getElementById('win-input').value='';
-  renderWins(data.wins);
-  toast('Win logged 🏆');
+  renderWins(data.wins);toast('Win logged 🏆');
 };
 function renderWins(wins){
-  const el=document.getElementById('win-list');
-  el.innerHTML=wins.map((w,i)=>`<div class="row" style="margin-bottom:3px;"><span style="font-size:0.7rem;color:var(--green);">✓</span><span style="font-size:0.73rem;flex:1;">${w}</span><button class="btn-x" onclick="delWin(${i})">✕</button></div>`).join('')||'';
+  document.getElementById('win-list').innerHTML=wins.map((w,i)=>`<div class="row" style="margin-bottom:3px;"><span style="font-size:0.7rem;color:var(--green);">✓</span><span style="font-size:0.73rem;flex:1;">${w}</span><span id="wdel-${i}"></span></div>`).join('');
+  wins.forEach((_,i)=>{
+    const el=document.getElementById('wdel-'+i);
+    if(el)el.appendChild(makeDelBtn(el,()=>delWin(i)));
+  });
 }
 window.delWin=async i=>{
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   data.wins=(data.wins||[]).filter((_,idx)=>idx!==i);
-  await fsSet(up(`daily/${todayKey()}`),data); renderWins(data.wins);
+  await fsSet(up(`daily/${todayKey()}`),data);renderWins(data.wins);
 };
 window.saveGratitude=async()=>{
-  const val=document.getElementById('grat-input').value.trim();
-  if(!val)return;
+  const val=document.getElementById('grat-input').value.trim();if(!val)return;
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
-  data.gratitude=val; await fsSet(up(`daily/${todayKey()}`),data);
-  document.getElementById('grat-saved').textContent=val;
-  toast('Gratitude saved');
+  data.gratitude=val;await fsSet(up(`daily/${todayKey()}`),data);
+  document.getElementById('grat-saved').textContent=val;toast('Gratitude saved');
 };
 window.logResistance=async()=>{
-  const val=document.getElementById('resist-input').value.trim();
-  if(!val)return;
+  const val=document.getElementById('resist-input').value.trim();if(!val)return;
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   data.resistance=[...(data.resistance||[]),val];
   await fsSet(up(`daily/${todayKey()}`),data);
   document.getElementById('resist-input').value='';
-  renderResistList(data.resistance);
-  toast('Logged');
+  renderResistList(data.resistance);toast('Logged');
 };
 function renderResistList(items){
-  const el=document.getElementById('resist-list');
-  el.innerHTML=items.map((r,i)=>`<div class="row" style="margin-bottom:3px;"><span style="font-size:0.7rem;color:var(--red);">→</span><span style="font-size:0.73rem;flex:1;color:var(--soft);">${r}</span><button class="btn-x" onclick="delResist(${i})">✕</button></div>`).join('')||'';
+  document.getElementById('resist-list').innerHTML=items.map((r,i)=>`<div class="row" style="margin-bottom:3px;"><span style="font-size:0.7rem;color:var(--red);">→</span><span style="font-size:0.73rem;flex:1;color:var(--soft);">${r}</span><span id="rdel-${i}"></span></div>`).join('');
+  items.forEach((_,i)=>{
+    const el=document.getElementById('rdel-'+i);
+    if(el)el.appendChild(makeDelBtn(el,()=>delResist(i)));
+  });
 }
 window.delResist=async i=>{
   const data=await fsGet(up(`daily/${todayKey()}`))||{};
   data.resistance=(data.resistance||[]).filter((_,idx)=>idx!==i);
-  await fsSet(up(`daily/${todayKey()}`),data); renderResistList(data.resistance);
-};
-window.saveQuickLog=async()=>{
-  const line=document.getElementById('ql-line').value.trim();
-  if(!line)return;
-  const data=await fsGet(up(`daily/${todayKey()}`))||{};
-  if(!data.wins)data.wins=[];
-  data.wins.push('[quick] '+line);
-  await fsSet(up(`daily/${todayKey()}`),data);
-  document.getElementById('ql-line').value='';
-  document.getElementById('quick-log-banner').classList.remove('show');
-  toast('Quick log saved');
-  updateStreak();
+  await fsSet(up(`daily/${todayKey()}`),data);renderResistList(data.resistance);
 };
 
 // ── PRIORITIES ────────────────────────────
@@ -1042,47 +1134,53 @@ async function renderPriorities(){
   const data=await fsGet(up(`weeks/${wk}`))||{};
   const list=data.priorities||[];
   const el=document.getElementById('p-list');
-  el.innerHTML=list.length?list.map((p,i)=>`<div class="p-item ${p.done?'done':''}"><div class="p-check ${p.done?'chk':''}" onclick="toggleP(${i})">${p.done?'✓':''}</div><div class="p-area">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div><button class="btn-x" onclick="delP(${i})">✕</button></div>`).join(''):'<div class="empty">No priorities yet — add up to 5</div>';
-  const obs=document.getElementById('obsession-saved');
-  if(data.obsession)obs.textContent=data.obsession;
-  const obsInp=document.getElementById('obsession-input');
-  if(data.obsession)obsInp.value=data.obsession;
+  const areaC=a=>'area-'+a.toLowerCase();
+  el.innerHTML=list.length?list.map((p,i)=>`<div class="p-item ${p.done?'done':''}"><div class="p-check ${p.done?'chk':''}" onclick="toggleP(${i})">${p.done?'✓':''}</div><div class="p-area ${areaC(p.area)}">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div><span id="pdel-${i}"></span></div>`).join(''):'<div class="empty-state"><div class="es-icon">⊹</div><div class="es-text">No priorities set yet</div><div class="es-hint">Add up to 5 below ↓</div></div>';
+  list.forEach((_,i)=>{const el2=document.getElementById('pdel-'+i);if(el2)el2.appendChild(makeDelBtn(el2,()=>delP(i)));});
+  if(data.obsession){document.getElementById('obsession-saved').textContent=data.obsession;document.getElementById('obsession-input').value=data.obsession;}
 }
 window.addPriority=async()=>{
-  const wk=weekKey(); const text=document.getElementById('p-input').value.trim(); const area=document.getElementById('p-area').value;
+  const wk=weekKey();const text=document.getElementById('p-input').value.trim();const area=document.getElementById('p-area').value;
   if(!text){toast('Type a priority');return;}
-  const data=await fsGet(up(`weeks/${wk}`))||{}; const list=data.priorities||[];
+  const data=await fsGet(up(`weeks/${wk}`))||{};const list=data.priorities||[];
   if(list.length>=5){toast('Max 5 priorities');return;}
   list.push({area,text,done:false});
   await fsSet(up(`weeks/${wk}`),{...data,priorities:list});
-  document.getElementById('p-input').value=''; renderPriorities(); toast('Added');
+  document.getElementById('p-input').value='';renderPriorities();toast('Added');
 };
-window.toggleP=async i=>{ const wk=weekKey(); const data=await fsGet(up(`weeks/${wk}`))||{}; const list=data.priorities||[]; list[i].done=!list[i].done; await fsSet(up(`weeks/${wk}`),{...data,priorities:list}); renderPriorities(); };
-window.delP=async i=>{ const wk=weekKey(); const data=await fsGet(up(`weeks/${wk}`))||{}; const list=data.priorities||[]; list.splice(i,1); await fsSet(up(`weeks/${wk}`),{...data,priorities:list}); renderPriorities(); };
-window.saveObsession=async()=>{
-  const wk=weekKey(); const val=document.getElementById('obsession-input').value.trim();
-  if(!val)return;
-  const data=await fsGet(up(`weeks/${wk}`))||{};
-  await fsSet(up(`weeks/${wk}`),{...data,obsession:val});
-  document.getElementById('obsession-saved').textContent=val; toast('Saved');
-};
+window.toggleP=async i=>{const wk=weekKey();const data=await fsGet(up(`weeks/${wk}`))||{};const list=data.priorities||[];list[i].done=!list[i].done;await fsSet(up(`weeks/${wk}`),{...data,priorities:list});renderPriorities();};
+window.delP=async i=>{const wk=weekKey();const data=await fsGet(up(`weeks/${wk}`))||{};const list=data.priorities||[];list.splice(i,1);await fsSet(up(`weeks/${wk}`),{...data,priorities:list});renderPriorities();};
+window.saveObsession=async()=>{const wk=weekKey();const val=document.getElementById('obsession-input').value.trim();if(!val)return;const data=await fsGet(up(`weeks/${wk}`))||{};await fsSet(up(`weeks/${wk}`),{...data,obsession:val});document.getElementById('obsession-saved').textContent=val;toast('Saved');};
 
 // ── PADEL ─────────────────────────────────
 async function renderPadel(){
-  document.getElementById('pd-date').value=todayKey();
+  document.getElementById('pd-date').value=realToday();
   const sessions=await fsColGet(up('padel'));
-  document.getElementById('pd-month').textContent=sessions.filter(s=>s.date?.startsWith(monthKey(todayKey()))).length;
+  const monthCount=sessions.filter(s=>s.date?.startsWith(monthKey(realToday()))).length;
+  const TARGET=8;
+  document.getElementById('pd-month').textContent=monthCount;
   document.getElementById('pd-total').textContent=sessions.length;
+  const lbl=document.getElementById('pd-target-lbl');const fill=document.getElementById('pd-target-fill');
+  if(lbl)lbl.textContent=`${monthCount} / ${TARGET}`;
+  if(fill)fill.style.width=Math.min(100,Math.round(monthCount/TARGET*100))+'%';
   const el=document.getElementById('pd-list');
-  el.innerHTML=sessions.length?[...sessions].reverse().map(s=>`<div class="sess-item"><div class="sess-date">${fmtDate(s.date)}</div><div class="sess-feel">${s.feel}</div><div class="sess-note">${s.note||'—'}</div><button class="btn-x" onclick="delPadel('${s.id}')">✕</button></div>`).join(''):'<div class="empty">No sessions yet</div>';
+  el.innerHTML=sessions.length?[...sessions].reverse().map(s=>`<div class="sess-item"><div class="sess-date">${fmtDate(s.date)}</div><div class="sess-feel">${s.feel}</div><div class="sess-note">${s.note||'—'}</div><button class="btn-x" style="color:var(--muted);font-size:0.62rem;" onclick="editPadel('${s.id}')">✎</button><span id="sesdel-${s.id}"></span></div>`).join(''):'<div class="empty-state"><div class="es-icon">◎</div><div class="es-text">No sessions logged yet</div><div class="es-hint">Log your first session above ↑</div></div>';
+  sessions.forEach(s=>{const el2=document.getElementById('sesdel-'+s.id);if(el2)el2.appendChild(makeDelBtn(el2,()=>delPadel(s.id)));});
 }
 window.logPadel=async()=>{
-  const date=document.getElementById('pd-date').value; const feel=document.getElementById('pd-feel').value; const note=document.getElementById('pd-note').value.trim();
+  const date=document.getElementById('pd-date').value;const feel=document.getElementById('pd-feel').value;const note=document.getElementById('pd-note').value.trim();
   if(!date){toast('Pick a date');return;}
   await fsColAdd(up('padel'),{date,feel,note});
-  document.getElementById('pd-note').value=''; renderPadel(); toast('Session logged');
+  document.getElementById('pd-note').value='';renderPadel();toast('Session logged');
 };
-window.delPadel=async id=>{ await fsColDel(up('padel'),id); renderPadel(); };
+window.delPadel=async id=>{await fsColDel(up('padel'),id);renderPadel();};
+window.editPadel=async id=>{
+  const sessions=await fsColGet(up('padel'));const s=sessions.find(i=>i.id===id);if(!s)return;
+  openEditModal('Edit padel session','padel',id,[
+    {key:'date',label:'Date',type:'date',value:s.date},
+    {key:'note',label:'Notes',type:'textarea',value:s.note,rows:3},
+  ]);
+};
 
 // ── JOURNAL ───────────────────────────────
 async function renderJournal(){
@@ -1090,184 +1188,241 @@ async function renderJournal(){
   document.getElementById('j-prompt-display').innerHTML=renderJP(currentPrompt);
   const entries=await fsColGet(up('journal'));
   const el=document.getElementById('j-list');
-  el.innerHTML=entries.length?[...entries].reverse().map(e=>`<div class="je-item"><div class="je-hdr"><span class="je-date">${fmtDate(e.date)} ${e.time||''}</span><span class="je-type">${e.type||'daily'}</span><button class="btn-x" onclick="delJournal('${e.id}')">✕</button></div>${e.prompt?`<div class="je-prompt">"${e.prompt}"</div>`:''}<div class="je-body">${e.body}</div></div>`).join(''):'<div class="empty">No entries yet</div>';
-  // decisions
+  el.innerHTML=entries.length?[...entries].reverse().map(e=>`<div class="je-item"><div class="je-hdr"><span class="je-date">${fmtDate(e.date)} ${e.time||''}</span><span class="je-type">${e.type||'daily'}</span><button class="btn-x" style="color:var(--muted);font-size:0.62rem;" onclick="editJournal('${e.id}')">✎</button><span id="jdel-${e.id}"></span></div>${e.prompt?`<div class="je-prompt">"${e.prompt}"</div>`:''}<div class="je-body">${e.body}</div></div>`).join(''):'<div class="empty-state"><div class="es-icon">◇</div><div class="es-text">No journal entries yet</div><div class="es-hint">Write your first entry using the prompt ←</div></div>';
+  entries.forEach(e=>{const el2=document.getElementById('jdel-'+e.id);if(el2)el2.appendChild(makeDelBtn(el2,()=>delJournal(e.id)));});
   const decs=await fsColGet(up('decisions'));
   const del=document.getElementById('dec-list');
-  del.innerHTML=decs.length?[...decs].reverse().map(d=>`<div class="je-item"><div class="je-hdr"><span class="je-date">${fmtDate(d.date)}</span><span class="je-type">${d.area}</span><button class="btn-x" onclick="delDecision('${d.id}')">✕</button></div><div style="font-size:0.76rem;font-weight:600;margin-bottom:4px;">${d.title}</div><div class="je-body" style="color:var(--soft);">${d.reasoning}</div></div>`).join(''):'<div class="empty">No decisions logged yet</div>';
-  // energy map
+  del.innerHTML=decs.length?[...decs].reverse().map(d=>`<div class="je-item"><div class="je-hdr"><span class="je-date">${fmtDate(d.date)}</span><span class="je-type">${d.area}</span><span id="ddel-${d.id}"></span></div><div style="font-size:0.76rem;font-weight:600;margin-bottom:4px;">${d.title}</div><div class="je-body" style="color:var(--soft);">${d.reasoning}</div></div>`).join(''):'<div class="empty-state"><div class="es-icon">◻</div><div class="es-text">No decisions logged yet</div><div class="es-hint">Use this to capture your reasoning at the time ↑</div></div>';
+  decs.forEach(d=>{const el2=document.getElementById('ddel-'+d.id);if(el2)el2.appendChild(makeDelBtn(el2,()=>delDecision(d.id)));});
   await renderEnergyMapHistory();
 }
 window.saveJournal=async()=>{
-  const body=document.getElementById('j-entry').value.trim();
-  if(!body){toast('Write something first');return;}
-  const type=document.getElementById('j-type').value;
-  const now=new Date();
-  await fsColAdd(up('journal'),{date:todayKey(),time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),type,prompt:currentPrompt?.text||'',body});
-  document.getElementById('j-entry').value=''; currentPrompt=null; newPrompt(); renderJournal(); toast('Entry saved');
+  const body=document.getElementById('j-entry').value.trim();if(!body){toast('Write something first');return;}
+  const type=document.getElementById('j-type').value;const now=new Date();
+  await fsColAdd(up('journal'),{date:realToday(),time:now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}),type,prompt:currentPrompt?.text||'',body});
+  document.getElementById('j-entry').value='';currentPrompt=null;newPrompt();renderJournal();toast('Entry saved');
 };
-window.delJournal=async id=>{ await fsColDel(up('journal'),id); renderJournal(); };
+window.delJournal=async id=>{await fsColDel(up('journal'),id);renderJournal();};
+window.editJournal=async id=>{
+  const entries=await fsColGet(up('journal'));const e=entries.find(i=>i.id===id);if(!e)return;
+  openEditModal('Edit journal entry','journal',id,[
+    {key:'body',label:'Entry',type:'textarea',value:e.body,rows:6},
+  ]);
+};
 window.saveDecision=async()=>{
-  const title=document.getElementById('dec-title').value.trim();
-  const reasoning=document.getElementById('dec-reasoning').value.trim();
-  const area=document.getElementById('dec-area').value;
+  const title=document.getElementById('dec-title').value.trim();const reasoning=document.getElementById('dec-reasoning').value.trim();const area=document.getElementById('dec-area').value;
   if(!title||!reasoning){toast('Fill in title and reasoning');return;}
-  await fsColAdd(up('decisions'),{date:todayKey(),title,area,reasoning});
-  document.getElementById('dec-title').value=''; document.getElementById('dec-reasoning').value='';
-  renderJournal(); toast('Decision logged');
+  await fsColAdd(up('decisions'),{date:realToday(),title,area,reasoning});
+  document.getElementById('dec-title').value='';document.getElementById('dec-reasoning').value='';
+  renderJournal();toast('Decision logged');
 };
-window.delDecision=async id=>{ await fsColDel(up('decisions'),id); renderJournal(); };
+window.delDecision=async id=>{await fsColDel(up('decisions'),id);renderJournal();};
 window.saveEnergyMap=async()=>{
-  const drained=document.getElementById('drained-input').value.trim();
-  const charged=document.getElementById('charged-input').value.trim();
+  const drained=document.getElementById('drained-input').value.trim();const charged=document.getElementById('charged-input').value.trim();
   if(!drained&&!charged){toast('Fill in at least one field');return;}
   const wk=weekKey();
   await fsSet(up(`energy_map/${wk}`),{wk,drained,charged,saved:new Date().toISOString()});
-  document.getElementById('drained-input').value=''; document.getElementById('charged-input').value='';
-  renderEnergyMapHistory(); toast('Energy map saved');
+  document.getElementById('drained-input').value='';document.getElementById('charged-input').value='';
+  renderEnergyMapHistory();toast('Energy map saved');
 };
 async function renderEnergyMapHistory(){
   const el=document.getElementById('energy-map-history');
-  const weeks=[]; for(let i=0;i<8;i++){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);weeks.push(d.toISOString().slice(0,10));}
+  const weeks=[];for(let i=0;i<4;i++){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);weeks.push(d.toISOString().slice(0,10));}
   const maps=await Promise.all(weeks.map(w=>fsGet(up(`energy_map/${w}`))));
   const valid=maps.filter(Boolean);
-  if(!valid.length){el.innerHTML='<div class="empty">No energy maps yet — fill in after a few weeks</div>';return;}
+  if(!valid.length){el.innerHTML='<div class="empty">No energy maps yet</div>';return;}
   el.innerHTML=valid.map(m=>`<div class="rev-card" style="margin-top:8px;"><div class="clbl" style="margin-bottom:6px;">W/c ${fmtDate(m.wk)}</div><div class="grid g2" style="gap:8px;"><div><div style="font-size:0.58rem;color:var(--red);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">⬇ Drained</div><div style="font-size:0.72rem;color:var(--soft);">${m.drained||'—'}</div></div><div><div style="font-size:0.58rem;color:var(--green);text-transform:uppercase;letter-spacing:0.1em;margin-bottom:3px;">⬆ Charged</div><div style="font-size:0.72rem;color:var(--soft);">${m.charged||'—'}</div></div></div></div>`).join('');
 }
 
 // ── REVIEW ────────────────────────────────
 const AREAS=['professional','health','personal'];
-function buildScorePips(){
-  AREAS.forEach(a=>{ const el=document.getElementById('sc-'+a); if(!el)return; el.innerHTML=''; for(let i=1;i<=10;i++){const d=document.createElement('div');d.className='sp';d.textContent=i;d.onclick=()=>setScore(a,i);el.appendChild(d);} });
-}
-function setScore(area,val){ const el=document.getElementById('sc-'+area); el.querySelectorAll('.sp').forEach(p=>p.classList.toggle('lit',parseInt(p.textContent)<=val)); el.dataset.score=val; }
+function buildScorePips(){AREAS.forEach(a=>{const el=document.getElementById('sc-'+a);if(!el)return;el.innerHTML='';for(let i=1;i<=10;i++){const d=document.createElement('div');d.className='sp';d.textContent=i;d.onclick=()=>setScore(a,i);el.appendChild(d);}});}
+function setScore(area,val){const el=document.getElementById('sc-'+area);el.querySelectorAll('.sp').forEach(p=>p.classList.toggle('lit',parseInt(p.textContent)<=val));el.dataset.score=val;}
 async function renderReview(){
   const wk=weekKey();
   document.getElementById('rev-week-lbl').textContent=`Week of ${fmtDate(wk)}`;
   buildScorePips();
   const data=await fsGet(up(`reviews/${wk}`));
-  if(data){
-    document.getElementById('rv-well').value=data.well||''; document.getElementById('rv-fix').value=data.fix||'';
-    document.getElementById('rv-win').value=data.win||''; document.getElementById('rv-notes').value=data.notes||'';
-    if(data.scores)AREAS.forEach(a=>{if(data.scores[a])setScore(a,data.scores[a]);});
-  }
+  if(data){document.getElementById('rv-well').value=data.well||'';document.getElementById('rv-fix').value=data.fix||'';document.getElementById('rv-win').value=data.win||'';document.getElementById('rv-notes').value=data.notes||'';if(data.scores)AREAS.forEach(a=>{if(data.scores[a])setScore(a,data.scores[a]);});}
   await renderRevHistory();
 }
 window.saveReview=async()=>{
-  const wk=weekKey(); const scores={};
+  const wk=weekKey();const scores={};
   AREAS.forEach(a=>{scores[a]=parseInt(document.getElementById('sc-'+a).dataset.score||0);});
   await fsSet(up(`reviews/${wk}`),{scores,well:document.getElementById('rv-well').value,fix:document.getElementById('rv-fix').value,win:document.getElementById('rv-win').value,notes:document.getElementById('rv-notes').value,saved:new Date().toISOString()});
-  toast('Review saved'); renderRevHistory();
+  toast('Review saved');renderRevHistory();
 };
 async function renderRevHistory(){
   const el=document.getElementById('rev-history');
-  const weeks=[]; for(let i=0;i<8;i++){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);weeks.push(d.toISOString().slice(0,10));}
+  const weeks=[];for(let i=0;i<8;i++){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);weeks.push(d.toISOString().slice(0,10));}
   const reviews=await Promise.all(weeks.map(w=>fsGet(up(`reviews/${w}`)).then(r=>r?{wk:w,...r}:null)));
   const valid=reviews.filter(Boolean);
-  el.innerHTML=valid.length?valid.map(r=>{const avg=AREAS.reduce((s,a)=>s+(r.scores?.[a]||0),0)/AREAS.length;return `<div class="rev-card"><div class="row sb"><div class="clbl" style="margin:0;">W/c ${fmtDate(r.wk)}</div><div style="font-family:var(--font-h);font-size:1.1rem;color:var(--gold);">${avg.toFixed(1)}<span style="font-size:0.6rem;color:var(--muted);">/10</span></div></div>${r.win?`<div style="font-size:0.7rem;color:var(--green);margin-top:6px;">🏆 ${r.win}</div>`:''} ${r.well?`<div style="font-size:0.7rem;color:var(--soft);margin-top:3px;">+ ${r.well}</div>`:''} ${r.fix?`<div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">→ ${r.fix}</div>`:''}</div>`;}).join(''):'<div class="empty">No reviews yet</div>';
+  el.innerHTML=valid.length?valid.map(r=>{const avg=AREAS.reduce((s,a)=>s+(r.scores?.[a]||0),0)/AREAS.length;return `<div class="rev-card"><div class="row sb"><div class="clbl" style="margin:0;">W/c ${fmtDate(r.wk)}</div><div style="font-family:var(--font-h);font-size:1.1rem;color:var(--gold);">${avg.toFixed(1)}<span style="font-size:0.6rem;color:var(--muted);">/10</span></div></div>${r.win?`<div style="font-size:0.7rem;color:var(--green);margin-top:6px;">🏆 ${r.win}</div>`:''} ${r.well?`<div style="font-size:0.7rem;color:var(--soft);margin-top:3px;">+ ${r.well}</div>`:''} ${r.fix?`<div style="font-size:0.7rem;color:var(--muted);margin-top:2px;">→ ${r.fix}</div>`:''}</div>`;}).join(''):'<div class="empty-state"><div class="es-icon">◻</div><div class="es-text">No reviews saved yet</div><div class="es-hint">Complete your first review above ↑</div></div>';
 }
 
 // ── UNI LOG ───────────────────────────────
 async function renderUni(){
-  document.getElementById('uni-date').value=todayKey();
-  const entries=await fsColGet(up('uni_log'));
+  document.getElementById('uni-date').value=realToday();
+  const all=await fsColGet(up('uni_log'));
+  const filter=document.getElementById('uni-filter-module').value;
+  const entries=filter?all.filter(e=>e.module===filter):all;
   const tbody=document.getElementById('uni-tbody');
   let totalOTJ=0;
-  tbody.innerHTML=entries.length?[...entries].reverse().map(e=>{
-    totalOTJ+=parseFloat(e.otj)||0;
-    return `<tr><td>${fmtDate(e.date)}</td><td style="white-space:nowrap;">${e.module}</td><td>${e.details}</td><td>${e.learning}</td><td>${e.ksbs}</td><td style="white-space:nowrap;">${e.time_range}</td><td>${e.otj}h</td><td><button class="btn-x" onclick="delUni('${e.id}')">✕</button></td></tr>`;
-  }).join(''):'<tr><td colspan="8" style="color:var(--muted);font-size:0.7rem;padding:12px 8px;font-style:italic;">No entries yet</td></tr>';
+  all.forEach(e=>totalOTJ+=parseFloat(e.otj)||0);
+  tbody.innerHTML=entries.length?[...entries].reverse().map(e=>`<tr><td>${fmtDate(e.date)}</td><td style="white-space:nowrap;">${e.module}</td><td>${e.details}</td><td>${e.learning}</td><td>${e.ksbs}</td><td style="white-space:nowrap;">${e.time_range}</td><td>${e.otj}h</td><td><span id="udel-${e.id}"></span></td></tr>`).join(''):'<tr><td colspan="8" style="color:var(--muted);font-size:0.7rem;padding:12px 8px;font-style:italic;">No entries yet</td></tr>';
+  entries.forEach(e=>{const el2=document.getElementById('udel-'+e.id);if(el2)el2.appendChild(makeDelBtn(el2,()=>delUni(e.id)));});
   document.getElementById('uni-total-otj').textContent=totalOTJ.toFixed(1)+'h';
 }
 window.logUni=async()=>{
-  const date=document.getElementById('uni-date').value;
-  const module=document.getElementById('uni-module').value;
-  const details=document.getElementById('uni-details').value.trim();
-  const learning=document.getElementById('uni-learning').value.trim();
-  const ksbs=document.getElementById('uni-ksbs').value.trim();
-  const time_range=document.getElementById('uni-time-range').value.trim();
+  const date=document.getElementById('uni-date').value;const module=document.getElementById('uni-module').value;
+  const details=document.getElementById('uni-details').value.trim();const learning=document.getElementById('uni-learning').value.trim();
+  const ksbs=document.getElementById('uni-ksbs').value.trim();const time_range=document.getElementById('uni-time-range').value.trim();
   const otj=parseFloat(document.getElementById('uni-otj').value)||0;
   if(!date||!details||!learning){toast('Fill in date, activity and learning');return;}
   await fsColAdd(up('uni_log'),{date,module,details,learning,ksbs,time_range,otj});
   ['uni-details','uni-learning','uni-ksbs','uni-time-range','uni-otj'].forEach(id=>{document.getElementById(id).value='';});
-  renderUni(); toast('Activity logged');
+  renderUni();toast('Activity logged');
 };
-window.delUni=async id=>{ await fsColDel(up('uni_log'),id); renderUni(); };
+window.delUni=async id=>{await fsColDel(up('uni_log'),id);renderUni();};
 window.copyUniTable=async()=>{
   const entries=await fsColGet(up('uni_log'));
   if(!entries.length){toast('No entries to copy');return;}
   const header='Date\tModule\tDetails of activity\tResultant learning\tMapping to KSBs\tTime assigned\tOff-the-job hours';
   const rows=entries.map(e=>[fmtDate(e.date),e.module,e.details,e.learning,e.ksbs,e.time_range,e.otj+'h'].join('\t'));
-  const text=[header,...rows].join('\n');
-  try{ await navigator.clipboard.writeText(text); toast('Table copied — paste into Word'); }
-  catch(e){ toast('Copy failed — try selecting the table manually'); }
+  try{await navigator.clipboard.writeText([header,...rows].join('\n'));toast('Table copied — paste into Word');}
+  catch(e){toast('Copy failed — select the table manually');}
 };
 
 // ── STATS ─────────────────────────────────
-async function renderStats(){ await Promise.all([renderGymChart(),renderPdChart(),renderMoodHm(),renderPhoneChart(),renderReadingStats(),renderRevChart(),renderResistChart()]); }
-
-function getMonths(n=6){ const now=new Date(),m=[]; for(let i=n-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);m.push(d.toISOString().slice(0,7));} return m; }
+async function renderStats(){await Promise.all([renderGymChart(),renderPdChart(),renderMoodHm(),renderPhoneChart(),renderReadingStats(),renderRevChart(),renderResistChart()]);}
+function getMonths(n=6){const now=new Date(),m=[];for(let i=n-1;i>=0;i--){const d=new Date(now.getFullYear(),now.getMonth()-i,1);m.push(d.toISOString().slice(0,7));}return m;}
 const mLbl=m=>new Date(m+'-01').toLocaleDateString('en-GB',{month:'short'});
 const barHtml=(key,val,maxV,color)=>`<div class="bar-row"><div class="bar-key">${key}</div><div class="bar-track"><div class="bar-fill" style="width:${Math.round(val/Math.max(1,maxV)*100)}%;background:${color};"></div></div><div class="bar-val">${val}</div></div>`;
 
 async function renderGymChart(){
-  const months=getMonths(); const counts={push:{},pull:{},legs:{}};
-  Object.entries(C).forEach(([k,v])=>{ if(!k.includes('/daily/'))return; const dk=k.split('/daily/')[1]; if(!dk)return; const m=dk.slice(0,7); if(!months.includes(m))return; const gym=v?.gym||{}; ['push','pull','legs'].forEach(t=>{if(gym[t])counts[t][m]=(counts[t][m]||0)+1;}); });
+  const months=getMonths();const counts={push:{},pull:{},legs:{}};
+  Object.entries(C).forEach(([k,v])=>{if(!k.includes('/daily/'))return;const dk=k.split('/daily/')[1];if(!dk)return;const m=dk.slice(0,7);if(!months.includes(m))return;const gym=v?.gym||{};['push','pull','legs'].forEach(t=>{if(gym[t])counts[t][m]=(counts[t][m]||0)+1;});});
   const maxV=Math.max(1,...months.flatMap(m=>['push','pull','legs'].map(t=>counts[t][m]||0)));
-  const cols=['var(--gold)','var(--blue)','var(--green)'];
-  document.getElementById('gym-chart').innerHTML=['push','pull','legs'].map((t,ti)=>`<div style="margin-bottom:8px;"><div style="font-size:0.56rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:3px;">${t}</div>${months.map(m=>barHtml(mLbl(m),counts[t][m]||0,maxV,cols[ti])).join('')}</div>`).join('');
+  const cols={push:'var(--gold)',pull:'var(--blue)',legs:'var(--green)'};
+  // Grouped bar chart -- one group per month
+  const el=document.getElementById('gym-chart');
+  el.innerHTML=months.map(m=>{
+    const vals={push:counts.push[m]||0,pull:counts.pull[m]||0,legs:counts.legs[m]||0};
+    const bars=Object.entries(vals).map(([t,v])=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;"><div style="width:100%;height:${Math.round(v/maxV*40)+4}px;background:${cols[t]};border-radius:2px 2px 0 0;transition:height 0.5s;min-height:4px;"></div><div style="font-size:0.52rem;color:var(--muted);">${v}</div></div>`).join('');
+    return `<div style="flex:1;min-width:0;"><div style="display:flex;gap:2px;align-items:flex-end;height:52px;">${bars}</div><div style="font-size:0.56rem;color:var(--muted);text-align:center;margin-top:4px;">${mLbl(m)}</div></div>`;
+  }).join('');
+  // Wrap in flex
+  el.style.cssText='display:flex;gap:6px;align-items:flex-end;padding-top:4px;';
+  // Legend
+  const legend=document.createElement('div');
+  legend.style.cssText='display:flex;gap:10px;margin-top:8px;flex-shrink:0;';
+  legend.innerHTML=Object.entries(cols).map(([t,c])=>`<div style="display:flex;align-items:center;gap:4px;font-size:0.58rem;color:var(--muted);"><div style="width:8px;height:8px;border-radius:2px;background:${c};"></div>${t}</div>`).join('');
+  const wrapper=document.getElementById('gym-chart').parentElement;
+  const existing=wrapper.querySelector('.gym-legend');if(existing)existing.remove();
+  legend.className='gym-legend';
+  el.insertAdjacentElement('afterend',legend);
 }
 async function renderPdChart(){
-  const months=getMonths(); const sessions=await fsColGet(up('padel'));
-  const counts={}; months.forEach(m=>counts[m]=0); sessions.forEach(s=>{const m=s.date?.slice(0,7);if(counts[m]!==undefined)counts[m]++;});
+  const months=getMonths();const sessions=await fsColGet(up('padel'));
+  const counts={};months.forEach(m=>counts[m]=0);sessions.forEach(s=>{const m=s.date?.slice(0,7);if(counts[m]!==undefined)counts[m]++;});
   const maxV=Math.max(1,...Object.values(counts));
   document.getElementById('pd-chart').innerHTML=months.map(m=>barHtml(mLbl(m),counts[m],maxV,'var(--green)')).join('');
 }
 async function renderMoodHm(){
   const cells=[];
-  for(let i=29;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); const v=await fsGet(up(`daily/${k}`)); cells.push(v?.mood||0); }
-  const cols=[]; for(let c=0;c<Math.ceil(cells.length/5);c++){ const cc=cells.slice(c*5,c*5+5); cols.push(`<div class="hm-col">${cc.map(v=>`<div class="hm-cell" data-v="${v}"></div>`).join('')}</div>`); }
+  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const v=await fsGet(up(`daily/${k}`));cells.push(v?.mood||0);}
+  const cols=[];for(let c=0;c<Math.ceil(cells.length/5);c++){const cc=cells.slice(c*5,c*5+5);cols.push(`<div class="hm-col">${cc.map(v=>`<div class="hm-cell" data-v="${v}"></div>`).join('')}</div>`);}
   document.getElementById('mood-hm').innerHTML=cols.join('');
 }
 async function renderPhoneChart(){
-  const days=14; const items=[];
-  for(let i=days-1;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); const v=await fsGet(up(`daily/${k}`)); items.push({label:new Date(k+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}),val:v?.phone?.hrs??null}); }
+  const items=[];
+  for(let i=13;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const v=await fsGet(up(`daily/${k}`));items.push({label:new Date(k+'T00:00:00').toLocaleDateString('en-GB',{day:'numeric',month:'short'}),val:v?.phone?.hrs??null});}
   const maxV=Math.max(1,...items.filter(i=>i.val!==null).map(i=>i.val),8);
   const el=document.getElementById('phone-chart');
-  el.innerHTML=items.filter(i=>i.val!==null).map(i=>{ const color=i.val<=4?'var(--green)':i.val<=6?'var(--gold)':'var(--red)'; return barHtml(i.label,i.val,maxV,color); }).join('')||'<div class="empty">No phone usage logged yet</div>';
+  el.innerHTML=items.filter(i=>i.val!==null).map(i=>{const color=i.val<=4?'var(--green)':i.val<=6?'var(--gold)':'var(--red)';return barHtml(i.label,i.val,maxV,color);}).join('')||'<div class="empty">No phone usage logged yet</div>';
 }
 async function renderReadingStats(){
-  let tp=0,tm=0,days=0; Object.entries(C).forEach(([k,v])=>{ if(!k.includes('/daily/'))return; if(v?.reading){tp+=v.reading.pages||0;tm+=v.reading.mins||0;days++;} });
-  document.getElementById('st-pages').textContent=tp; document.getElementById('st-mins').textContent=tm; document.getElementById('st-days').textContent=days;
+  let tp=0,tm=0,days=0;Object.entries(C).forEach(([k,v])=>{if(!k.includes('/daily/'))return;if(v?.reading){tp+=v.reading.pages||0;tm+=v.reading.mins||0;days++;}});
+  document.getElementById('st-pages').textContent=tp;document.getElementById('st-mins').textContent=tm;document.getElementById('st-days').textContent=days;
 }
 async function renderRevChart(){
-  const weeks=[]; for(let i=7;i>=0;i--){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);weeks.push(d.toISOString().slice(0,10));}
+  const weeks=[];for(let i=7;i>=0;i--){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);weeks.push(d.toISOString().slice(0,10));}
   const reviews=await Promise.all(weeks.map(w=>fsGet(up(`reviews/${w}`)).then(r=>r?{wk:w,...r}:null)));
-  const valid=reviews.filter(Boolean); const el=document.getElementById('rev-chart');
-  el.innerHTML=valid.length?valid.map(r=>{ const avg=AREAS.reduce((s,a)=>s+(r.scores?.[a]||0),0)/AREAS.length; return barHtml(fmtDate(r.wk).replace(' ','<br>'),parseFloat(avg.toFixed(1)),10,'var(--gold)'); }).join(''):'<div class="empty">No review scores yet</div>';
+  const valid=reviews.filter(Boolean);const el=document.getElementById('rev-chart');
+  el.innerHTML=valid.length?valid.map(r=>{const avg=AREAS.reduce((s,a)=>s+(r.scores?.[a]||0),0)/AREAS.length;return barHtml(fmtDate(r.wk),parseFloat(avg.toFixed(1)),10,'var(--gold)');}).join(''):'<div class="empty">No review scores yet</div>';
 }
 async function renderResistChart(){
-  // collect all resistance entries and find most common themes
-  const items=[]; const now=new Date();
-  for(let i=0;i<30;i++){ const d=new Date(); d.setDate(d.getDate()-i); const k=d.toISOString().slice(0,10); const v=await fsGet(up(`daily/${k}`)); if(v?.resistance)items.push(...v.resistance); }
+  const items=[];
+  for(let i=0;i<30;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const v=await fsGet(up(`daily/${k}`));if(v?.resistance)items.push(...v.resistance);}
   const el=document.getElementById('resist-chart');
-  if(!items.length){el.innerHTML='<div class="empty">No resistance logged yet — patterns will appear here over time</div>';return;}
-  el.innerHTML=items.slice(-10).reverse().map(r=>`<div style="font-size:0.72rem;color:var(--soft);padding:5px 0;border-bottom:1px solid var(--border);">→ ${r}</div>`).join('');
+  el.innerHTML=items.length?items.slice(-12).reverse().map(r=>`<div style="font-size:0.72rem;color:var(--soft);padding:5px 0;border-bottom:1px solid var(--border);">→ ${r}</div>`).join(''):'<div class="empty">No resistance logged yet — patterns appear here over time</div>';
 }
 
-// ── config ────────────────────────────────
+// ── EDIT MODAL ──────────────────────────
+let editState={col:null,id:null,fields:[]};
+window.openEditModal=(title,col,id,fields)=>{
+  editState={col,id,fields};
+  document.getElementById('edit-modal-title').textContent=title;
+  document.getElementById('edit-modal-fields').innerHTML=fields.map(f=>`
+    <div style="margin-bottom:10px;">
+      <label class="lbl">${f.label}</label>
+      ${f.type==='textarea'
+        ?`<textarea id="ef-${f.key}" rows="${f.rows||3}">${f.value||''}</textarea>`
+        :`<input type="${f.type||'text'}" id="ef-${f.key}" value="${(f.value||'').replace(/"/g,'&quot;')}">`}
+    </div>`).join('');
+  document.getElementById('edit-modal').style.display='flex';
+};
+window.closeEditModal=()=>{document.getElementById('edit-modal').style.display='none';editState={col:null,id:null,fields:[]};};
+window.saveEdit=async()=>{
+  if(!editState.col||!editState.id)return;
+  const updates={};
+  editState.fields.forEach(f=>{const el=document.getElementById('ef-'+f.key);if(el)updates[f.key]=el.value;});
+  // Find item in collection and update
+  const items=await fsColGet(up(editState.col));
+  const item=items.find(i=>i.id===editState.id);
+  if(!item){toast('Entry not found');return;}
+  const updated={...item,...updates};
+  // Delete and re-add with same data (Firestore doesn't have a simple update for collections via our helper)
+  await fsColDel(up(editState.col),editState.id);
+  await fsColAdd(up(editState.col),updated);
+  closeEditModal();
+  // Re-render relevant page
+  const renders={padel:renderPadel,journal:renderJournal,uni:renderUni,decisions:renderJournal};
+  const col=editState.col.split('/').pop();
+  renders[col]?.();
+  toast('Saved');
+};
+
+window.exportJSON=async()=>{
+  if(!LIVE||!uid){toast('Sign in first to export');return;}
+  toast('Preparing export...');
+  const data={exported:new Date().toISOString(),uid};
+  // Fetch all collections
+  const cols=['padel','journal','decisions','uni_log'];
+  for(const col of cols){data[col]=await fsColGet(up(col));}
+  // Fetch daily logs (last 365 days)
+  data.daily={};
+  for(let i=0;i<365;i++){const d=new Date();d.setDate(d.getDate()-i);const k=d.toISOString().slice(0,10);const v=await fsGet(up(`daily/${k}`));if(v)data.daily[k]=v;}
+  // Fetch weekly data (last 52 weeks)
+  data.weeks={};data.reviews={};data.energy_map={};
+  for(let i=0;i<52;i++){const d=new Date();d.setDate(d.getDate()-(i*7));const day=d.getDay()||7;d.setDate(d.getDate()-day+1);const wk=d.toISOString().slice(0,10);const w=await fsGet(up(`weeks/${wk}`));if(w)data.weeks[wk]=w;const r=await fsGet(up(`reviews/${wk}`));if(r)data.reviews[wk]=r;const e=await fsGet(up(`energy_map/${wk}`));if(e)data.energy_map[wk]=e;}
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`je-os-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();URL.revokeObjectURL(a.href);
+  toast('Export downloaded');
+};
+
 window.showCfg=()=>alert('Firebase setup:\n\n1. console.firebase.google.com → Add project\n2. Add a web app → copy firebaseConfig\n3. Paste into FIREBASE_CONFIG in this file\n4. Authentication → Google → Enable\n5. Firestore → Create database → Test mode → europe-west2\n6. Authentication → Settings → Authorised domains → add your hosted URL');
 
-// ── boot ──────────────────────────────────
 function boot(user){
   updateHeader();
   if(!user)document.getElementById('uname').textContent='Offline';
-  document.getElementById('pd-date').value=todayKey();
-  document.getElementById('uni-date').value=todayKey();
+  document.getElementById('pd-date').value=realToday();
+  document.getElementById('uni-date').value=realToday();
   currentPrompt=getPromptForToday();
   renderToday();
-  // Sunday auto-nav to review
-  if(isSunday()) setTimeout(()=>nav('review',null),1200);
+  if(isSunday())setTimeout(()=>nav('review',document.getElementById('ni-review')),1500);
 }
 </script>
 </body>

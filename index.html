@@ -45,7 +45,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height
 .app-layout{display:flex;min-height:100vh;}
 
 /* ── SIDEBAR ── */
-.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:transform 0.25s cubic-bezier(0.4,0,0.2,1);}
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:width 0.25s cubic-bezier(0.4,0,0.2,1),transform 0.25s cubic-bezier(0.4,0,0.2,1);}
+.sidebar.collapsed{width:52px;}
+.sidebar.collapsed .logo-sub,.sidebar.collapsed .uname,.sidebar.collapsed .sync-dot,.sidebar.collapsed .nav-section-label,.sidebar.collapsed .ni-label,.sidebar.collapsed .streak-pill,.sidebar.collapsed .reading-streak-pill,.sidebar.collapsed .sidebar-bottom .btn{display:none;}
+.sidebar.collapsed .sidebar-logo{padding:16px 14px;}
+.sidebar.collapsed .logo{font-size:1rem;}
+.sidebar.collapsed .sidebar-user{padding:12px 14px;justify-content:center;}
+.sidebar.collapsed .uav{margin:0;}
+.sidebar.collapsed .nav-item{padding:10px;justify-content:center;}
+.sidebar.collapsed .ni-icon{width:auto;font-size:1rem;}
+.sidebar.collapsed .nav-section{margin-bottom:10px;}
+.sidebar.collapsed .sidebar-bottom{padding:10px;display:flex;justify-content:center;}
 .sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
 .logo{font-family:var(--font-h);font-weight:800;font-size:1.3rem;letter-spacing:-0.03em;}
 .logo span{color:var(--gold);}
@@ -73,10 +83,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height
 .streak-info strong{color:var(--gold);display:block;font-size:0.65rem;}
 
 /* ── MAIN CONTENT ── */
-.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);}
+.sidebar.collapsed~.main,.sidebar.collapsed+.main{margin-left:52px;}
 .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:50;}
 .topbar-left{display:flex;align-items:center;gap:12px;}
-.hamburger{display:none;background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px;transition:color 0.15s;}
+.hamburger{background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px;transition:color 0.15s;display:block;}
 .hamburger:hover{color:var(--text);}
 .page-title{font-family:var(--font-h);font-size:1rem;font-weight:700;color:var(--text);}
 .page-title span{color:var(--gold);}
@@ -274,10 +285,10 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
 
 /* ── MOBILE ── */
 @media(max-width:900px){
-  .sidebar{transform:translateX(-100%);}
+  .sidebar{transform:translateX(-100%);width:var(--sidebar-w)!important;}
   .sidebar.open{transform:translateX(0);}
-  .main{margin-left:0;}
-  .hamburger{display:block;}
+  .sidebar.collapsed{transform:translateX(-100%);}
+  .main{margin-left:0!important;}
   .topbar{padding:12px 16px;}
   .content{padding:16px 14px 80px;}
   .ga{grid-template-columns:1fr;}
@@ -328,34 +339,34 @@ hr{border:none;border-top:1px solid var(--border);margin:14px 0;}
       <nav class="sidebar-nav">
         <div class="nav-section">
           <div class="nav-section-label">Daily</div>
-          <div class="nav-item active" onclick="nav('today',this)" id="ni-today">
+          <div class="nav-item active" onclick="nav('today',this)" id="ni-today" title="Today">
             <span class="ni-icon">◈</span><span class="ni-label">Today</span>
           </div>
         </div>
         <div class="nav-section">
           <div class="nav-section-label">Track</div>
-          <div class="nav-item" onclick="nav('priorities',this)" id="ni-priorities">
+          <div class="nav-item" onclick="nav('priorities',this)" id="ni-priorities" title="Priorities">
             <span class="ni-icon">⊹</span><span class="ni-label">Priorities</span>
           </div>
-          <div class="nav-item" onclick="nav('padel',this)" id="ni-padel">
+          <div class="nav-item" onclick="nav('padel',this)" id="ni-padel" title="Padel">
             <span class="ni-icon">◎</span><span class="ni-label">Padel</span>
           </div>
-          <div class="nav-item" onclick="nav('journal',this)" id="ni-journal">
+          <div class="nav-item" onclick="nav('journal',this)" id="ni-journal" title="Journal">
             <span class="ni-icon">◇</span><span class="ni-label">Journal</span>
           </div>
         </div>
         <div class="nav-section">
           <div class="nav-section-label">Review</div>
-          <div class="nav-item" onclick="nav('review',this)" id="ni-review">
+          <div class="nav-item" onclick="nav('review',this)" id="ni-review" title="Weekly Review">
             <span class="ni-icon">◻</span><span class="ni-label">Weekly Review</span>
           </div>
-          <div class="nav-item" onclick="nav('uni',this)" id="ni-uni">
+          <div class="nav-item" onclick="nav('uni',this)" id="ni-uni" title="Uni Log">
             <span class="ni-icon">◈</span><span class="ni-label">Uni Log</span>
           </div>
         </div>
         <div class="nav-section">
           <div class="nav-section-label">Insight</div>
-          <div class="nav-item" onclick="nav('stats',this)" id="ni-stats">
+          <div class="nav-item" onclick="nav('stats',this)" id="ni-stats" title="Stats">
             <span class="ni-icon">◫</span><span class="ni-label">Stats</span>
           </div>
         </div>
@@ -861,8 +872,27 @@ const isSunday  = ()=>new Date().getDay()===0;
 window.toast=msg=>{const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2200);};
 
 // ── sidebar ───────────────────────────────
-window.toggleSidebar=()=>{const s=document.getElementById('sidebar');const o=document.getElementById('sidebar-overlay');s.classList.toggle('open');o.classList.toggle('show');};
-window.closeSidebar=()=>{document.getElementById('sidebar').classList.remove('open');document.getElementById('sidebar-overlay').classList.remove('show');};
+window.toggleSidebar=()=>{
+  const s=document.getElementById('sidebar');
+  const o=document.getElementById('sidebar-overlay');
+  const isMobile=window.innerWidth<=900;
+  if(isMobile){
+    s.classList.toggle('open');
+    o.classList.toggle('show');
+  } else {
+    s.classList.toggle('collapsed');
+    // Update main margin directly since CSS sibling selector may not work with fixed sidebar
+    const main=document.querySelector('.main');
+    if(main)main.style.marginLeft=s.classList.contains('collapsed')?'52px':'var(--sidebar-w)';
+  }
+};
+window.closeSidebar=()=>{
+  const isMobile=window.innerWidth<=900;
+  if(isMobile){
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('sidebar-overlay').classList.remove('show');
+  }
+};
 
 // ── nav ───────────────────────────────────
 const PAGE_TITLES={today:'Today',priorities:'Priorities',padel:'Padel',journal:'Journal',review:'Weekly Review',uni:'Uni Log',stats:'Stats'};
@@ -917,6 +947,9 @@ async function updateStreak(){
 }
 
 // ── journal prompts ───────────────────────
+// Global area colour helper
+const areaClass=a=>'area-'+a.toLowerCase();
+
 const PROMPTS={
   daily:[
     {text:"What's the one thing you're avoiding today that would actually move something forward?",sub:"Activation energy check."},
@@ -1003,8 +1036,7 @@ async function renderToday(){
   const wdata=await fsGet(up(`weeks/${weekKey()}`))||{};
   const plist=wdata.priorities||[];
   const psnap=document.getElementById('today-p-snap');
-  const aC2=a=>'area-'+a.toLowerCase();
-  psnap.innerHTML=plist.length?plist.map(p=>`<div class="p-item ${p.done?'done':''}" style="margin-bottom:4px;"><div class="p-area ${aC2(p.area)}">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div>${p.done?'<span style="color:var(--green);font-size:0.72rem;">✓</span>':''}</div>`).join(''):'<div class="empty-state"><div class="es-icon">⊹</div><div class="es-text">No priorities yet</div><div class="es-hint">Go to Priorities ↓</div></div>';
+  psnap.innerHTML=plist.length?plist.map(p=>`<div class="p-item ${p.done?'done':''}" style="margin-bottom:4px;"><div class="p-area ${areaClass(p.area)}">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div>${p.done?'<span style="color:var(--green);font-size:0.72rem;">✓</span>':''}</div>`).join(''):'<div class="empty-state"><div class="es-icon">⊹</div><div class="es-text">No priorities yet</div><div class="es-hint">Go to Priorities ↓</div></div>';
   // prompt
   currentPrompt=currentPrompt||getPromptForToday();
   document.getElementById('today-jp').innerHTML=renderJP(getPromptForToday());
@@ -1134,8 +1166,7 @@ async function renderPriorities(){
   const data=await fsGet(up(`weeks/${wk}`))||{};
   const list=data.priorities||[];
   const el=document.getElementById('p-list');
-  const areaC=a=>'area-'+a.toLowerCase();
-  el.innerHTML=list.length?list.map((p,i)=>`<div class="p-item ${p.done?'done':''}"><div class="p-check ${p.done?'chk':''}" onclick="toggleP(${i})">${p.done?'✓':''}</div><div class="p-area ${areaC(p.area)}">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div><span id="pdel-${i}"></span></div>`).join(''):'<div class="empty-state"><div class="es-icon">⊹</div><div class="es-text">No priorities set yet</div><div class="es-hint">Add up to 5 below ↓</div></div>';
+  el.innerHTML=list.length?list.map((p,i)=>`<div class="p-item ${p.done?'done':''}"><div class="p-check ${p.done?'chk':''}" onclick="toggleP(${i})">${p.done?'✓':''}</div><div class="p-area ${areaClass(p.area)}">${p.area}</div><div class="p-text ${p.done?'dt':''}">${p.text}</div><span id="pdel-${i}"></span></div>`).join(''):'<div class="empty-state"><div class="es-icon">⊹</div><div class="es-text">No priorities set yet</div><div class="es-hint">Add up to 5 below ↓</div></div>';
   list.forEach((_,i)=>{const el2=document.getElementById('pdel-'+i);if(el2)el2.appendChild(makeDelBtn(el2,()=>delP(i)));});
   if(data.obsession){document.getElementById('obsession-saved').textContent=data.obsession;document.getElementById('obsession-input').value=data.obsession;}
 }

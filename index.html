@@ -47,7 +47,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height
 /* ── SIDEBAR ── */
 .sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:width 0.25s cubic-bezier(0.4,0,0.2,1),transform 0.25s cubic-bezier(0.4,0,0.2,1);}
 .sidebar.collapsed{width:52px;}
-.sidebar.collapsed .logo-sub,.sidebar.collapsed .uname,.sidebar.collapsed .sync-dot,.sidebar.collapsed .nav-section-label,.sidebar.collapsed .ni-label,.sidebar.collapsed .streak-pill,.sidebar.collapsed .reading-streak-pill,.sidebar.collapsed .sidebar-bottom .btn{display:none;}
+.sidebar.collapsed .logo-sub,.sidebar.collapsed .uname,.sidebar.collapsed .sync-dot,.sidebar.collapsed .nav-section-label,.sidebar.collapsed .ni-label,.sidebar.collapsed .sidebar-bottom .btn{display:none;}
+.sidebar.collapsed .streak-pill,.sidebar.collapsed .reading-streak-pill{flex-direction:column;align-items:center;gap:2px;padding:7px 6px;}
+.sidebar.collapsed .streak-num,.sidebar.collapsed .rs-num{font-size:1rem;}
+.sidebar.collapsed .streak-info,.sidebar.collapsed .rs-info{display:none;}
+.sidebar.collapsed .sidebar-bottom{flex-direction:column;gap:6px;align-items:center;padding:10px 6px;}
 .sidebar.collapsed .sidebar-logo{padding:16px 14px;}
 .sidebar.collapsed .logo{font-size:1rem;}
 .sidebar.collapsed .sidebar-user{padding:12px 14px;justify-content:center;}

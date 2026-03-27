@@ -257,6 +257,10 @@ button{cursor:pointer;transition:all 0.15s;}
           <div class="streak-num" id="main-streak">0</div>
           <div class="streak-info">Day<br><strong>Streak</strong></div>
         </div>
+        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);">
+          <div class="streak-num" style="color:var(--gold);" id="read-streak">0</div>
+          <div class="streak-info">Reading<br><strong>Days</strong></div>
+        </div>
         <button class="btn" onclick="window.doExportAll()" style="width:100%;">⬇ Export</button>
       </div>
     </aside>
@@ -436,7 +440,11 @@ async function renderTodayPage() {
         <div class="card-title">Mood</div>
         <div class="mini-prompt">How are you feeling today?</div>
         <div style="display:flex;gap:6px;">
-          ${[1, 2, 3, 4, 5].map(v => `<button onclick="setMood(${v})" class="mood-btn" data-v="${v}" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === v ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === v ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;">['😔','😐','😊','😄','🔥'][${v - 1}]</button>`).join('')}
+          <button onclick="setMood(1)" class="mood-btn" data-v="1" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 1 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 1 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😔</button>
+          <button onclick="setMood(2)" class="mood-btn" data-v="2" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 2 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 2 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😐</button>
+          <button onclick="setMood(3)" class="mood-btn" data-v="3" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 3 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 3 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😊</button>
+          <button onclick="setMood(4)" class="mood-btn" data-v="4" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 4 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 4 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😄</button>
+          <button onclick="setMood(5)" class="mood-btn" data-v="5" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 5 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 5 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">🔥</button>
         </div>
         ${data.mood_trigger ? `<div style="margin-top:8px;font-size:0.7rem;color:var(--soft);">Trigger: ${data.mood_trigger}</div>` : ''}
       </div>
@@ -476,10 +484,13 @@ async function renderTodayPage() {
 
       <div class="card">
         <div class="card-title">Phone Usage</div>
-        <div class="mini-prompt">Hours spent today</div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <input type="number" step="0.5" placeholder="Hours" id="phone-hrs" value="${data.phone?.hrs || ''}" onchange="setPhone(this.value)" style="flex:1;"/>
-          <span style="font-size:0.7rem;color:var(--soft);">hrs</span>
+        <div class="mini-prompt">Hours and minutes spent today</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
+          <input type="number" step="1" min="0" placeholder="Hours" id="phone-hrs" value="${Math.floor(data.phone?.mins ? data.phone.mins / 60 : 0)}" style="flex:0.6;"/>
+          <span style="font-size:0.7rem;color:var(--soft);">h</span>
+          <input type="number" step="1" min="0" max="59" placeholder="Mins" id="phone-mins" value="${data.phone?.mins ? data.phone.mins % 60 : 0}" style="flex:0.6;"/>
+          <span style="font-size:0.7rem;color:var(--soft);">m</span>
+          <button class="btn-gold" onclick="setPhone()" style="flex:0.5;">Set</button>
         </div>
       </div>
 
@@ -606,12 +617,12 @@ async function renderEnergyPage() {
         <div class="card-title">What Drained You?</div>
         <div class="mini-prompt">People, tasks, or situations that depleted your energy</div>
         <textarea id="drained-input" placeholder="What drained you..." style="height:80px;"></textarea>
-        <button class="btn-gold" onclick="saveEnergyMap()" style="width:100%;margin-top:10px;">Save</button>
       </div>
       <div class="card">
         <div class="card-title">What Charged You?</div>
         <div class="mini-prompt">What restored or energized you?</div>
         <textarea id="charged-input" placeholder="What charged you..." style="height:80px;"></textarea>
+        <button class="btn-gold" onclick="saveEnergyMap()" style="width:100%;margin-top:10px;">Save Energy Map</button>
       </div>
     </div>
   `;
@@ -689,28 +700,32 @@ async function renderUniPage() {
   let html = `
     <div class="section-group">
       <div class="section-label">Uni Activity Log</div>
+      
       <div class="card">
-        <div class="card-title">Add Entry</div>
+        <div class="card-title">Quick Log</div>
         <div class="mini-prompt">Track learning and OTJ hours</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;">
           <input type="date" id="uni-date" value="${todayKey2()}"/>
           <select id="uni-module">
-            <option value="">Module</option>
+            <option value="">Select module...</option>
             <option value="CSC-10076">Programming</option>
             <option value="CSC-10077">Maths &amp; Stats</option>
             <option value="CSC-10082">Data Ethics</option>
             <option value="CSC-10078">Professional Skills</option>
           </select>
-          <input type="number" placeholder="OTJ hrs" step="0.5" id="uni-otj" style="flex:0.8;"/>
-          <button class="btn-gold" onclick="addUni()">Log</button>
         </div>
-        <input type="text" placeholder="Details..." id="uni-details" style="width:100%;margin-bottom:6px;"/>
-        <textarea id="uni-learning" placeholder="What you learned..." style="height:60px;"></textarea>
+        <input type="text" placeholder="Details..." id="uni-details" style="margin-bottom:8px;"/>
+        <textarea id="uni-learning" placeholder="What you learned..." style="height:60px;margin-bottom:8px;"></textarea>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label class="lbl" style="margin:0;flex:0;">OTJ Hours:</label>
+          <input type="number" placeholder="0" step="0.5" id="uni-otj" style="flex:0.6;margin:0;"/>
+          <button class="btn-gold" onclick="addUni()" style="flex:1;">Log Entry</button>
+        </div>
       </div>
 
       <div class="card">
         <div class="card-title">Total OTJ Hours</div>
-        <div style="font-size:1.2rem;color:var(--gold);font-weight:700;" id="uni-total">0</div>
+        <div style="font-size:1.5rem;color:var(--gold);font-weight:700;margin:8px 0;" id="uni-total">0</div>
       </div>
 
       <div class="card">
@@ -801,18 +816,18 @@ async function renderPrioritiesPage() {
 
   let html = `
     <div class="section-group">
-      <div class="section-label">This Week</div>
+      <div class="section-label">This Week's Focus</div>
       <div class="card">
         <div class="card-title">Priorities (Up to 5)</div>
         <div class="mini-prompt">What matters most this week?</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <select id="p-tag">
+        <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:8px;align-items:flex-end;">
+          <select id="p-tag" style="padding:6px 8px;">
             <option value="Professional">Professional</option>
             <option value="Health">Health</option>
             <option value="Personal">Personal</option>
           </select>
-          <input type="text" placeholder="Add priority..." id="p-input" style="flex:1;"/>
-          <button class="btn-gold" onclick="addPriority()">+</button>
+          <input type="text" placeholder="Add priority..." id="p-input" style="padding:6px 8px;"/>
+          <button class="btn-gold" onclick="addPriority()">Add</button>
         </div>
         <div id="p-list"></div>
       </div>
@@ -820,7 +835,7 @@ async function renderPrioritiesPage() {
       <div class="card">
         <div class="card-title">Current Obsession</div>
         <div class="mini-prompt">What are you focused on right now?</div>
-        <input type="text" id="p-obsession" placeholder="Your current focus..." onchange="setPrioritiesData()"/>
+        <input type="text" id="p-obsession" placeholder="Your current focus..." onchange="setPrioritiesData()" style="margin-bottom:0;"/>
       </div>
     </div>
   `;
@@ -833,9 +848,12 @@ async function renderPrioritiesPage() {
 function renderPriorityList(priorities) {
   const cols = { Professional: 'var(--gold)', Health: 'var(--green)', Personal: 'var(--blue)' };
   const html = priorities.map((p, i) => `
-    <div style="display:flex;align-items:center;gap:8px;padding:8px;background:var(--surface2);border-radius:4px;margin-bottom:6px;border-left:3px solid ${cols[p.tag] || 'var(--muted)'};">
-      <input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePriority(${i})"/>
-      <span style="flex:1;font-size:0.7rem;${p.done ? 'text-decoration:line-through;color:var(--soft);' : 'color:var(--text);'}">${p.text}</span>
+    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:4px;margin-bottom:6px;border-left:3px solid ${cols[p.tag] || 'var(--muted)'};">
+      <input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePriority(${i})" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;"/>
+      <div style="flex:1;">
+        <div style="font-size:0.75rem;color:var(--text);${p.done ? 'text-decoration:line-through;color:var(--soft);' : ''}">${p.text}</div>
+        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${p.tag}</div>
+      </div>
       <button class="btn-x" onclick="delPriority(${i})">✕</button>
     </div>
   `).join('') || '<div class="empty">No priorities set yet</div>';
@@ -979,7 +997,9 @@ async function renderPhoneChart() {
     d.setDate(d.getDate() - i);
     const k = d.toISOString().slice(0, 10);
     const v = await fsGet(up(`daily/${k}`));
-    items.push({ label: new Date(k + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), val: v?.phone?.hrs ?? null });
+    const mins = v?.phone?.mins ?? null;
+    const hrs = mins !== null ? mins / 60 : null;
+    items.push({ label: new Date(k + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), val: hrs });
   }
   const maxV = Math.max(1, ...items.filter(i => i.val !== null).map(i => i.val), 8);
   const el = document.getElementById('phone-chart');
@@ -1078,10 +1098,13 @@ async function addReading() {
   await renderTodayData(data);
 }
 
-async function setPhone(v) {
+async function setPhone() {
   const k = todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
-  data.phone = { hrs: parseFloat(v) || 0 };
+  const hrs = parseInt(document.getElementById('phone-hrs').value) || 0;
+  const mins = parseInt(document.getElementById('phone-mins').value) || 0;
+  const totalMins = hrs * 60 + mins;
+  data.phone = { mins: totalMins };
   await fsSet(up(`daily/${k}`), data);
 }
 
@@ -1396,7 +1419,27 @@ function boot(user) {
   updateHeader();
   if (!user) document.getElementById('uname').textContent = 'Offline';
   currentPrompt = PROMPTS.daily[0];
+  updateReadingStreak();
   nav('today');
+}
+
+async function updateReadingStreak() {
+  let streak = 0;
+  const today = new Date();
+  
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    const v = await fsGet(up(`daily/${k}`));
+    if (v?.reading?.pages > 0 || v?.reading?.mins > 0) {
+      streak++;
+    } else if (i > 0) {
+      break;
+    }
+  }
+  
+  document.getElementById('read-streak').textContent = streak;
 }
 
 boot(null);

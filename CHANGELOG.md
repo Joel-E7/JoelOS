@@ -442,4 +442,86 @@ if (LIVE) {
 
 ---
 
-**Ready to deploy!**
+---
+
+## 🔧 POST-LAUNCH FIXES (Round 2)
+
+### 13. Emoji Mood Buttons Rendering Issue
+**Problem**: Buttons showed `['😔','😐','😊','😄','🔥'][0]` instead of actual emoji.
+
+**Root Cause**: Array access syntax in template literal wasn't executing; string was being rendered literally.
+
+**Solution**: Replaced array mapping with explicit button elements for each mood:
+```html
+<button onclick="setMood(1)">😔</button>
+<button onclick="setMood(2)">😐</button>
+<!-- etc -->
+```
+
+**Result**: Buttons now display emoji cleanly, larger font (1.2rem), proper styling.
+
+### 14. Phone Usage Format
+**Problem**: Single hours input; couldn't track hours + minutes separately.
+
+**Solution**: 
+- Split into two inputs: hours + minutes
+- Changed storage format: `phone.mins` (total minutes) instead of `phone.hrs`
+- Display shows "3h 25m" via separate inputs
+- Chart automatically converts to hours for display (divide by 60)
+
+**Code**:
+```javascript
+async function setPhone() {
+  const hrs = parseInt(document.getElementById('phone-hrs').value) || 0;
+  const mins = parseInt(document.getElementById('phone-mins').value) || 0;
+  const totalMins = hrs * 60 + mins;
+  data.phone = { mins: totalMins };
+  await fsSet(up(`daily/${k}`), data);
+}
+```
+
+### 15. Energy Map Single Save Button
+**Problem**: "What drained you" had save button; "What charged you" didn't.
+
+**Solution**: Moved save button to below "charged you" field. Single button saves both fields at once.
+
+**Result**: Cleaner UX, both fields required to be filled, single save action.
+
+### 16. Uni Log Page Redesign
+**Problem**: Horizontal layout with tiny input boxes; hard to use on mobile; unclear flow.
+
+**Solution**: 
+- Changed to grid layout: `grid-template-columns: 1fr 1fr` for date + module
+- Full-width details input below
+- Textarea for learning (full-width)
+- Horizontal OTJ input: label → number input → button
+- Better visual hierarchy and spacing
+
+**Result**: Much more usable form, clear input order, better on mobile.
+
+### 17. Priorities Layout Fix
+**Problem**: Tag selector dropdown took up 95% of space; text input was tiny.
+
+**Solution**:
+- Changed flex to grid: `grid-template-columns: 1fr 2fr 1fr`
+- Dropdown: 1fr (small)
+- Text input: 2fr (2x wider)
+- Button: 1fr (consistent width)
+- Priority list items: checkbox + full-width text with tag label below, minimal 3px border indicator
+
+**Result**: Input box is now dominant; tag color just a subtle left border. Better visual balance.
+
+### 18. Reading Streak Restored
+**Problem**: Reading streak removed in rebuild (violated "ignore streak display changes" instruction).
+
+**Solution**: Added reading streak pill back to sidebar.
+
+**Implementation**:
+- New `.streak-pill` in sidebar with `id="read-streak"`
+- `updateReadingStreak()` function calculates consecutive days with reading logged
+- Checks: `reading.pages > 0 || reading.mins > 0`
+- Updates on boot
+
+**Result**: Both streaks now visible: main streak + reading streak.
+
+---

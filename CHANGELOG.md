@@ -1990,3 +1990,32 @@ Dropdown closes on any click outside the sidebar bottom area.
 **Fix**: Function removed entirely.
 
 ---
+
+## 🐛 Bug Fixes (2026-03-28)
+
+### 89. Workout page freeze on navigation (FIXED)
+**Problem**: Clicking Workout left the previous page frozen on screen for 4-5 seconds before the Workout page appeared.
+
+**Root cause**: `calcGymStreak()` was making 28 sequential `fsGet` calls (one per day for the past 28 days), each waiting for the previous to resolve. At ~150ms per round-trip that's ~4 seconds of blocking before a single pixel rendered. On top of that, exercises were being fetched twice — once in `renderWorkoutPage` and again inside `calcGymStreak`.
+
+**Fix**:
+- `renderWorkoutPage` now renders a loading shell immediately so the page swap is instant
+- Exercises and today's daily data are fetched in parallel via `Promise.all`
+- Exercises are passed into `calcGymStreak(exercisesIn)` as a parameter, eliminating the duplicate fetch
+- The 28 daily `fsGet` calls inside `calcGymStreak` now fire in parallel via `Promise.all`, reducing that block from ~4s to a single round-trip (~150ms)
+
+---
+
+### 90. Review sliders default to 5 instead of 0 (FIXED)
+**Problem**: Weekly Review score sliders started at 5/10 even with no data logged. Dragging to 0 would revert to displaying 5 on reload because `data.scores?.[a] || 5` treated 0 as falsy.
+
+**Fix**: Changed `min="1"` to `min="0"` and `|| 5` to `?? 0` (nullish coalescing). Sliders now start at 0 when no score is saved, and a saved score of 0 is preserved correctly.
+
+---
+
+### 91. Submit mood fails after page reload (FIXED)
+**Problem**: After a mood was saved and the page reloaded, the emoji would highlight and trigger field would populate correctly — but clicking Submit showed "Please select a mood first". `selectedMoodForEntry` is a module-level variable reset to `null` on every render, and `renderTodayData` was only restoring the visual state, not the variable.
+
+**Fix**: Added `selectedMoodForEntry = data.mood` inside the mood restore block in `renderTodayData`. The in-memory variable now stays in sync with the saved value, so Submit works immediately without needing to re-click the emoji.
+
+---

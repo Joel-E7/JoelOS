@@ -383,11 +383,11 @@ const up = path => uid ? `users/${uid}/${path}` : path;
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const weekKey = () => { const d = new Date(); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0, 10); };
 
-async function fsGet(path) { if (!LIVE) return null; try { const snap = await getDoc(doc(db, path)); return snap.exists() ? snap.data() : null; } catch (e) { console.error(e); return null; } }
-async function fsSet(path, data) { if (!LIVE) return; try { await setDoc(doc(db, path), data, { merge: true }); syncPulse(); } catch (e) { console.error(e); } }
-async function fsColGet(path) { if (!LIVE) return []; try { const q = query(collection(db, path), orderBy('date', 'desc')); const snap = await getDocs(q); return snap.docs.map(d => ({ id: d.id, ...d.data() })); } catch (e) { console.error(e); return []; } }
-async function fsColAdd(path, data) { if (!LIVE) return; try { data.date = data.date || todayKey(); await addDoc(collection(db, path), data); syncPulse(); } catch (e) { console.error(e); } }
-async function fsColDel(path, id) { if (!LIVE) return; try { await deleteDoc(doc(db, path, id)); syncPulse(); } catch (e) { console.error(e); } }
+async function fsGet(path) { if (!LIVE) return null; try { const snap = await getDoc(doc(db, path)); return snap.exists() ? snap.data() : null; } catch (e) { console.error('fsGet error:', e.code, e.message); return null; } }
+async function fsSet(path, data) { if (!LIVE) return; try { await setDoc(doc(db, path), data, { merge: true }); syncPulse(); } catch (e) { console.error('fsSet error:', e.code, e.message); } }
+async function fsColGet(path) { if (!LIVE) return []; try { const q = query(collection(db, path), orderBy('date', 'desc')); const snap = await getDocs(q); return snap.docs.map(d => ({ id: d.id, ...d.data() })); } catch (e) { console.error('fsColGet error:', e.code, e.message); return []; } }
+async function fsColAdd(path, data) { if (!LIVE) return; try { data.date = data.date || todayKey(); await addDoc(collection(db, path), data); syncPulse(); } catch (e) { console.error('fsColAdd error:', e.code, e.message); } }
+async function fsColDel(path, id) { if (!LIVE) return; try { await deleteDoc(doc(db, path, id)); syncPulse(); } catch (e) { console.error('fsColDel error:', e.code, e.message); } }
 
 function syncPulse() { const el = document.getElementById('sync-status'); el.classList.add('syncing'); setTimeout(() => { el.classList.remove('syncing'); el.classList.add('synced'); setTimeout(() => el.classList.remove('synced'), 1000); }, 500); }
 
@@ -1709,6 +1709,11 @@ window.newPrompt = () => {
     </div>
   `;
 };
+
+// Expose new functions to window for onclick handlers
+window.resetReadingStreak = resetReadingStreak;
+window.setPadelType = setPadelType;
+window.toggleYesterday = toggleYesterday;
 
 function boot(user) {
   updateHeader();

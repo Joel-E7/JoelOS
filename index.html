@@ -1200,7 +1200,8 @@ async function renderMoodHm() {
     const cc = cells.slice(c * 5, c * 5 + 5);
     cols.push(`<div style="display:flex;flex-direction:column;gap:2px;">${cc.map(v => `<div style="width:16px;height:16px;border-radius:2px;background:${['','#e05a5a','#c8a96e','#4caf7d','#5b8dee','#f0ad4e'][v]};cursor:default;" title="${moods[v]}">${v > 0 ? moods[v] : ''}</div>`).join('')}</div>`);
   }
-  document.getElementById('mood-heatmap').innerHTML = `<div style="display:flex;gap:4px;overflow-x:auto;">${cols.join('')}</div>`;
+  const el = document.getElementById('mood-heatmap');
+  if (el) el.innerHTML = `<div style="display:flex;gap:4px;overflow-x:auto;">${cols.join('')}</div>`;
 }
 
 async function renderPhoneChart() {
@@ -1328,6 +1329,10 @@ async function addReading() {
     mins: parseInt(document.getElementById('read-mins').value) || 0
   };
   await fsSet(up(`daily/${k}`), data);
+  // Clear input fields after saving
+  document.getElementById('read-title').value = '';
+  document.getElementById('read-pages').value = '';
+  document.getElementById('read-mins').value = '';
   await renderTodayData(data);
 }
 

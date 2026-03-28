@@ -1607,3 +1607,105 @@ const archive = await fsGet(up(`archives/priority_archive`)) || {};
 **Result**: Can now track court position for every match ✅
 
 ---
+
+### 49. Padel Side Option - Remove Center (FIXED)
+**Problem**: Added "Center" as padel side option but it's not possible (only Left/Right exist)
+
+**Solution**: Removed Center option from side dropdown
+
+**Result**: Only Left and Right options now available ✅
+
+---
+
+### 50. Stats Page Chart Null Reference Errors (FIXED)
+**Problem**: Opening Stats page threw error: `Cannot set properties of null (setting 'innerHTML')` in renderPhoneChart and other chart functions
+
+**Root Cause**: Chart elements (phone-chart, gym-stats-chart, pd-stats-chart, rev-chart, resist-chart) were not rendered yet when chart functions tried to update them
+
+**Solution**: Added null checks to all chart rendering functions:
+- `renderGymChart()`
+- `renderPdChart()`
+- `renderPhoneChart()`
+- `renderRevChart()`
+- `renderResistChart()`
+
+Each now checks `if (el)` before setting innerHTML
+
+**Result**: Stats page loads without errors ✅
+
+---
+
+## 🚀 Feature Batch — Roadmap Build (2026-03-28)
+
+### 51. Workout / Exercise Tracker (NEW PAGE)
+**Feature**: Full exercise logging page added under Projects in the sidebar.
+
+**What's included**:
+- Exercise autocomplete from 40+ pre-populated Anytime Fitness Rugeley machines across Push, Pull, Legs, and Other categories
+- Dynamic set rows — add multiple sets per exercise, each with reps, weight (kg), and optional notes
+- Auto-starts a 90s rest timer after each logged exercise (manual presets: 1m / 1:30 / 2m / 3m)
+- Auto-gym-category detection: logging "Bench Press" auto-ticks Push on today's Daily page via `gymCategoryFromExercise()`
+- RPE field (0-10) per exercise
+- Today's Session card showing all exercises logged today
+- Recent History showing last 20 exercises with category colour-coding
+- Volume by Category chart (Push/Pull/Legs over last 28 days, total kg volume)
+
+**Data Structure**:
+```
+/users/{uid}/exercises/{id}
+  name, sets:[{reps,weight,notes}], rpe, gym_category, date
+```
+
+---
+
+### 52. Gym Streak Tracker (within Workout page)
+**Feature**: Streak card at top of Workout page tracking consecutive full weeks where Push, Pull, and Legs were all completed.
+
+**Details**:
+- Displays streak in weeks with a 3-tile current-week progress bar (Push / Pull / Legs)
+- Reads from both the `exercises` collection and daily gym toggles on the Today page
+- Category-level tracking — not shown in the main sidebar
+
+---
+
+### 53. CSV Export
+**Feature**: Exports all daily tracking data as a flat CSV file.
+
+**Columns**: date, mood, mood_trigger, energy, gym_push, gym_pull, gym_legs, gym_rpe, reading_title, reading_pages, reading_mins, phone_mins, gratitude, wins, resistance, journal
+
+**Added**: "⬇ Export CSV" button below the existing "⬇ Export JSON" button in the sidebar.
+
+---
+
+### 54. Habits Page (NEW PAGE)
+**Feature**: Habit Stacking page added under Reflect in the sidebar, designed around behaviour-anchoring rather than willpower.
+
+**Format**: "After [anchor], I will [action] for [duration]"
+
+**Features**: Daily checkbox per habit, per-habit streak counter (auto-calculated vs yesterday), completion progress bar, full CRUD.
+
+**Data Structure**:
+```
+/users/{uid}/habits — { items:[{anchor,action,duration,streak,created}] }
+/users/{uid}/habit_checks/{date} — { h0:bool, h1:bool, ... }
+```
+
+---
+
+### 55. Correlation Hints (Stats page)
+**Feature**: Pattern detection card on the Stats page, pulling from the last 30 days of logged data.
+
+**Patterns checked**:
+- Gym days vs rest days average energy
+- High phone (>4h) vs low phone days average mood
+- Reading days vs non-reading days average mood
+- Best and worst mood day of the week
+
+Requires 7+ days of data to surface anything. Shows empty state otherwise.
+
+---
+
+### 56. Export JSON includes exercises collection
+**Change**: `doExportAll()` now exports the `exercises` collection alongside existing `padel`, `journal`, `uni_log`.
+
+---

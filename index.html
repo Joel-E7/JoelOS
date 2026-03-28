@@ -204,6 +204,7 @@ button{cursor:pointer;transition:all 0.15s;}
         <img id="uav" class="uav" src="" onerror="this.style.display='none'">
         <span id="uname" class="uname">—</span>
         <div class="sync-dot" id="sync-status"></div>
+        <div id="offline-badge" style="display:none;font-size:0.55rem;background:var(--red);color:#fff;border-radius:3px;padding:1px 4px;flex-shrink:0;">OFFLINE</div>
       </div>
       <nav class="sidebar-nav">
         <div class="nav-section">
@@ -272,8 +273,21 @@ button{cursor:pointer;transition:all 0.15s;}
           <div class="streak-info">Reading<br><strong>Days</strong></div>
           <button onclick="resetReadingStreak()" style="position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);font-size:0.7rem;cursor:pointer;padding:2px 4px;border-radius:2px;transition:all 0.15s;" title="Reset streak" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">↻</button>
         </div>
-        <button class="btn" onclick="window.doExportAll()" style="width:100%;">⬇ Export JSON</button>
-        <button class="btn" onclick="window.doExportCSV()" style="width:100%;margin-top:4px;">⬇ Export CSV</button>
+        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);">
+          <div class="streak-num" style="color:var(--green);" id="padel-streak">0</div>
+          <div class="streak-info">Padel<br><strong>Weeks</strong></div>
+        </div>
+        <div style="position:relative;">
+          <button class="btn" onclick="toggleExportMenu()" style="width:100%;">⬇ Export</button>
+          <div id="export-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;overflow:hidden;z-index:50;">
+            <button class="btn" onclick="window.doExportAll()" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📦 Full JSON backup</button>
+            <button class="btn" onclick="window.doExportCSV('daily')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📅 Daily data (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('exercises')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">🏋️ Exercises (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('padel')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">🎾 Padel (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('uni_log')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📚 Uni log (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('journal')" style="width:100%;border:none;border-radius:0;text-align:left;padding:8px 10px;">✍ Journal (CSV)</button>
+          </div>
+        </div>
       </div>
     </aside>
 
@@ -345,10 +359,14 @@ if (LIVE) {
 }
 
 // PWA
+const _pwaIcon = `data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect fill='%23080808' width='192' height='192' rx='32'/><text x='96' y='136' font-size='110' font-weight='800' text-anchor='middle' fill='%23c8a96e' font-family='Arial,sans-serif'>J</text></svg>`;
 const manifest = {
   name: 'JE OS', short_name: 'JE OS', start_url: 'https://joel-e7.github.io/JoelOS/', display: 'standalone',
   background_color: '#080808', theme_color: '#080808',
-  icons: [{ src: 'https://placehold.co/192x192/080808/c8a96e?text=JE', sizes: '192x192', type: 'image/png' }]
+  icons: [
+    { src: _pwaIcon, sizes: '192x192', type: 'image/svg+xml' },
+    { src: _pwaIcon, sizes: '512x512', type: 'image/svg+xml' }
+  ]
 };
 const blob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
 document.getElementById('pwa-manifest').href = URL.createObjectURL(blob);
@@ -394,11 +412,164 @@ const up = path => uid ? `users/${uid}/${path}` : path;
 const todayKey = () => new Date().toISOString().slice(0, 10);
 const weekKey = () => { const d = new Date(); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0, 10); };
 
-async function fsGet(path) { if (!LIVE) return null; try { const snap = await getDoc(doc(db, path)); return snap.exists() ? snap.data() : null; } catch (e) { console.error('fsGet error:', e.code, e.message); return null; } }
-async function fsSet(path, data) { if (!LIVE) return; try { await setDoc(doc(db, path), data, { merge: true }); syncPulse(); } catch (e) { console.error('fsSet error:', e.code, e.message); } }
-async function fsColGet(path) { if (!LIVE) return []; try { const q = query(collection(db, path), orderBy('date', 'desc')); const snap = await getDocs(q); return snap.docs.map(d => ({ id: d.id, ...d.data() })); } catch (e) { console.error('fsColGet error:', e.code, e.message); return []; } }
-async function fsColAdd(path, data) { if (!LIVE) return; try { data.date = data.date || todayKey(); await addDoc(collection(db, path), data); syncPulse(); } catch (e) { console.error('fsColAdd error:', e.code, e.message); } }
-async function fsColDel(path, id) { if (!LIVE) return; try { await deleteDoc(doc(db, path, id)); syncPulse(); } catch (e) { console.error('fsColDel error:', e.code, e.message); } }
+// ── INDEXEDDB OFFLINE LAYER ──────────────
+const IDB_NAME = 'jeos', IDB_VER = 1;
+let idb = null;
+
+function openIDB() {
+  return new Promise((res, rej) => {
+    const req = indexedDB.open(IDB_NAME, IDB_VER);
+    req.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('docs')) db.createObjectStore('docs');
+      if (!db.objectStoreNames.contains('queue')) db.createObjectStore('queue', { autoIncrement: true });
+    };
+    req.onsuccess = e => { idb = e.target.result; res(idb); };
+    req.onerror = () => rej(req.error);
+  });
+}
+
+async function idbGet(key) {
+  if (!idb) return null;
+  return new Promise(res => {
+    const tx = idb.transaction('docs', 'readonly');
+    const req = tx.objectStore('docs').get(key);
+    req.onsuccess = () => res(req.result ?? null);
+    req.onerror = () => res(null);
+  });
+}
+
+async function idbSet(key, val) {
+  if (!idb) return;
+  return new Promise(res => {
+    const tx = idb.transaction('docs', 'readwrite');
+    tx.objectStore('docs').put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = () => res();
+  });
+}
+
+async function idbQueueWrite(path, data) {
+  if (!idb) return;
+  return new Promise(res => {
+    const tx = idb.transaction('queue', 'readwrite');
+    tx.objectStore('queue').add({ path, data, ts: Date.now() });
+    tx.oncomplete = () => res();
+    tx.onerror = () => res();
+  });
+}
+
+async function idbFlushQueue() {
+  if (!idb || !LIVE || !uid) return;
+  const tx = idb.transaction('queue', 'readwrite');
+  const store = tx.objectStore('queue');
+  const all = await new Promise(res => { const r = store.getAll(); r.onsuccess = () => res(r.result); r.onerror = () => res([]); });
+  const keys = await new Promise(res => { const r = store.getAllKeys(); r.onsuccess = () => res(r.result); r.onerror = () => res([]); });
+  for (let i = 0; i < all.length; i++) {
+    try {
+      await setDoc(doc(db, all[i].path), all[i].data, { merge: true });
+      store.delete(keys[i]);
+    } catch (e) { break; } // stop if still offline
+  }
+  const queueSize = await new Promise(res => { const r = store.count(); r.onsuccess = () => res(r.result); r.onerror = () => res(0); });
+  const offlineBadge = document.getElementById('offline-badge');
+  if (offlineBadge) offlineBadge.style.display = queueSize > 0 ? 'block' : 'none';
+}
+
+// Initialise IDB and flush queue when coming online
+openIDB().catch(() => {});
+window.addEventListener('online', () => { idbFlushQueue(); updateOnlineStatus(); });
+window.addEventListener('offline', () => updateOnlineStatus());
+
+function updateOnlineStatus() {
+  const dot = document.getElementById('sync-status');
+  const badge = document.getElementById('offline-badge');
+  if (!navigator.onLine) {
+    if (dot) { dot.style.background = 'var(--red)'; dot.title = 'Offline — changes saved locally'; }
+    if (badge) badge.style.display = 'block';
+  } else {
+    if (badge) badge.style.display = 'none';
+  }
+}
+
+// ── FIRESTORE HELPERS (now with IDB fallback) ──
+async function fsGet(path) {
+  // Try IDB cache first for speed, then Firestore
+  const cached = await idbGet(path);
+  if (!LIVE) return cached;
+  if (!navigator.onLine) return cached;
+  try {
+    const snap = await getDoc(doc(db, path));
+    const data = snap.exists() ? snap.data() : null;
+    if (data) await idbSet(path, data);
+    return data;
+  } catch (e) {
+    console.error('fsGet error:', e.code, e.message);
+    return cached; // fall back to IDB on network error
+  }
+}
+
+async function fsSet(path, data) {
+  await idbSet(path, data); // always write locally first
+  if (!LIVE) return;
+  if (!navigator.onLine) {
+    await idbQueueWrite(path, data);
+    const badge = document.getElementById('offline-badge');
+    if (badge) badge.style.display = 'block';
+    return;
+  }
+  try {
+    await setDoc(doc(db, path), data, { merge: true });
+    syncPulse();
+  } catch (e) {
+    console.error('fsSet error:', e.code, e.message);
+    await idbQueueWrite(path, data); // queue for retry
+  }
+}
+
+async function fsColGet(path) {
+  if (!LIVE) return [];
+  if (!navigator.onLine) {
+    // Return any IDB entries with this path prefix
+    const cached = await idbGet(`col:${path}`);
+    return cached || [];
+  }
+  try {
+    const q = query(collection(db, path), orderBy('date', 'desc'));
+    const snap = await getDocs(q);
+    const results = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    await idbSet(`col:${path}`, results); // cache the collection
+    return results;
+  } catch (e) {
+    console.error('fsColGet error:', e.code, e.message);
+    const cached = await idbGet(`col:${path}`);
+    return cached || [];
+  }
+}
+
+async function fsColAdd(path, data) {
+  if (!LIVE) return;
+  data.date = data.date || todayKey();
+  try {
+    await addDoc(collection(db, path), data);
+    syncPulse();
+    // Invalidate collection cache
+    await idbSet(`col:${path}`, null);
+  } catch (e) {
+    console.error('fsColAdd error:', e.code, e.message);
+  }
+}
+
+async function fsColDel(path, id) {
+  if (!LIVE) return;
+  try {
+    await deleteDoc(doc(db, path, id));
+    syncPulse();
+    await idbSet(`col:${path}`, null);
+  } catch (e) {
+    console.error('fsColDel error:', e.code, e.message);
+  }
+}
 
 function syncPulse() { const el = document.getElementById('sync-status'); el.classList.add('syncing'); setTimeout(() => { el.classList.remove('syncing'); el.classList.add('synced'); setTimeout(() => el.classList.remove('synced'), 1000); }, 500); }
 
@@ -606,26 +777,51 @@ async function renderTodayData(data) {
 async function renderReviewPage() {
   const wk = weekKey();
   const data = await fsGet(up(`reviews/${wk}`)) || { scores: {} };
+  const weekData = await fsGet(up(`weeks/${wk}`)) || { priorities: [] };
+  const priorities = weekData.priorities || [];
+  const done = priorities.filter(p => p.done).length;
+  const total = priorities.length;
+  const pct = total ? Math.round((done / total) * 100) : 0;
 
   const areas = ['Professional', 'Health', 'Personal', 'Relationships', 'Learning'];
   let html = `
     <div class="section-group">
-      <div class="section-label">Weekly Review</div>
-      <div class="card">
+      <div class="section-label">Weekly Review</div>`;
+
+  if (total > 0) {
+    const cols = { Professional: 'var(--gold)', Health: 'var(--green)', Personal: 'var(--blue)' };
+    html += `
+      <div class="card" style="border-color:${pct === 100 ? 'var(--green)' : 'var(--border2)'};">
+        <div class="card-title">Priority Completion</div>
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:8px;">
+          <div style="font-size:1.8rem;font-weight:800;font-family:var(--font-h);color:${pct===100?'var(--green)':'var(--gold)'};">${pct}%</div>
+          <div style="font-size:0.72rem;color:var(--soft);">${done} of ${total} priorities completed this week</div>
+        </div>
+        <div style="height:6px;background:var(--surface2);border-radius:3px;margin-bottom:10px;">
+          <div style="height:100%;width:${pct}%;background:${pct===100?'var(--green)':'var(--gold)'};border-radius:3px;transition:width 0.4s;"></div>
+        </div>
+        ${priorities.map(p => `
+          <div style="display:flex;align-items:center;gap:8px;padding:4px 0;font-size:0.7rem;">
+            <span style="color:${p.done ? 'var(--green)' : 'var(--muted)'};">${p.done ? '✓' : '○'}</span>
+            <span style="color:${p.done ? 'var(--soft)' : 'var(--text)'};${p.done ? 'text-decoration:line-through;' : ''}">${p.text}</span>
+            <span style="font-size:0.6rem;color:${cols[p.tag]||'var(--muted)'};margin-left:auto;">${p.tag}</span>
+          </div>`).join('')}
+      </div>`;
+  }
+
+  html += `<div class="card">
         <div class="card-title">Scores (1–10)</div>
-        <div class="mini-prompt">How did each area go this week?</div>
-  `;
+        <div class="mini-prompt">How did each area go this week?</div>`;
 
   areas.forEach(a => {
     html += `
       <div style="margin-bottom:10px;">
         <label class="lbl">${a}</label>
         <div style="display:flex;gap:6px;align-items:center;">
-          <input type="range" min="1" max="10" value="${data.scores?.[a] || 5}" onchange="setReviewScore('${a}',this.value)" style="flex:1;padding:0;"/>
+          <input type="range" min="1" max="10" value="${data.scores?.[a] || 5}" onchange="setReviewScore('${a}',this.value)" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;"/>
           <span style="width:30px;text-align:right;font-size:0.8rem;color:var(--gold);">${data.scores?.[a] || 5}/10</span>
         </div>
-      </div>
-    `;
+      </div>`;
   });
 
   html += `
@@ -755,6 +951,19 @@ async function renderPadelPage() {
 
       <div class="card">
         <div class="card-title">History</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="pd-search" placeholder="Search opponent, court..." style="flex:1;margin:0;" oninput="filterPadelHistory()"/>
+          <select id="pd-filter-type" style="flex:0.6;margin:0;" onchange="filterPadelHistory()">
+            <option value="">All</option>
+            <option value="session">Sessions</option>
+            <option value="match">Matches</option>
+          </select>
+          <select id="pd-filter-result" style="flex:0.6;margin:0;" onchange="filterPadelHistory()">
+            <option value="">Any result</option>
+            <option value="win">Wins</option>
+            <option value="loss">Losses</option>
+          </select>
+        </div>
         <div id="pd-history"></div>
       </div>
     </div>
@@ -764,8 +973,34 @@ async function renderPadelPage() {
   setPadelType('session');
   await renderPadelChart();
   await renderMatchStats(sessions);
+  _padelActivities = sessions;
   renderPadelHistory(sessions);
 }
+
+let _padelActivities = [];
+let _allExercises = [];
+window.filterPadelHistory = () => {
+  const q = (document.getElementById('pd-search')?.value || '').toLowerCase();
+  const type = document.getElementById('pd-filter-type')?.value || '';
+  const result = document.getElementById('pd-filter-result')?.value || '';
+  const filtered = _padelActivities.filter(a =>
+    (!type || a.type === type || (!a.type && type === 'session')) &&
+    (!result || a.result === result) &&
+    (!q || (a.opponent||'').toLowerCase().includes(q) || (a.court||'').toLowerCase().includes(q) || (a.notes||'').toLowerCase().includes(q))
+  );
+  renderPadelHistory(filtered);
+};
+
+window.filterExerciseHistory = () => {
+  const q = (document.getElementById('ex-search')?.value || '').toLowerCase();
+  const cat = document.getElementById('ex-filter-cat')?.value || '';
+  const filtered = _allExercises.filter(e =>
+    (!q || e.name.toLowerCase().includes(q)) &&
+    (!cat || e.gym_category === cat)
+  );
+  const el = document.getElementById('ex-history');
+  if (el) el.innerHTML = renderExerciseHistory(filtered);
+};
 
 function setPadelType(type) {
   const sessionFields = document.getElementById('session-fields');
@@ -908,13 +1143,95 @@ function renderPadelHistory(activities) {
 }
 
 // ── PAGE: UNI LOG ────────────────────────
+const UNI_MODULES = [
+  { code: 'CSC-10076', name: 'Programming' },
+  { code: 'CSC-10077', name: 'Maths & Stats' },
+  { code: 'CSC-10082', name: 'Data Ethics' },
+  { code: 'CSC-10078', name: 'Professional Skills' },
+];
+const OTJ_ANNUAL_TARGET = 200; // hours — configurable
+
 async function renderUniPage() {
   const entries = await fsColGet(up('uni_log'));
+  const targets = await fsGet(up('otj_targets')) || { annual: OTJ_ANNUAL_TARGET };
+  const annualTarget = targets.annual || OTJ_ANNUAL_TARGET;
+
+  // Calculate totals
+  const totalMins = entries.reduce((s, e) => s + (e.otj_mins || (e.otj ? e.otj * 60 : 0)), 0);
+  const totalHrs = totalMins / 60;
+  const pct = Math.min(100, (totalHrs / annualTarget) * 100);
+  const remaining = Math.max(0, annualTarget - totalHrs);
+
+  // Per-module breakdown
+  const byModule = {};
+  UNI_MODULES.forEach(m => { byModule[m.code] = 0; });
+  entries.forEach(e => {
+    const mins = e.otj_mins || (e.otj ? e.otj * 60 : 0);
+    if (byModule[e.module] !== undefined) byModule[e.module] += mins;
+    else if (e.module) byModule[e.module] = (byModule[e.module] || 0) + mins;
+  });
+
+  // Weeks elapsed in year (for pace calculation)
+  const now = new Date();
+  const yearStart = new Date(now.getFullYear(), 0, 1);
+  const weeksElapsed = Math.max(1, Math.ceil((now - yearStart) / (7 * 24 * 60 * 60 * 1000)));
+  const weeksInYear = 52;
+  const expectedByNow = (annualTarget / weeksInYear) * weeksElapsed;
+  const pace = totalHrs >= expectedByNow ? 'on-pace' : 'behind';
+  const paceHrs = Math.abs(totalHrs - expectedByNow).toFixed(1);
+
+  const fmtH = (mins) => {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : (m > 0 ? `${m}m` : '0m');
+  };
 
   let html = `
     <div class="section-group">
       <div class="section-label">Uni Activity Log</div>
-      
+
+      <!-- ANNUAL TARGET CARD -->
+      <div class="card" style="background:var(--gold-bg);border-color:var(--gold-dim);">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+          <div>
+            <div style="font-size:0.6rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.1em;">OTJ Progress</div>
+            <div style="font-size:1.6rem;font-weight:800;color:var(--gold);font-family:var(--font-h);">${totalHrs.toFixed(1)}h <span style="font-size:0.8rem;color:var(--soft);">/ ${annualTarget}h</span></div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.65rem;color:${pace==='on-pace'?'var(--green)':'var(--red)'};">${pace==='on-pace'?`▲ ${paceHrs}h ahead`:`▼ ${paceHrs}h behind`}</div>
+            <div style="font-size:0.6rem;color:var(--muted);">${remaining.toFixed(1)}h remaining</div>
+          </div>
+        </div>
+        <div style="height:8px;background:rgba(255,255,255,0.08);border-radius:4px;margin-bottom:6px;">
+          <div style="height:100%;width:${pct.toFixed(1)}%;background:var(--gold);border-radius:4px;transition:width 0.4s;"></div>
+        </div>
+        <div style="font-size:0.62rem;color:var(--muted);">${pct.toFixed(1)}% complete • Week ${weeksElapsed} of ${weeksInYear}</div>
+      </div>
+
+      <!-- MODULE BREAKDOWN -->
+      <div class="card">
+        <div class="card-title">By Module</div>
+        ${UNI_MODULES.map(m => {
+          const mins = byModule[m.code] || 0;
+          const hrs = mins / 60;
+          const modTarget = annualTarget / UNI_MODULES.length;
+          const modPct = Math.min(100, (hrs / modTarget) * 100);
+          return `
+          <div style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:0.7rem;margin-bottom:3px;">
+              <span style="color:var(--text);">${m.name} <span style="color:var(--muted);font-size:0.62rem;">${m.code}</span></span>
+              <span style="color:var(--gold);">${fmtH(mins)}</span>
+            </div>
+            <div style="height:5px;background:var(--surface2);border-radius:3px;">
+              <div style="height:100%;width:${modPct.toFixed(1)}%;background:var(--gold);border-radius:3px;"></div>
+            </div>
+          </div>`;
+        }).join('')}
+        <div style="margin-top:6px;">
+          <button class="btn" onclick="editOTJTarget()" style="font-size:0.65rem;padding:4px 8px;">⚙ Set Annual Target</button>
+        </div>
+      </div>
+
+      <!-- QUICK LOG -->
       <div class="card">
         <div class="card-title">Quick Log</div>
         <div class="mini-prompt">Track learning and OTJ hours</div>
@@ -922,10 +1239,7 @@ async function renderUniPage() {
           <input type="date" id="uni-date" value="${todayKey2()}"/>
           <select id="uni-module">
             <option value="">Select module...</option>
-            <option value="CSC-10076">Programming</option>
-            <option value="CSC-10077">Maths &amp; Stats</option>
-            <option value="CSC-10082">Data Ethics</option>
-            <option value="CSC-10078">Professional Skills</option>
+            ${UNI_MODULES.map(m => `<option value="${m.code}">${m.name}</option>`).join('')}
           </select>
         </div>
         <input type="text" placeholder="Details..." id="uni-details" style="margin-bottom:8px;"/>
@@ -940,13 +1254,16 @@ async function renderUniPage() {
         </div>
       </div>
 
+      <!-- SEARCH/FILTER -->
       <div class="card">
-        <div class="card-title">Total OTJ Hours</div>
-        <div style="font-size:1.5rem;color:var(--gold);font-weight:700;margin:8px 0;" id="uni-total">0</div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Recent Entries</div>
+        <div class="card-title">Entries</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="uni-search" placeholder="Search..." style="flex:1;margin:0;" oninput="filterUniList()"/>
+          <select id="uni-filter-module" style="flex:0.8;margin:0;" onchange="filterUniList()">
+            <option value="">All modules</option>
+            ${UNI_MODULES.map(m => `<option value="${m.code}">${m.name}</option>`).join('')}
+          </select>
+        </div>
         <div id="uni-list"></div>
       </div>
     </div>
@@ -954,36 +1271,54 @@ async function renderUniPage() {
 
   document.getElementById('content').innerHTML = html;
   renderUniList(entries);
-  updateUniTotal(entries);
 }
 
-function renderUniList(entries) {
-  const html = entries.slice(0, 20).map(e => {
-    const mins = e.otj_mins || (e.otj ? e.otj * 60 : 0); // backward compat
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-    const fmtOtj = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : (m > 0 ? `${m}m` : '0m');
+let _uniEntries = [];
+window.filterUniList = () => {
+  const q = document.getElementById('uni-search')?.value.toLowerCase() || '';
+  const mod = document.getElementById('uni-filter-module')?.value || '';
+  const filtered = _uniEntries.filter(e =>
+    (!q || (e.details||'').toLowerCase().includes(q) || (e.learning||'').toLowerCase().includes(q) || (e.module||'').toLowerCase().includes(q)) &&
+    (!mod || e.module === mod)
+  );
+  renderUniList(filtered, true);
+};
+
+window.editOTJTarget = async () => {
+  const current = (await fsGet(up('otj_targets')) || { annual: OTJ_ANNUAL_TARGET }).annual;
+  const val = prompt(`Annual OTJ target (hours):`, current);
+  if (!val || isNaN(parseInt(val))) return;
+  await fsSet(up('otj_targets'), { annual: parseInt(val) });
+  toast(`Target set to ${val}h`);
+  renderUniPage();
+};
+
+function renderUniList(entries, isFiltered = false) {
+  if (!isFiltered) _uniEntries = entries;
+  const fmtH = (mins) => {
+    const h = Math.floor(mins / 60), m = mins % 60;
+    return h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : (m > 0 ? `${m}m` : '0m');
+  };
+  const modName = (code) => UNI_MODULES.find(m => m.code === code)?.name || code;
+  const html = entries.slice(0, 30).map(e => {
+    const mins = e.otj_mins || (e.otj ? e.otj * 60 : 0);
     return `
     <div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.7rem;">
-      <div style="color:var(--text);font-weight:600;">${fmtDate(e.date)} • ${e.module}</div>
-      <div style="color:var(--soft);">${e.details || '—'}</div>
-      <div style="color:var(--soft);margin-top:2px;">Learning: ${e.learning || '—'}</div>
-      <div style="color:var(--soft);">OTJ: ${fmtOtj}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <span style="color:var(--text);font-weight:600;">${fmtDate(e.date)}</span>
+        <span style="color:var(--gold);font-size:0.65rem;">${fmtH(mins)}</span>
+      </div>
+      <div style="color:var(--gold);font-size:0.62rem;margin-top:1px;">${modName(e.module)}</div>
+      <div style="color:var(--soft);margin-top:2px;">${e.details || '—'}</div>
+      ${e.learning ? `<div style="color:var(--muted);margin-top:2px;font-style:italic;">↳ ${e.learning}</div>` : ''}
       <div style="display:flex;gap:4px;margin-top:4px;">
         <button class="btn-x" onclick="openEditModal('Uni','uni_log','${e.id}',[{key:'date',label:'Date',type:'date',value:'${e.date}'},{key:'module',label:'Module',value:'${e.module}'},{key:'details',label:'Details',value:'${(e.details||'').replace(/"/g,'&quot;')}'},{key:'learning',label:'Learning',type:'textarea',value:'${(e.learning||'').replace(/"/g,'&quot;')}'},{key:'otj_mins',label:'OTJ Mins',type:'number',value:String(e.otj_mins||0)}])">✎</button>
         <button class="btn-x" onclick="delUni('${e.id}')">✕</button>
       </div>
     </div>
   `}).join('') || '<div class="empty">No entries logged yet</div>';
-  document.getElementById('uni-list').innerHTML = html;
-}
-
-function updateUniTotal(entries) {
-  const totalMins = entries.reduce((s, e) => s + (e.otj_mins || (e.otj ? e.otj * 60 : 0)), 0);
-  const h = Math.floor(totalMins / 60);
-  const m = totalMins % 60;
-  const fmt = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : (m > 0 ? `${m}m` : '0m');
-  document.getElementById('uni-total').textContent = fmt;
+  const el = document.getElementById('uni-list');
+  if (el) el.innerHTML = html;
 }
 
 // ── PAGE: JOURNAL ────────────────────────
@@ -1012,26 +1347,52 @@ async function renderJournalPage() {
 
       <div class="card">
         <div class="card-title">Entries</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="j-search" placeholder="Search entries..." style="flex:1;margin:0;" oninput="filterJournalList()"/>
+          <select id="j-filter-type" style="flex:0.6;margin:0;" onchange="filterJournalList()">
+            <option value="">All types</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="insight">Insight</option>
+            <option value="goal">Goal</option>
+            <option value="free">Free Write</option>
+          </select>
+        </div>
         <div id="j-list"></div>
       </div>
     </div>
   `;
 
   document.getElementById('content').innerHTML = html;
+  _journalEntries = entries;
   renderJournalList(entries);
 }
 
+let _journalEntries = [];
+window.filterJournalList = () => {
+  const q = document.getElementById('j-search')?.value.toLowerCase() || '';
+  const type = document.getElementById('j-filter-type')?.value || '';
+  const filtered = _journalEntries.filter(e =>
+    (!q || (e.text||'').toLowerCase().includes(q)) &&
+    (!type || e.type === type)
+  );
+  renderJournalList(filtered);
+};
+
 function renderJournalList(entries) {
-  const html = entries.slice(0, 20).map(e => `
+  const html = entries.slice(0, 30).map(e => `
     <div style="padding:8px;border-bottom:1px solid var(--border);">
-      <div style="font-size:0.7rem;color:var(--text);font-weight:600;margin-bottom:2px;">${fmtDate(e.date)}</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:2px;">
+        <span style="font-size:0.7rem;color:var(--text);font-weight:600;">${fmtDate(e.date)}</span>
+        ${e.type ? `<span style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;">${e.type}</span>` : ''}
+      </div>
       <div style="font-size:0.7rem;color:var(--soft);margin-bottom:4px;max-height:40px;overflow:hidden;">${e.text.length > 100 ? e.text.slice(0, 100) + '…' : e.text}</div>
       <div style="display:flex;gap:4px;">
         <button class="btn-x" onclick="openEditModal('Journal','journal','${e.id}',[{key:'text',label:'Entry',type:'textarea',rows:5,value:'${(e.text||'').replace(/"/g,'&quot;')}'}])">✎</button>
         <button class="btn-x" onclick="delJournal('${e.id}')">✕</button>
       </div>
     </div>
-  `).join('') || '<div class="empty">No entries yet. Start reflecting.</div>';
+  `).join('') || '<div class="empty">No entries found.</div>';
   document.getElementById('j-list').innerHTML = html;
 }
 
@@ -1903,19 +2264,19 @@ async function saveGymRPE() {
 }
 
 async function addReading() {
+  const title = document.getElementById('read-title').value.trim();
+  const pages = parseInt(document.getElementById('read-pages').value) || 0;
+  const mins = parseInt(document.getElementById('read-mins').value) || 0;
+  if (!pages || !mins) { toast('Both pages and minutes are required'); return; }
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
-  data.reading = {
-    title: document.getElementById('read-title').value,
-    pages: parseInt(document.getElementById('read-pages').value) || 0,
-    mins: parseInt(document.getElementById('read-mins').value) || 0
-  };
+  data.reading = { title, pages, mins };
   await fsSet(up(`daily/${k}`), data);
-  // Clear input fields after saving
   document.getElementById('read-title').value = '';
   document.getElementById('read-pages').value = '';
   document.getElementById('read-mins').value = '';
   await renderTodayData(data);
+  toast('Reading logged');
 }
 
 async function setPhone() {
@@ -2052,34 +2413,26 @@ async function addUni() {
   const h = parseInt(document.getElementById('uni-otj-h').value) || 0;
   const m = parseInt(document.getElementById('uni-otj-m').value) || 0;
   const otj_mins = h * 60 + m;
+  if (!module) { toast('Select a module first'); return; }
   await fsColAdd(up('uni_log'), { date, module, details, learning, otj_mins });
-  document.getElementById('uni-date').value = todayKey2();
-  document.getElementById('uni-module').value = '';
-  document.getElementById('uni-details').value = '';
-  document.getElementById('uni-learning').value = '';
-  document.getElementById('uni-otj-h').value = '';
-  document.getElementById('uni-otj-m').value = '';
-  const entries = await fsColGet(up('uni_log'));
-  renderUniList(entries);
-  updateUniTotal(entries);
   toast('Entry logged');
+  await renderUniPage();
 }
 
 async function delUni(id) {
   if (!confirm('Delete entry?')) return;
   await fsColDel(up('uni_log'), id);
-  const entries = await fsColGet(up('uni_log'));
-  renderUniList(entries);
-  updateUniTotal(entries);
+  await renderUniPage();
 }
 
 async function saveJournal() {
-  const text = document.getElementById('j-entry').value;
+  const text = document.getElementById('j-entry').value.trim();
   if (!text) return;
-  await fsColAdd(up('journal'), { text, date: todayKey2() });
+  const type = document.getElementById('j-type')?.value || 'daily';
+  await fsColAdd(up('journal'), { text, date: todayKey2(), type });
   document.getElementById('j-entry').value = '';
-  const entries = await fsColGet(up('journal'));
-  renderJournalList(entries);
+  _journalEntries = await fsColGet(up('journal'));
+  renderJournalList(_journalEntries);
   toast('Entry saved');
 }
 
@@ -2371,35 +2724,68 @@ Object.defineProperty(window, 'db', { get: () => db, configurable: true });
 Object.defineProperty(window, 'LIVE', { get: () => LIVE, configurable: true });
 
 
+window.toggleExportMenu = () => {
+  const m = document.getElementById('export-menu');
+  if (m) m.style.display = m.style.display === 'none' ? 'block' : 'none';
+};
+document.addEventListener('click', e => {
+  const m = document.getElementById('export-menu');
+  if (m && !e.target.closest('.sidebar-bottom')) m.style.display = 'none';
+});
+
 // ── CSV EXPORT ───────────────────────────
-window.doExportCSV = async () => {
+window.doExportCSV = async (type = 'daily') => {
   if (!LIVE || !uid) { toast('Sign in first'); return; }
-  toast('Building CSV...');
-  const rows = [['date','mood','mood_trigger','energy','gym_push','gym_pull','gym_legs','gym_rpe','reading_title','reading_pages','reading_mins','phone_mins','gratitude','wins','resistance','journal']];
-  for (let i = 364; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v) {
-      rows.push([
-        k, v.mood||'', (v.mood_trigger||'').replace(/,/g,';'), v.energy||'',
-        v.gym?.push?1:0, v.gym?.pull?1:0, v.gym?.legs?1:0, v.gym_rpe||'',
-        (v.reading?.title||'').replace(/,/g,';'), v.reading?.pages||'', v.reading?.mins||'',
-        v.phone?.mins||'', (v.gratitude||'').replace(/,/g,';'),
-        (v.wins||[]).join('|').replace(/,/g,';'), (v.resistance||[]).join('|').replace(/,/g,';'),
-        (v.journal||'').replace(/,/g,';').replace(/\n/g,' ')
-      ]);
+  toast(`Building ${type} CSV...`);
+  const dl = (rows, name) => {
+    const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const a = Object.assign(document.createElement('a'), { href: URL.createObjectURL(new Blob([csv],{type:'text/csv'})), download: `je-os-${name}-${todayKey2()}.csv` });
+    a.click(); URL.revokeObjectURL(a.href);
+  };
+
+  if (type === 'daily') {
+    const rows = [['date','mood','mood_trigger','energy','gym_push','gym_pull','gym_legs','gym_rpe','reading_title','reading_pages','reading_mins','phone_mins','gratitude','wins','resistance','journal']];
+    for (let i = 364; i >= 0; i--) {
+      const d = new Date(); d.setDate(d.getDate() - i);
+      const k = d.toISOString().slice(0,10);
+      const v = await fsGet(up(`daily/${k}`));
+      if (v) rows.push([k, v.mood||'', v.mood_trigger||'', v.energy||'', v.gym?.push?1:0, v.gym?.pull?1:0, v.gym?.legs?1:0, v.gym_rpe||'', v.reading?.title||'', v.reading?.pages||'', v.reading?.mins||'', v.phone?.mins||'', v.gratitude||'', (v.wins||[]).join('|'), (v.resistance||[]).join('|'), (v.journal||'').replace(/\n/g,' ')]);
     }
+    dl(rows, 'daily');
+
+  } else if (type === 'exercises') {
+    const entries = await fsColGet(up('exercises')) || [];
+    const rows = [['date','name','category','set','reps','weight_kg','rpe','notes']];
+    entries.forEach(e => {
+      (e.sets||[]).forEach((s, i) => rows.push([e.date, e.name, e.gym_category||'', i+1, s.reps||'', s.weight||'', i===0 ? (e.rpe||'') : '', s.notes||'']));
+      if (!(e.sets||[]).length) rows.push([e.date, e.name, e.gym_category||'', '', '', '', e.rpe||'', '']);
+    });
+    dl(rows, 'exercises');
+
+  } else if (type === 'padel') {
+    const entries = await fsColGet(up('padel')) || [];
+    const rows = [['date','type','opponent','skill','partner','format','side','court','result','sets','highlights','feel','notes']];
+    entries.forEach(e => rows.push([e.date, e.type||'session', e.opponent||'', e.skill||'', e.partner||'', e.format||'', e.side||'', e.court||'', e.result||'', e.sets||'', e.highlights||'', e.feel||'', e.notes||'']));
+    dl(rows, 'padel');
+
+  } else if (type === 'uni_log') {
+    const entries = await fsColGet(up('uni_log')) || [];
+    const rows = [['date','module','details','learning','otj_mins','otj_formatted']];
+    entries.forEach(e => {
+      const m = e.otj_mins || 0;
+      const fmt = `${Math.floor(m/60)}h ${m%60}m`;
+      rows.push([e.date, e.module||'', e.details||'', e.learning||'', m, fmt]);
+    });
+    dl(rows, 'uni-log');
+
+  } else if (type === 'journal') {
+    const entries = await fsColGet(up('journal')) || [];
+    const rows = [['date','type','text']];
+    entries.forEach(e => rows.push([e.date, e.type||'', (e.text||'').replace(/\n/g,' ')]));
+    dl(rows, 'journal');
   }
-  const csv = rows.map(r => r.map(c => `"${c}"`).join(',')).join('\n');
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `je-os-${new Date().toISOString().slice(0,10)}.csv`;
-  a.click();
-  URL.revokeObjectURL(a.href);
-  toast('CSV downloaded');
+
+  toast('Downloaded ✓');
 };
 
 // ── MACHINE CATALOGUE ────────────────────
@@ -2524,6 +2910,16 @@ async function renderWorkoutPage() {
       <!-- EXERCISE HISTORY -->
       <div class="card">
         <div class="card-title">Recent History</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
+          <input type="text" id="ex-search" placeholder="Search exercise..." style="flex:1;margin:0;" oninput="filterExerciseHistory()"/>
+          <select id="ex-filter-cat" style="flex:0.6;margin:0;" onchange="filterExerciseHistory()">
+            <option value="">All</option>
+            <option value="push">Push</option>
+            <option value="pull">Pull</option>
+            <option value="legs">Legs</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
         <div id="ex-history">${renderExerciseHistory(exercises)}</div>
       </div>
 
@@ -2536,6 +2932,7 @@ async function renderWorkoutPage() {
   `;
 
   document.getElementById('content').innerHTML = html;
+  _allExercises = exercises;
   await renderTodaysExercises(exercises);
   renderVolumeChart(exercises);
   document.getElementById('rest-timer-card').style.display = 'block';
@@ -2958,6 +3355,8 @@ function boot(user) {
   if (!user) document.getElementById('uname').textContent = 'Offline';
   currentPrompt = PROMPTS.daily[0];
   updateStreaks();
+  updateOnlineStatus();
+  idbFlushQueue();
   nav('today');
 }
 
@@ -2971,28 +3370,12 @@ async function updateStreaks() {
     d.setDate(d.getDate() - i);
     const k = d.toISOString().slice(0, 10);
     const v = await fsGet(up(`daily/${k}`));
-
-    // Main streak: any data logged counts (mood, energy, gym, reading, wins, journal, phone)
     const hasAnyData = v && (v.mood || v.energy || v.gym?.push || v.gym?.pull || v.gym?.legs ||
       v.reading?.pages > 0 || (v.wins && v.wins.length > 0) || v.journal || v.phone?.mins > 0);
-
-    // Reading streak: pages or mins logged
-    const hasReading = v?.reading?.pages > 0 || v?.reading?.mins > 0;
-
-    if (i === 0) {
-      // Today: only count if data exists, but don't break streak if today is empty yet
-      if (hasAnyData) mainStreak++;
-      if (hasReading) readStreak++;
-    } else {
-      if (hasAnyData) mainStreak++;
-      else break; // break main streak on first missing past day
-    }
-
-    // Reading streak is separate — break only on non-reading days in the past
-    // (handled below since we need independent traversal)
+    if (i === 0) { if (hasAnyData) mainStreak++; }
+    else { if (hasAnyData) mainStreak++; else break; }
   }
 
-  // Recalculate reading streak independently to handle today-empty case
   readStreak = 0;
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
@@ -3000,18 +3383,31 @@ async function updateStreaks() {
     const k = d.toISOString().slice(0, 10);
     const v = await fsGet(up(`daily/${k}`));
     const hasReading = v?.reading?.pages > 0 || v?.reading?.mins > 0;
-    if (hasReading) {
-      readStreak++;
-    } else if (i > 0) {
-      // Allow today to be empty (i===0) without breaking streak
-      break;
-    }
+    if (hasReading) readStreak++;
+    else if (i > 0) break;
+  }
+
+  // Padel streak: consecutive weeks with at least one session or match
+  let padelStreak = 0;
+  const padel = await fsColGet(up('padel')) || [];
+  const padelDates = new Set(padel.map(p => p.date));
+  const dayOfWeek = today.getDay() || 7;
+  for (let w = 0; w < 52; w++) {
+    const ws = new Date(today); ws.setDate(today.getDate() - dayOfWeek + 1 - (w * 7));
+    const we = new Date(ws); we.setDate(ws.getDate() + 6);
+    const wsKey = ws.toISOString().slice(0, 10);
+    const weKey = we.toISOString().slice(0, 10);
+    const hasActivity = [...padelDates].some(d => d >= wsKey && d <= weKey);
+    if (hasActivity) padelStreak++;
+    else if (w > 0) break; // allow current week to be empty without breaking
   }
 
   const mainEl = document.getElementById('main-streak');
   const readEl = document.getElementById('read-streak');
+  const padelEl = document.getElementById('padel-streak');
   if (mainEl) mainEl.textContent = mainStreak;
   if (readEl) readEl.textContent = readStreak;
+  if (padelEl) padelEl.textContent = padelStreak;
 }
 
 // Keep for backwards compat (called from resetReadingStreak)

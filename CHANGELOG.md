@@ -1885,3 +1885,108 @@ These functions were exposed on `window` but never called from any UI element (b
 - `setStatsTab()` and `setStatsRange()` exposed on `window`
 
 ---
+
+## 🚀 Roadmap Batch — No-API Features (2026-03-28)
+
+### 78. Reading validation — both fields required (FIXED)
+**Change**: `addReading()` now rejects if either pages or minutes is 0/empty, with a toast: "Both pages and minutes are required". Roadmap spec was "both fields required" — previously neither was enforced.
+
+---
+
+### 79. Priority completion % shown on Weekly Review
+**Feature**: Weekly Review page now fetches the current week's priorities from Firestore and renders a completion card at the top before the score sliders.
+
+**What shows**: Percentage complete, `X of Y priorities completed this week`, per-item checklist with tag colour and strikethrough, green progress bar (turns fully green at 100%). Card is hidden entirely if no priorities are set that week.
+
+---
+
+### 80. OTJ targets & module breakdown (Uni Log overhaul)
+**Feature**: Uni Log page rebuilt with annual target tracking and per-module progress.
+
+**New cards**:
+- **OTJ Progress** (gold) — total hours vs annual target, % complete, weeks elapsed, pace indicator (ahead/behind and by how many hours)
+- **By Module** — progress bar per module (Programming / Maths & Stats / Data Ethics / Professional Skills), calculated against equal target split
+- **⚙ Set Annual Target** button — `prompt()` to override the default 200h target, stored in `otj_targets` Firestore doc
+
+**Data**: `UNI_MODULES` constant centralises module list. `OTJ_ANNUAL_TARGET = 200` default. Target stored at `/users/{uid}/otj_targets`.
+
+**Search/filter**: Keyword search + module dropdown filter added to entries list. Entries show module name (not code), OTJ hours right-aligned, learning note with `↳` prefix.
+
+---
+
+### 81. Padel streak — sidebar pill added
+**Feature**: Third streak pill added to sidebar (green) showing consecutive weeks with at least one padel session or match. Reads from `padel` collection. Current week allowed to be empty without breaking the streak.
+
+---
+
+### 82. Advanced search & filter
+Search/filter added to four pages:
+
+**Journal**: Keyword search across entry text + type filter (Daily / Weekly / Insight / Goal / Free Write). Journal type now saved with each entry in Firestore. Results update on every keystroke.
+
+**Padel history**: Opponent/court/notes keyword search + type filter (Sessions / Matches) + result filter (Wins / Losses). Filters chain together.
+
+**Exercises**: Exercise name search + category filter (Push / Pull / Legs / Other). Updates on keystroke.
+
+**Uni log**: Keyword search (details + learning + module) + module dropdown filter. Entries cached in `_uniEntries` module variable for instant re-filtering without Firestore round-trips.
+
+---
+
+### 83. Per-collection CSV exports
+**Change**: Replaced the two export buttons (JSON / CSV) in the sidebar with a single "⬇ Export" button that opens a dropdown menu with six options:
+- 📦 Full JSON backup (existing `doExportAll`)
+- 📅 Daily data CSV — mood, energy, gym, reading, phone, wins, resistance, journal (365 days)
+- 🏋️ Exercises CSV — one row per set: date, name, category, set number, reps, weight, RPE, notes
+- 🎾 Padel CSV — all fields including opponent, result, sets, court
+- 📚 Uni log CSV — date, module, details, learning, OTJ mins, OTJ formatted
+- ✍ Journal CSV — date, type, text
+
+Dropdown closes on any click outside the sidebar bottom area.
+
+---
+
+### 84. PWA icon — no longer depends on placehold.co
+**Change**: Replaced `https://placehold.co/192x192/080808/c8a96e?text=JE` with an inline SVG data URI. App installs offline without needing the placeholder service to be reachable.
+
+---
+
+### 85. IndexedDB offline-first sync
+**Feature**: All Firestore reads and writes now go through an IndexedDB layer, making the app functional without internet.
+
+**How it works**:
+- `openIDB()` initialises a local IndexedDB (`jeos`, v1) with two object stores: `docs` (key-value cache) and `queue` (write queue)
+- `fsGet()` reads IDB first for speed, then Firestore. On network error, returns cached IDB value
+- `fsSet()` writes to IDB immediately (so UI updates instantly), then Firestore. If offline, queues the write
+- `fsColGet()` caches full collection results under `col:{path}`. Returns cache when offline
+- `fsColAdd()` / `fsColDel()` invalidate the collection cache on write
+- `idbFlushQueue()` replays queued writes to Firestore when connection restores
+- `window.addEventListener('online', ...)` triggers flush automatically
+- OFFLINE badge (red pill) appears in the sidebar user area when offline or when the queue has pending writes
+- `updateOnlineStatus()` colours the sync dot red when offline, called on boot and on network events
+
+**Limitations**: `fsColAdd` when offline does not yet queue — collections require an ID from Firestore. Single-doc writes (`fsSet`) are fully offline-capable.
+
+---
+
+## 🐛 Bug Fix — Post-Batch Audit (2026-03-28)
+
+### 86. addUni / delUni — stale render calls (FIXED)
+**Problem**: Both functions still called `renderUniList()` and `updateUniTotal()` after the Uni page was rebuilt. `uni-total` no longer exists in the DOM so `updateUniTotal` silently failed, and the OTJ progress bars + module breakdown wouldn't update after logging.
+
+**Fix**: Both now call `renderUniPage()`. Added module validation to `addUni` — shows toast "Select a module first" if none chosen.
+
+---
+
+### 87. Duplicate window assignments causing ReferenceError (FIXED)
+**Problem**: Four filter functions (`filterPadelHistory`, `filterExerciseHistory`, `filterUniList`, `filterJournalList`) were assigned to `window` twice. First correctly as arrow functions, then a second time at the bottom of the exports block as `window.x = x` — where `x` doesn't exist as a local variable in module scope. This would throw a `ReferenceError` and break the entire script at runtime.
+
+**Fix**: Removed the four duplicate bottom-of-file assignments. Functions remain correctly assigned at their definition site.
+
+---
+
+### 88. Dead updateUniTotal function removed
+**Problem**: `updateUniTotal` referenced `uni-total` which no longer exists in the rebuilt Uni page. No longer called anywhere.
+
+**Fix**: Function removed entirely.
+
+---

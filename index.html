@@ -747,6 +747,7 @@ async function renderTodayData(data) {
   const triggerEl = document.getElementById('mood-trigger');
   if (triggerEl) triggerEl.value = data.mood_trigger || '';
   if (data.mood) {
+    selectedMoodForEntry = data.mood; // keep in sync so Submit works without re-clicking
     document.querySelectorAll('.mood-btn').forEach(b => {
       const isSelected = parseInt(b.id.split('-')[2]) === data.mood;
       b.style.background = isSelected ? 'var(--gold-bg)' : 'var(--surface2)';
@@ -818,8 +819,8 @@ async function renderReviewPage() {
       <div style="margin-bottom:10px;">
         <label class="lbl">${a}</label>
         <div style="display:flex;gap:6px;align-items:center;">
-          <input type="range" min="1" max="10" value="${data.scores?.[a] || 5}" onchange="setReviewScore('${a}',this.value)" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;"/>
-          <span style="width:30px;text-align:right;font-size:0.8rem;color:var(--gold);">${data.scores?.[a] || 5}/10</span>
+          <input type="range" min="0" max="10" value="${data.scores?.[a] ?? 0}" onchange="setReviewScore('${a}',this.value)" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;"/>
+          <span style="width:30px;text-align:right;font-size:0.8rem;color:var(--gold);">${data.scores?.[a] ?? 0}/10</span>
         </div>
       </div>`;
   });
@@ -2811,12 +2812,25 @@ function gymCategoryFromExercise(name) {
 
 // ── PAGE: WORKOUT ────────────────────────
 async function renderWorkoutPage() {
-  const exercises = await fsColGet(up('exercises')) || [];
-  const gymStreak = await calcGymStreak();
-  const todayData = await fsGet(up(`daily/${todayKey2()}`)) || {};
+  // Render shell immediately — no waiting
+  document.getElementById('content').innerHTML = `
+    <div class="section-group">
+      <div class="section-label">Workout Tracker</div>
+      <div class="card" style="background:var(--gold-bg);border-color:var(--gold-dim);">
+        <div style="color:var(--muted);font-size:0.7rem;padding:8px 0;">Loading streak...</div>
+      </div>
+      <div class="card"><div style="color:var(--muted);font-size:0.7rem;">Loading...</div></div>
+    </div>`;
+
+  // Fetch exercises and today in parallel, then streak (which needs exercises)
+  const [exercises, todayData] = await Promise.all([
+    fsColGet(up('exercises')).then(r => r || []),
+    fsGet(up(`daily/${todayKey2()}`)).then(r => r || {})
+  ]);
+  const gymStreak = await calcGymStreak(exercises);
+
   const todayGym = todayData.gym || {};
   const todayGymRpe = todayData.gym_rpe ?? 0;
-
   const allExNames = [...new Set([...ALL_MACHINES, ...exercises.map(e => e.name)])];
 
   let html = `
@@ -2997,49 +3011,47 @@ function renderVolumeChart(exercises) {
     }).join('') + `</div>`;
 }
 
-async function calcGymStreak() {
-  const exercises = await fsColGet(up('exercises')) || [];
-  const dailyData = {};
-  
+async function calcGymStreak(exercisesIn) {
   const now = new Date();
   const day = now.getDay() || 7;
   const weekStart = new Date(now); weekStart.setDate(now.getDate() - day + 1);
-  const thisWeekKey = weekStart.toISOString().slice(0,10);
-  
+  const thisWeekKey = weekStart.toISOString().slice(0, 10);
+  const dailyData = {};
+
+  // Use passed-in exercises or fetch once
+  const exercises = exercisesIn || await fsColGet(up('exercises')) || [];
   exercises.forEach(e => {
     if (!dailyData[e.date]) dailyData[e.date] = { categories: new Set() };
     if (e.gym_category) dailyData[e.date].categories.add(e.gym_category);
   });
-  
-  // Also check daily gym toggles from Today page
-  for (let i = 0; i < 28; i++) {
+
+  // Fetch 28 days in parallel instead of sequentially
+  const keys = Array.from({ length: 28 }, (_, i) => {
     const d = new Date(now); d.setDate(now.getDate() - i);
-    const k = d.toISOString().slice(0,10);
-    const v = await fsGet(up(`daily/${k}`));
+    return d.toISOString().slice(0, 10);
+  });
+  const dailyDocs = await Promise.all(keys.map(k => fsGet(up(`daily/${k}`))));
+  keys.forEach((k, i) => {
+    const v = dailyDocs[i];
     if (v?.gym) {
       if (!dailyData[k]) dailyData[k] = { categories: new Set() };
       if (v.gym.push) dailyData[k].categories.add('push');
       if (v.gym.pull) dailyData[k].categories.add('pull');
       if (v.gym.legs) dailyData[k].categories.add('legs');
     }
-  }
-  
+  });
+
   let weeks = 0;
-  let thisWeek = { push: false, pull: false, legs: false };
-  
+  const thisWeek = { push: false, pull: false, legs: false };
   for (const [date, d] of Object.entries(dailyData)) {
-    if (date >= thisWeekKey) {
-      d.categories.forEach(c => { if (thisWeek[c] !== undefined) thisWeek[c] = true; });
-    }
+    if (date >= thisWeekKey) d.categories.forEach(c => { if (thisWeek[c] !== undefined) thisWeek[c] = true; });
   }
-  
-  // Count consecutive full weeks (push+pull+legs) looking back
+
   for (let w = 1; w <= 12; w++) {
     const ws = new Date(now); ws.setDate(now.getDate() - day + 1 - (w * 7));
     const we = new Date(ws); we.setDate(ws.getDate() + 6);
-    const wsKey = ws.toISOString().slice(0,10);
-    const weKey = we.toISOString().slice(0,10);
-    
+    const wsKey = ws.toISOString().slice(0, 10);
+    const weKey = we.toISOString().slice(0, 10);
     const wCats = { push: false, pull: false, legs: false };
     for (const [date, d] of Object.entries(dailyData)) {
       if (date >= wsKey && date <= weKey) d.categories.forEach(c => { if (wCats[c] !== undefined) wCats[c] = true; });
@@ -3047,7 +3059,7 @@ async function calcGymStreak() {
     if (Object.values(wCats).every(Boolean)) weeks++;
     else break;
   }
-  
+
   return { weeks, thisWeek };
 }
 

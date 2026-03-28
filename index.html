@@ -1019,7 +1019,7 @@ function renderJournalList(entries) {
 // ── PAGE: PRIORITIES ────────────────────
 async function renderPrioritiesPage() {
   const data = await fsGet(up(`weeks/${weekKey()}`)) || { priorities: [] };
-  const archive = await fsGet(up('priority_archive')) || {};
+  const archive = await fsGet(up(`weeks/${weekKey()}/priority_archive`)) || {};
 
   let html = `
     <div class="section-group">
@@ -1521,10 +1521,10 @@ async function togglePriority(i) {
   
   if (data.priorities[i].done) {
     // Archive completed priority
-    const archive = await fsGet(up('priority_archive')) || {};
-    archive[wk] = archive[wk] || [];
-    archive[wk].push({ ...data.priorities[i], completed_at: new Date().toISOString() });
-    await fsSet(up('priority_archive'), archive);
+    const archive = await fsGet(up(`weeks/${wk}/priority_archive`)) || { items: [] };
+    archive.items = archive.items || [];
+    archive.items.push({ ...data.priorities[i], completed_at: new Date().toISOString() });
+    await fsSet(up(`weeks/${wk}/priority_archive`), archive);
   }
   
   await fsSet(up(`weeks/${wk}`), data);
@@ -1533,28 +1533,21 @@ async function togglePriority(i) {
 }
 
 function renderPriorityArchive(archive) {
-  if (!archive || Object.keys(archive).length === 0) {
+  if (!archive || !archive.items || archive.items.length === 0) {
     document.getElementById('p-archive').innerHTML = '<div class="empty">No completed priorities yet</div>';
     return;
   }
   
-  const weeks = Object.keys(archive).sort().reverse();
-  let html = '';
-  
-  weeks.forEach(wk => {
-    const items = archive[wk] || [];
-    const completed = items.length;
-    const pct = completed > 0 ? '✓ ' : '○ ';
-    
-    html += `
+  const items = archive.items || [];
+  const completed = items.length;
+  let html = `
     <div style="padding:8px;background:var(--surface2);border-radius:4px;margin-bottom:6px;">
-      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;">${pct}Week of ${wk} — ${completed} completed</div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;">✓ Completed this week — ${completed} items</div>
       <div style="font-size:0.7rem;color:var(--soft);">
         ${items.map(p => `<div style="margin:2px 0;">• ${p.text}</div>`).join('')}
       </div>
     </div>
-    `;
-  });
+  `;
   
   document.getElementById('p-archive').innerHTML = html;
 }

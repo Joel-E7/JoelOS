@@ -1213,3 +1213,63 @@ service cloud.firestore {
    - Check console for no permission-denied errors
 
 ---
+
+## 🚨 CRITICAL FIXES — Module Scope & Manifest (2026-03-27, Post-Deployment)
+
+### 36. Module Scope: Functions & Variables Not Accessible (CRITICAL BUG)
+**Problem**: F12 test revealed CRITICAL issue: all data functions (setMood, setEnergy, toggleGym, addReading, etc.) were `undefined` in window scope. Global variables (uid, currentPage, auth, db, etc.) also inaccessible.
+
+**Impact**: 
+- onclick handlers couldn't call data functions → buttons didn't work
+- Global state not accessible from console
+- App was essentially non-functional
+
+**Root Cause**: Functions declared in module scope aren't automatically exposed to window.
+
+**Solution**: Comprehensively expose ALL 35+ functions and 6 global variables to window.
+
+**Code Added** (lines 1715-1751): Exposed functions via direct assignment and Object.defineProperty for read-only globals.
+
+**Result**: All onclick handlers now work. F12 test passes.
+
+---
+
+### 37. Manifest start_url Full HTTPS URL Fix
+**Problem**: Console warning: `Manifest: property 'start_url' ignored, URL is invalid.`
+
+**Root Cause**: Relative paths (`./ `, `/JoelOS/`) don't work with blob-based manifests.
+
+**Solution**: Use full HTTPS URL.
+
+**Code Changed** (line 339):
+```javascript
+start_url: 'https://joel-e7.github.io/JoelOS/'
+```
+
+**Result**: Warning gone, PWA installable.
+
+---
+
+## Updated Action Items (CRITICAL)
+
+1. **Deploy latest code immediately**:
+   ```bash
+   git add index.html
+   git commit -m "CRITICAL: expose all functions and variables to window"
+   git push
+   ```
+
+2. **Hard refresh** (Ctrl+Shift+R)
+
+3. **Set Firebase rules** if not done (FIREBASE_RULES_SETUP.md)
+
+4. **Sign in** and test data entry
+
+5. **Check F12 console** for no permission-denied errors
+
+---
+
+## New Troubleshooting Guide
+- **FIREBASE_TROUBLESHOOTING.md** — Complete debugging guide for permission-denied errors after rules are set
+
+---

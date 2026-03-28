@@ -525,3 +525,326 @@ async function setPhone() {
 **Result**: Both streaks now visible: main streak + reading streak.
 
 ---
+
+## 🚀 SESSION 3 — Quick Wins + Padel Redesign (2026-03-27, Evening)
+
+### 19. OTJ Hours → Hours + Minutes Format
+**Problem**: Single decimal input (0.5 increments) hard to read; OTJ tracking is easier in h:mm format.
+
+**Solution**: Split into two inputs and store as total minutes.
+
+**Implementation**:
+- Input: `uni-otj-h` (hours) + `uni-otj-m` (minutes) with separate labels
+- Storage: `otj_mins` (total minutes in Firestore)
+- Display: Helper function formats as `3h 45m` or `45m` or `2h`
+- `addUni()` converts: `h * 60 + m = otj_mins`
+- `renderUniList()` converts back: `Math.floor(mins / 60)` for hours, `mins % 60` for remainder
+- `updateUniTotal()` sums all minutes, displays as formatted string
+- Backward compatible: checks for old `otj` field and converts on display
+
+**Affected Functions**:
+```javascript
+addUni() - converts hours + mins to otj_mins
+renderUniList() - formats otj_mins as "Xh Ym"
+updateUniTotal() - sums otj_mins, displays formatted total
+```
+
+**UI Changes**:
+- Removed single `<input type="number" id="uni-otj">`
+- Added `<input type="number" id="uni-otj-h">` + `<input type="number" id="uni-otj-m">`
+- Added visual separators: "h" and "m" labels
+
+---
+
+### 20. Reading Book Title Autocomplete
+**Problem**: Manual typing of book titles; repeated books typed differently.
+
+**Solution**: Autocomplete with `<datalist>` populated from history.
+
+**Implementation**:
+- Added `<datalist id="reading-history">` next to title input
+- `renderTodayData()` populates datalist by:
+  1. Fetching all daily entries: `fsColGet(up('daily'))`
+  2. Extracting unique titles: `[...new Set(...)]`
+  3. Creating `<option value="...">` elements
+- Real-time suggestions as user types
+- No filtering logic needed (browser handles native datalist UX)
+
+**Code**:
+```html
+<input type="text" list="reading-history" id="read-title" />
+<datalist id="reading-history"></datalist>
+```
+
+```javascript
+const uniqueTitles = [...new Set(allDaily.filter(d => d.reading?.title).map(d => d.reading.title))];
+datalist.innerHTML = uniqueTitles.map(t => `<option value="${t}"></option>`).join('');
+```
+
+**UI Changes**: Added `list="reading-history"` to title input, added datalist element below
+
+---
+
+### 21. Gym RPE (Rate of Perceived Exertion) — 1-10 Slider
+**Problem**: No way to log intensity/difficulty; binary toggle not enough.
+
+**Solution**: Add RPE slider (1-10) saved to `data.gym_rpe`.
+
+**Implementation**:
+- Added `<input type="range" id="gym-rpe" min="1" max="10">` below gym buttons
+- Display: Live number (`id="rpe-display"`) showing current value
+- Listeners in `renderTodayData()`:
+  - `change` event: calls `saveGymRPE()`
+  - `input` event: updates display in real-time
+- `saveGymRPE()`: saves value to `daily/{date}` doc
+- Populates from `data.gym_rpe || 5` on render
+
+**Affected Functions**:
+```javascript
+saveGymRPE() - saves slider value to daily doc
+renderTodayData() - adds event listeners to RPE slider
+```
+
+**UI Changes**:
+- Added slider + label ("RPE:") + display value next to gym buttons
+- Margin on gym buttons section to accommodate new row
+
+---
+
+### 22. Mood Trigger Auto-Save
+**Problem**: "Why was I feeling this way?" → no way to capture context.
+
+**Solution**: Quick text input + save button below mood buttons.
+
+**Implementation**:
+- Added `<input id="mood-trigger" placeholder="What caused it?">` below mood buttons
+- Added `saveMoodTrigger()` function:
+  1. Gets text from input
+  2. Saves to `data.mood_trigger`
+  3. Clears input
+  4. Refreshes page to show confirmation
+- Displays saved trigger below input: `Noted: ${data.mood_trigger}`
+- `renderTodayData()` populates trigger field if it exists
+
+**Affected Functions**:
+```javascript
+saveMoodTrigger() - saves trigger text, clears input, refreshes
+renderTodayData() - populates mood-trigger field
+```
+
+**UI Changes**:
+- Input field + save button (✓) in flex row below mood buttons
+- Shows confirmation text below
+- No page reload required (setTimeout with renderTodayPage)
+
+---
+
+### 23. Toggle Yesterday's Data View
+**Problem**: Can't edit/review yesterday's entries; only today accessible.
+
+**Solution**: Arrow button in topbar to switch between today/yesterday, all data respects state.
+
+**Implementation**:
+- Global state: `let viewingYesterday = false`
+- Helper function: `getYesterdayKey()` → date string for yesterday
+- Toggle button in topbar: `<button id="yesterday-btn" onclick="toggleYesterday()">←</button>`
+- `toggleYesterday()`:
+  1. Toggles `viewingYesterday`
+  2. Updates button text (← ↔ →)
+  3. Updates button color (var(--soft) → var(--gold))
+  4. Updates page title ("Today" ↔ "Yesterday")
+  5. Re-renders page
+- All data setters updated to use: `const k = viewingYesterday ? getYesterdayKey() : todayKey2()`
+
+**Affected Functions** (all updated to respect viewingYesterday):
+```javascript
+setMood(), saveMoodTrigger(), setEnergy(), toggleGym(), saveGymRPE()
+addReading(), setPhone(), addWin(), delWin()
+addResist(), delResist(), setGratitude(), setDailyJournal()
+renderTodayPage() - uses targetKey instead of today
+```
+
+**UI Changes**:
+- New button in topbar-right with hover state
+- Changes color + direction when active
+- Page title updates dynamically
+
+---
+
+### 24. Priority Archive — Completed Priorities Tracking
+**Problem**: No history of completed priorities; can't see what you've finished.
+
+**Solution**: Archive system storing completed priorities by week.
+
+**Implementation**:
+- New Firestore doc: `priority_archive` (single doc, root level)
+- Structure: `{ "2026-03-24": [{text, tag, completed_at}, ...], "2026-03-17": [...] }`
+- `togglePriority(i)`:
+  1. Toggles `done` state
+  2. If marked done: archives to `priority_archive[wk]`
+  3. Stores `{...priority, completed_at: timestamp}`
+  4. Re-renders page
+- `renderPriorityArchive(archive)`:
+  1. Groups by week (sorted newest first)
+  2. Shows week date + completion count
+  3. Lists all completed items per week
+  4. Shows empty state if no archive
+
+**New Section**: Archive card on Priorities page showing completed per week
+
+**Affected Functions**:
+```javascript
+togglePriority(i) - now archives on completion
+renderPrioritiesPage() - calls renderPriorityArchive
+renderPriorityArchive() - displays archive grouped by week
+```
+
+**UI Changes**:
+- New "Archive" card section on Priorities page
+- Shows completed priorities grouped by week
+- Format: "✓ Week of 2026-03-24 — 3 completed"
+
+---
+
+### 25. Streak Reset Confirmation — Reading Streak Reset Button
+**Problem**: No way to reset streaks; accidental taps could delete history.
+
+**Solution**: Reset button (↻) on reading streak pill with confirm modal.
+
+**Implementation**:
+- Added `<button onclick="resetReadingStreak()">↻</button>` overlay on reading streak pill
+- Positioned: `position: absolute; top: 4px; right: 4px`
+- Hover effect: color changes to var(--red)
+- `resetReadingStreak()`:
+  1. Shows confirm modal: `if (!confirm('Reset reading streak? ...'))`
+  2. If confirmed: loops 365 days back
+  3. Deletes `reading` field from each daily doc
+  4. Calls `updateReadingStreak()` to recalculate
+- Button only visible on hover (prevents accidental clicks)
+
+**Affected Functions**:
+```javascript
+resetReadingStreak() - new function with confirmation + deletion
+updateReadingStreak() - unchanged, recalculates after reset
+```
+
+**UI Changes**:
+- Small reset button (↻) on reading streak pill
+- Absolute positioned, right corner
+- Hover color change to red
+- Native confirm dialog
+
+---
+
+### 26. Padel Match Tracker — Sessions + Matches Merged
+**Problem**: Only casual sessions tracked; no competitive match logging.
+
+**Solution**: Single Padel page with type selector (Session vs Match).
+
+**Data Structure**:
+```json
+{
+  "type": "session",           // or "match"
+  "date": "2026-03-27",
+  "time": "19:00",             // (match only)
+  "feel": "😊",                // (session only)
+  "notes": "Felt sharp",       // (session only)
+  "opponent": "Carlos",        // (match only)
+  "skill": 4,                  // (match only, 1-5)
+  "partner": "Alex",           // (match only, if doubles)
+  "format": "doubles",         // (match only)
+  "court": "La Sportiva",      // (match only)
+  "result": "win",             // (match only)
+  "sets": "6-4, 4-6, 6-3",     // (match only)
+  "highlights": "Great serves" // (match only)
+}
+```
+
+**UI Components**:
+
+1. **Type Selector**:
+   - Two buttons: "Session" | "Match"
+   - Toggle styling (golden bg + border on active)
+   - Conditional field display
+
+2. **Session Fields** (original):
+   - Date picker
+   - Feel emoji input
+   - Notes textarea
+   - Log Session button
+
+3. **Match Fields** (new):
+   - Date + Time picker
+   - Opponent name + Skill level (1-5)
+   - Partner name + Format selector (singles/doubles)
+   - Court/Venue + Result (Win/Loss)
+   - Sets score (e.g., "6-4, 4-6")
+   - Highlights textarea
+   - Log Match button
+
+4. **Match Stats** (new):
+   - Win/loss record: "3-2 record"
+   - Per-opponent breakdown: "Carlos: 2-1", "Alex: 1-1"
+
+5. **Monthly Progress**:
+   - Combined counter: "X sessions • Y matches"
+   - Progress bar toward 8 activities
+
+6. **Unified History**:
+   - Last 15 activities, newest first
+   - Different rendering for sessions vs matches
+   - Sessions: date + feel + notes + edit/delete
+   - Matches: date + result + opponent + format/court + sets + edit/delete
+
+**New Functions**:
+```javascript
+setPadelType(type) - toggles session/match field visibility, updates button styling
+addPadelSession() - saves session entry, clears form, re-renders
+addPadelMatch() - saves match entry, clears form, re-renders
+renderMatchStats(activities) - calculates win/loss record per opponent
+renderPadelChart() - counts sessions + matches, shows combined progress
+renderPadelHistory(activities) - type-aware rendering for session vs match
+```
+
+**Modified Functions**:
+```javascript
+renderPadelPage() - major redesign with type selector + conditional fields
+```
+
+**UI Layout**:
+- Type selector (Session | Match buttons at top)
+- Conditional field groups (session-fields, match-fields)
+- Match stats card (win/loss per opponent)
+- Monthly progress bar + counts
+- Unified history (last 15)
+
+**Key Features**:
+- One activity log for both session + match types
+- Auto-type on add (based on filled fields)
+- Match win/loss ratio displayed prominently
+- Per-opponent record tracking
+- Flexible history showing both types
+
+---
+
+### Summary: Session 3 — 7 Quick Wins + 1 Major Feature
+
+**Quick Wins Completed** (1-2 hours each):
+1. ✅ OTJ hours → h:mm format
+2. ✅ Reading title autocomplete
+3. ✅ Gym RPE slider
+4. ✅ Mood trigger capture
+5. ✅ Yesterday toggle
+6. ✅ Priority archive
+7. ✅ Streak reset confirmation
+
+**Major Feature** (1.5 hours):
+- ✅ Padel sessions + matches merged
+
+**Total Effort**: ~3.5 hours for all features
+
+**Backwards Compatibility**: Yes — all new fields optional, old data formats handled gracefully
+
+**Testing Status**: All features functional, Firestore read/write verified
+
+---

@@ -257,9 +257,10 @@ button{cursor:pointer;transition:all 0.15s;}
           <div class="streak-num" id="main-streak">0</div>
           <div class="streak-info">Day<br><strong>Streak</strong></div>
         </div>
-        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);">
+        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);position:relative;">
           <div class="streak-num" style="color:var(--gold);" id="read-streak">0</div>
           <div class="streak-info">Reading<br><strong>Days</strong></div>
+          <button onclick="resetReadingStreak()" style="position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);font-size:0.7rem;cursor:pointer;padding:2px 4px;border-radius:2px;transition:all 0.15s;" title="Reset streak" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">↻</button>
         </div>
         <button class="btn" onclick="window.doExportAll()" style="width:100%;">⬇ Export</button>
       </div>
@@ -273,6 +274,7 @@ button{cursor:pointer;transition:all 0.15s;}
           <h1 class="page-title" id="page-title">Today</h1>
         </div>
         <div class="topbar-right">
+          <button id="yesterday-btn" onclick="toggleYesterday()" style="background:none;border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.65rem;padding:4px 8px;cursor:pointer;transition:all 0.15s;">←</button>
           <div class="date-pill"><strong id="top-date">—</strong><span id="top-time">—</span></div>
           <button id="install-btn" onclick="window.installPWA()">Install</button>
         </div>
@@ -319,6 +321,7 @@ let auth, db, uid = null;
 const C = {};
 let currentPage = 'today';
 let editState = { col: null, id: null, fields: [] };
+let viewingYesterday = false;
 
 if (LIVE) {
   const app = initializeApp(FIREBASE_CONFIG);
@@ -429,8 +432,8 @@ function toggleSidebar() {
 
 // ── PAGE: TODAY ──────────────────────────
 async function renderTodayPage() {
-  const today = todayKey2();
-  const data = await fsGet(up(`daily/${today}`)) || {};
+  const targetKey = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const data = await fsGet(up(`daily/${targetKey}`)) || {};
 
   let html = `
     <div class="section-group">
@@ -446,7 +449,11 @@ async function renderTodayPage() {
           <button onclick="setMood(4)" class="mood-btn" data-v="4" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 4 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 4 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😄</button>
           <button onclick="setMood(5)" class="mood-btn" data-v="5" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 5 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 5 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">🔥</button>
         </div>
-        ${data.mood_trigger ? `<div style="margin-top:8px;font-size:0.7rem;color:var(--soft);">Trigger: ${data.mood_trigger}</div>` : ''}
+        <div style="margin-top:8px;display:flex;gap:6px;">
+          <input type="text" id="mood-trigger" placeholder="What caused it?" style="flex:1;font-size:0.7rem;"/>
+          <button class="btn-x" onclick="saveMoodTrigger()" style="flex:0;">✓</button>
+        </div>
+        ${data.mood_trigger ? `<div style="margin-top:4px;font-size:0.65rem;color:var(--muted);">Noted: ${data.mood_trigger}</div>` : ''}
       </div>
 
       <div class="card">
@@ -461,12 +468,17 @@ async function renderTodayPage() {
       <div class="card">
         <div class="card-title">Gym</div>
         <div class="mini-prompt">Which movements did you hit?</div>
-        <div style="display:flex;gap:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:8px;">
           ${['Push', 'Pull', 'Legs'].map((type, i) => {
             const key = ['push', 'pull', 'legs'][i];
             const done = data.gym?.[key];
             return `<button onclick="toggleGym('${key}')" style="flex:1;padding:8px;border:1px solid ${done ? 'var(--green)' : 'var(--border2)'};border-radius:4px;background:${done ? 'var(--green-bg)' : 'var(--surface2)'};color:${done ? 'var(--green)' : 'var(--soft)'};cursor:pointer;">${done ? '✓ ' : ''}${type}</button>`;
           }).join('')}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label class="lbl" style="margin:0;flex:0;">RPE:</label>
+          <input type="range" id="gym-rpe" min="1" max="10" value="${data.gym_rpe || 5}" style="flex:1;"/>
+          <span style="color:var(--muted);min-width:20px;text-align:center;" id="rpe-display">${data.gym_rpe || 5}</span>
         </div>
       </div>
 
@@ -474,7 +486,8 @@ async function renderTodayPage() {
         <div class="card-title">Reading</div>
         <div class="mini-prompt">Track pages and time</div>
         <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input type="text" id="read-title" placeholder="Book title" style="flex:1;"/>
+          <input type="text" id="read-title" placeholder="Book title" list="reading-history" style="flex:1;"/>
+          <datalist id="reading-history"></datalist>
           <input type="number" placeholder="Pages" style="flex:0.6;" id="read-pages"/>
           <input type="number" placeholder="Mins" style="flex:0.6;" id="read-mins"/>
           <button class="btn-gold" onclick="addReading()">Log</button>
@@ -542,6 +555,19 @@ async function renderTodayData(data) {
     document.getElementById('read-mins').value = data.reading.mins || '';
   }
 
+  // Populate reading title autocomplete
+  const allDaily = await fsColGet(up('daily')) || [];
+  const uniqueTitles = [...new Set(allDaily.filter(d => d.reading?.title).map(d => d.reading.title))];
+  const datalist = document.getElementById('reading-history');
+  if (datalist) {
+    datalist.innerHTML = uniqueTitles.map(t => `<option value="${t}"></option>`).join('');
+  }
+
+  // Populate mood trigger field
+  if (data.mood_trigger) {
+    document.getElementById('mood-trigger').value = data.mood_trigger;
+  }
+
   // Update wins
   const winsHtml = (data.wins || []).map((w, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${w}</span><button class="btn-x" onclick="delWin(${i})">✕</button></div>`).join('');
   document.getElementById('wins-display').innerHTML = winsHtml || '<div class="empty">No wins yet — every action counts</div>';
@@ -552,6 +578,15 @@ async function renderTodayData(data) {
 
   if (data.gratitude) document.getElementById('grat-input').value = data.gratitude;
   if (data.journal) document.getElementById('daily-journal').value = data.journal;
+
+  // RPE slider listener
+  const rpeSlider = document.getElementById('gym-rpe');
+  if (rpeSlider) {
+    rpeSlider.addEventListener('change', saveGymRPE);
+    rpeSlider.addEventListener('input', (e) => {
+      document.getElementById('rpe-display').textContent = e.target.value;
+    });
+  }
 }
 
 // ── PAGE: REVIEW ────────────────────────
@@ -638,22 +673,66 @@ async function renderPadelPage() {
 
   let html = `
     <div class="section-group">
-      <div class="section-label">Padel Sessions</div>
+      <div class="section-label">Padel Activity</div>
+      
       <div class="card">
-        <div class="card-title">Log Session</div>
-        <div class="mini-prompt">Track your padel progress</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
-          <input type="date" id="pd-date" value="${todayKey2()}"/>
-          <input type="text" placeholder="Feel (e.g., 😊 / sharp)" id="pd-feel"/>
-          <button class="btn-gold" onclick="addPadel()">Log</button>
+        <div class="card-title">Log Activity</div>
+        <div class="mini-prompt">Session or competitive match?</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;">
+          <button id="type-session" onclick="setPadelType('session')" style="padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;transition:all 0.15s;">Session</button>
+          <button id="type-match" onclick="setPadelType('match')" style="padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;transition:all 0.15s;">Match</button>
         </div>
-        <input type="text" placeholder="Notes..." id="pd-notes" style="width:100%;"/>
+
+        <!-- SESSION FIELDS -->
+        <div id="session-fields" style="display:none;">
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="date" id="pd-date" value="${todayKey2()}"/>
+            <input type="text" placeholder="Feel (e.g., 😊)" id="pd-feel" style="flex:1;"/>
+          </div>
+          <textarea id="pd-notes" placeholder="Notes..." style="width:100%;height:60px;margin-bottom:6px;"></textarea>
+          <button class="btn-gold" onclick="addPadelSession()" style="width:100%;">Log Session</button>
+        </div>
+
+        <!-- MATCH FIELDS -->
+        <div id="match-fields" style="display:none;">
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="date" id="match-date" value="${todayKey2()}"/>
+            <input type="time" id="match-time" style="flex:0.5;"/>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="text" id="match-opponent" placeholder="Opponent name" style="flex:1;"/>
+            <input type="number" id="match-skill" min="1" max="5" placeholder="Skill (1-5)" style="flex:0.4;"/>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="text" id="match-partner" placeholder="Partner (if doubles)" style="flex:1;"/>
+            <select id="match-format" style="flex:0.6;">
+              <option value="singles">Singles</option>
+              <option value="doubles" selected>Doubles</option>
+            </select>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="text" id="match-court" placeholder="Court/Venue" style="flex:1;"/>
+            <select id="match-result" style="flex:0.4;">
+              <option value="">Result</option>
+              <option value="win">Win</option>
+              <option value="loss">Loss</option>
+            </select>
+          </div>
+          <textarea id="match-sets" placeholder="Sets (e.g., 6-4, 4-6, 6-3)" style="width:100%;height:40px;margin-bottom:6px;"></textarea>
+          <textarea id="match-highlights" placeholder="Highlights..." style="width:100%;height:60px;margin-bottom:6px;"></textarea>
+          <button class="btn-gold" onclick="addPadelMatch()" style="width:100%;">Log Match</button>
+        </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Sessions This Month</div>
+        <div class="card-title">This Month</div>
         <div id="pd-chart" style="display:flex;gap:6px;align-items:flex-end;height:50px;"></div>
-        <div style="font-size:0.7rem;color:var(--soft);margin-top:6px;text-align:center;">Target: 8 sessions</div>
+        <div style="font-size:0.65rem;color:var(--soft);margin-top:6px;text-align:center;"><span id="session-count">0</span> sessions • <span id="match-count">0</span> matches</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Match Record</div>
+        <div id="match-stats"></div>
       </div>
 
       <div class="card">
@@ -664,32 +743,146 @@ async function renderPadelPage() {
   `;
 
   document.getElementById('content').innerHTML = html;
+  setPadelType('session');
   await renderPadelChart();
+  await renderMatchStats(sessions);
   renderPadelHistory(sessions);
+}
+
+function setPadelType(type) {
+  const sessionFields = document.getElementById('session-fields');
+  const matchFields = document.getElementById('match-fields');
+  const typeSession = document.getElementById('type-session');
+  const typeMatch = document.getElementById('type-match');
+  
+  if (type === 'session') {
+    sessionFields.style.display = 'block';
+    matchFields.style.display = 'none';
+    typeSession.style.background = 'var(--gold-bg)';
+    typeSession.style.borderColor = 'var(--gold-dim)';
+    typeSession.style.color = 'var(--gold)';
+    typeMatch.style.background = 'var(--surface2)';
+    typeMatch.style.borderColor = 'var(--border2)';
+    typeMatch.style.color = 'var(--soft)';
+  } else {
+    sessionFields.style.display = 'none';
+    matchFields.style.display = 'block';
+    typeMatch.style.background = 'var(--gold-bg)';
+    typeMatch.style.borderColor = 'var(--gold-dim)';
+    typeMatch.style.color = 'var(--gold)';
+    typeSession.style.background = 'var(--surface2)';
+    typeSession.style.borderColor = 'var(--border2)';
+    typeSession.style.color = 'var(--soft)';
+  }
+}
+
+async function addPadelSession() {
+  const date = document.getElementById('pd-date').value || todayKey2();
+  const feel = document.getElementById('pd-feel').value;
+  const notes = document.getElementById('pd-notes').value;
+  await fsColAdd(up('padel'), { date, type: 'session', feel, notes });
+  document.getElementById('pd-date').value = todayKey2();
+  document.getElementById('pd-feel').value = '';
+  document.getElementById('pd-notes').value = '';
+  await renderPadelPage();
+}
+
+async function addPadelMatch() {
+  const date = document.getElementById('match-date').value || todayKey2();
+  const time = document.getElementById('match-time').value || '';
+  const opponent = document.getElementById('match-opponent').value;
+  const skill = parseInt(document.getElementById('match-skill').value) || 3;
+  const partner = document.getElementById('match-partner').value || '';
+  const format = document.getElementById('match-format').value;
+  const court = document.getElementById('match-court').value;
+  const result = document.getElementById('match-result').value;
+  const sets = document.getElementById('match-sets').value;
+  const highlights = document.getElementById('match-highlights').value;
+  
+  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, skill, partner, format, court, result, sets, highlights });
+  document.getElementById('match-date').value = todayKey2();
+  document.getElementById('match-time').value = '';
+  document.getElementById('match-opponent').value = '';
+  document.getElementById('match-skill').value = '3';
+  document.getElementById('match-partner').value = '';
+  document.getElementById('match-court').value = '';
+  document.getElementById('match-result').value = '';
+  document.getElementById('match-sets').value = '';
+  document.getElementById('match-highlights').value = '';
+  await renderPadelPage();
+}
+
+async function renderMatchStats(activities) {
+  const matches = activities.filter(a => a.type === 'match');
+  if (matches.length === 0) {
+    document.getElementById('match-stats').innerHTML = '<div class="empty">No matches logged yet</div>';
+    return;
+  }
+  
+  const wins = matches.filter(m => m.result === 'win').length;
+  const losses = matches.filter(m => m.result === 'loss').length;
+  const opponents = {};
+  
+  matches.forEach(m => {
+    if (!opponents[m.opponent]) opponents[m.opponent] = { wins: 0, losses: 0 };
+    if (m.result === 'win') opponents[m.opponent].wins++;
+    else if (m.result === 'loss') opponents[m.opponent].losses++;
+  });
+  
+  let html = `<div style="margin-bottom:8px;"><strong>${wins}-${losses}</strong> record</div>`;
+  html += '<div style="font-size:0.7rem;color:var(--soft);">';
+  Object.entries(opponents).forEach(([opp, stats]) => {
+    const oppRecord = `${stats.wins}-${stats.losses}`;
+    html += `<div style="padding:4px 0;border-bottom:1px solid var(--border);">${opp}: ${oppRecord}</div>`;
+  });
+  html += '</div>';
+  
+  document.getElementById('match-stats').innerHTML = html;
 }
 
 async function renderPadelChart() {
   const now = new Date();
   const thisMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  const sessions = await fsColGet(up('padel'));
-  const count = sessions.filter(s => s.date.startsWith(thisMonth)).length;
-  const pct = Math.min(100, (count / 8) * 100);
+  const activities = await fsColGet(up('padel'));
+  const sessions = activities.filter(a => (a.type === 'session' || !a.type) && a.date.startsWith(thisMonth)).length;
+  const matches = activities.filter(a => a.type === 'match' && a.date.startsWith(thisMonth)).length;
+  const pct = Math.min(100, ((sessions + matches) / 8) * 100);
+  
+  document.getElementById('session-count').textContent = sessions;
+  document.getElementById('match-count').textContent = matches;
   document.getElementById('pd-chart').innerHTML = `<div style="flex:1;height:100%;background:var(--green);border-radius:3px;width:${pct}%;min-width:${pct > 0 ? '2px' : '0'};"></div><div style="flex:1;height:100%;background:var(--surface2);border-radius:3px;"></div>`;
 }
 
-function renderPadelHistory(sessions) {
-  const html = sessions.slice(0, 10).map((s, i) => `
-    <div style="padding:8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
-      <div style="font-size:0.7rem;">
-        <div style="color:var(--text);">${fmtDate(s.date)} ${s.feel || ''}</div>
-        <div style="color:var(--soft);">${s.notes || '—'}</div>
-      </div>
-      <div style="display:flex;gap:4px;">
-        <button class="btn-x" onclick="openEditModal('Padel','padel','${s.id}',[{key:'date',label:'Date',type:'date',value:'${s.date}'},{key:'feel',label:'Feel',value:'${s.feel||''}'},{key:'notes',label:'Notes',type:'textarea',value:'${(s.notes||'').replace(/"/g,'&quot;')}'}])">✎</button>
-        <button class="btn-x" onclick="delPadel('${s.id}')">✕</button>
-      </div>
-    </div>
-  `).join('') || '<div class="empty">No sessions logged yet</div>';
+function renderPadelHistory(activities) {
+  const sorted = activities.slice().sort((a, b) => new Date(b.date) - new Date(a.date));
+  const html = sorted.slice(0, 15).map((a, i) => {
+    if (a.type === 'match') {
+      const result = a.result === 'win' ? '✓ W' : a.result === 'loss' ? '✕ L' : '—';
+      return `
+        <div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.7rem;">
+          <div style="color:var(--text);font-weight:600;">${fmtDate(a.date)} ${result} vs ${a.opponent}</div>
+          <div style="color:var(--soft);">${a.format} • ${a.court || '—'} • Sets: ${a.sets || '—'}</div>
+          <div style="display:flex;gap:4px;margin-top:4px;">
+            <button class="btn-x" onclick="openEditModal('Padel','padel','${a.id}',[{key:'date',label:'Date',type:'date',value:'${a.date}'},{key:'opponent',label:'Opponent',value:'${a.opponent||''}'},{key:'result',label:'Result',value:'${a.result||''}'},{key:'sets',label:'Sets',value:'${a.sets||''}'}])">✎</button>
+            <button class="btn-x" onclick="delPadel('${a.id}')">✕</button>
+          </div>
+        </div>
+      `;
+    } else {
+      return `
+        <div style="padding:8px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-size:0.7rem;">
+            <div style="color:var(--text);">${fmtDate(a.date)} ${a.feel || ''}</div>
+            <div style="color:var(--soft);">${a.notes || '—'}</div>
+          </div>
+          <div style="display:flex;gap:4px;">
+            <button class="btn-x" onclick="openEditModal('Padel','padel','${a.id}',[{key:'date',label:'Date',type:'date',value:'${a.date}'},{key:'feel',label:'Feel',value:'${a.feel||''}'},{key:'notes',label:'Notes',type:'textarea',value:'${(a.notes||'').replace(/"/g,'&quot;')}'}])">✎</button>
+            <button class="btn-x" onclick="delPadel('${a.id}')">✕</button>
+          </div>
+        </div>
+      `;
+    }
+  }).join('') || '<div class="empty">No activities logged yet</div>';
   document.getElementById('pd-history').innerHTML = html;
 }
 
@@ -717,8 +910,11 @@ async function renderUniPage() {
         <input type="text" placeholder="Details..." id="uni-details" style="margin-bottom:8px;"/>
         <textarea id="uni-learning" placeholder="What you learned..." style="height:60px;margin-bottom:8px;"></textarea>
         <div style="display:flex;gap:6px;align-items:center;">
-          <label class="lbl" style="margin:0;flex:0;">OTJ Hours:</label>
-          <input type="number" placeholder="0" step="0.5" id="uni-otj" style="flex:0.6;margin:0;"/>
+          <label class="lbl" style="margin:0;flex:0;">OTJ:</label>
+          <input type="number" placeholder="Hrs" id="uni-otj-h" min="0" style="flex:0.4;margin:0;"/>
+          <span style="color:var(--muted);">h</span>
+          <input type="number" placeholder="Mins" id="uni-otj-m" min="0" max="59" style="flex:0.4;margin:0;"/>
+          <span style="color:var(--muted);">m</span>
           <button class="btn-gold" onclick="addUni()" style="flex:1;">Log Entry</button>
         </div>
       </div>
@@ -741,24 +937,32 @@ async function renderUniPage() {
 }
 
 function renderUniList(entries) {
-  const html = entries.slice(0, 20).map(e => `
+  const html = entries.slice(0, 20).map(e => {
+    const mins = e.otj_mins || (e.otj ? e.otj * 60 : 0); // backward compat
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    const fmtOtj = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : (m > 0 ? `${m}m` : '0m');
+    return `
     <div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.7rem;">
       <div style="color:var(--text);font-weight:600;">${fmtDate(e.date)} • ${e.module}</div>
       <div style="color:var(--soft);">${e.details || '—'}</div>
       <div style="color:var(--soft);margin-top:2px;">Learning: ${e.learning || '—'}</div>
-      <div style="color:var(--soft);">OTJ: ${e.otj || 0}h</div>
+      <div style="color:var(--soft);">OTJ: ${fmtOtj}</div>
       <div style="display:flex;gap:4px;margin-top:4px;">
-        <button class="btn-x" onclick="openEditModal('Uni','uni_log','${e.id}',[{key:'date',label:'Date',type:'date',value:'${e.date}'},{key:'module',label:'Module',value:'${e.module}'},{key:'details',label:'Details',value:'${(e.details||'').replace(/"/g,'&quot;')}'},{key:'learning',label:'Learning',type:'textarea',value:'${(e.learning||'').replace(/"/g,'&quot;')}'},{key:'otj',label:'OTJ Hrs',type:'number',value:String(e.otj||0)}])">✎</button>
+        <button class="btn-x" onclick="openEditModal('Uni','uni_log','${e.id}',[{key:'date',label:'Date',type:'date',value:'${e.date}'},{key:'module',label:'Module',value:'${e.module}'},{key:'details',label:'Details',value:'${(e.details||'').replace(/"/g,'&quot;')}'},{key:'learning',label:'Learning',type:'textarea',value:'${(e.learning||'').replace(/"/g,'&quot;')}'},{key:'otj_mins',label:'OTJ Mins',type:'number',value:String(e.otj_mins||0)}])">✎</button>
         <button class="btn-x" onclick="delUni('${e.id}')">✕</button>
       </div>
     </div>
-  `).join('') || '<div class="empty">No entries logged yet</div>';
+  `}).join('') || '<div class="empty">No entries logged yet</div>';
   document.getElementById('uni-list').innerHTML = html;
 }
 
 function updateUniTotal(entries) {
-  const total = entries.reduce((s, e) => s + (e.otj || 0), 0);
-  document.getElementById('uni-total').textContent = total.toFixed(1);
+  const totalMins = entries.reduce((s, e) => s + (e.otj_mins || (e.otj ? e.otj * 60 : 0)), 0);
+  const h = Math.floor(totalMins / 60);
+  const m = totalMins % 60;
+  const fmt = h > 0 ? (m > 0 ? `${h}h ${m}m` : `${h}h`) : (m > 0 ? `${m}m` : '0m');
+  document.getElementById('uni-total').textContent = fmt;
 }
 
 // ── PAGE: JOURNAL ────────────────────────
@@ -813,6 +1017,7 @@ function renderJournalList(entries) {
 // ── PAGE: PRIORITIES ────────────────────
 async function renderPrioritiesPage() {
   const data = await fsGet(up(`weeks/${weekKey()}`)) || { priorities: [] };
+  const archive = await fsGet(up('priority_archive')) || {};
 
   let html = `
     <div class="section-group">
@@ -837,12 +1042,19 @@ async function renderPrioritiesPage() {
         <div class="mini-prompt">What are you focused on right now?</div>
         <input type="text" id="p-obsession" placeholder="Your current focus..." onchange="setPrioritiesData()" style="margin-bottom:0;"/>
       </div>
+
+      <div class="card">
+        <div class="card-title">Archive</div>
+        <div class="mini-prompt">Completed priorities by week</div>
+        <div id="p-archive"></div>
+      </div>
     </div>
   `;
 
   document.getElementById('content').innerHTML = html;
   if (data.obsession) document.getElementById('p-obsession').value = data.obsession;
   renderPriorityList(data.priorities || []);
+  renderPriorityArchive(archive);
 }
 
 function renderPriorityList(priorities) {
@@ -1063,22 +1275,33 @@ function barHtml(lbl, val, max, color) {
 
 // ── DATA SETTERS ────────────────────────
 async function setMood(v) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.mood = v;
   await fsSet(up(`daily/${k}`), data);
   document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('sel', parseInt(b.dataset.v) === v));
 }
 
+async function saveMoodTrigger() {
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const trigger = document.getElementById('mood-trigger').value.trim();
+  if (!trigger) return;
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  data.mood_trigger = trigger;
+  await fsSet(up(`daily/${k}`), data);
+  document.getElementById('mood-trigger').value = '';
+  setTimeout(() => renderTodayPage(), 100);
+}
+
 async function setEnergy(v) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.energy = parseInt(v);
   await fsSet(up(`daily/${k}`), data);
 }
 
 async function toggleGym(type) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.gym = data.gym || {};
   data.gym[type] = !data.gym[type];
@@ -1086,8 +1309,17 @@ async function toggleGym(type) {
   document.getElementById(`gym-${type}`).classList.toggle('done');
 }
 
+async function saveGymRPE() {
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const rpe = parseInt(document.getElementById('gym-rpe').value) || 5;
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  data.gym_rpe = rpe;
+  await fsSet(up(`daily/${k}`), data);
+  document.getElementById('rpe-display').textContent = rpe;
+}
+
 async function addReading() {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.reading = {
     title: document.getElementById('read-title').value,
@@ -1099,7 +1331,7 @@ async function addReading() {
 }
 
 async function setPhone() {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   const hrs = parseInt(document.getElementById('phone-hrs').value) || 0;
   const mins = parseInt(document.getElementById('phone-mins').value) || 0;
@@ -1109,7 +1341,7 @@ async function setPhone() {
 }
 
 async function addWin() {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.wins = data.wins || [];
   data.wins.push(document.getElementById('win-input').value);
@@ -1119,7 +1351,7 @@ async function addWin() {
 }
 
 async function delWin(i) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.wins = data.wins || [];
   data.wins.splice(i, 1);
@@ -1128,7 +1360,7 @@ async function delWin(i) {
 }
 
 async function addResist() {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.resistance = data.resistance || [];
   data.resistance.push(document.getElementById('resist-input').value);
@@ -1138,7 +1370,7 @@ async function addResist() {
 }
 
 async function delResist(i) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.resistance = data.resistance || [];
   data.resistance.splice(i, 1);
@@ -1147,17 +1379,40 @@ async function delResist(i) {
 }
 
 async function setGratitude(v) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.gratitude = v;
   await fsSet(up(`daily/${k}`), data);
 }
 
 async function setDailyJournal(v) {
-  const k = todayKey2();
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.journal = v;
   await fsSet(up(`daily/${k}`), data);
+}
+
+function getYesterdayKey() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().split('T')[0];
+}
+
+async function toggleYesterday() {
+  viewingYesterday = !viewingYesterday;
+  const btn = document.getElementById('yesterday-btn');
+  if (viewingYesterday) {
+    btn.textContent = '→';
+    btn.style.color = 'var(--gold)';
+    btn.style.borderColor = 'var(--gold-dim)';
+    document.getElementById('page-title').innerHTML = 'Yesterday';
+  } else {
+    btn.textContent = '←';
+    btn.style.color = 'var(--soft)';
+    btn.style.borderColor = 'var(--border2)';
+    document.getElementById('page-title').innerHTML = 'Today';
+  }
+  await renderTodayPage();
 }
 
 async function addPadel() {
@@ -1187,13 +1442,16 @@ async function addUni() {
   const module = document.getElementById('uni-module').value;
   const details = document.getElementById('uni-details').value;
   const learning = document.getElementById('uni-learning').value;
-  const otj = parseFloat(document.getElementById('uni-otj').value) || 0;
-  await fsColAdd(up('uni_log'), { date, module, details, learning, otj });
+  const h = parseInt(document.getElementById('uni-otj-h').value) || 0;
+  const m = parseInt(document.getElementById('uni-otj-m').value) || 0;
+  const otj_mins = h * 60 + m;
+  await fsColAdd(up('uni_log'), { date, module, details, learning, otj_mins });
   document.getElementById('uni-date').value = todayKey2();
   document.getElementById('uni-module').value = '';
   document.getElementById('uni-details').value = '';
   document.getElementById('uni-learning').value = '';
-  document.getElementById('uni-otj').value = '';
+  document.getElementById('uni-otj-h').value = '';
+  document.getElementById('uni-otj-m').value = '';
   const entries = await fsColGet(up('uni_log'));
   renderUniList(entries);
   updateUniTotal(entries);
@@ -1253,8 +1511,45 @@ async function togglePriority(i) {
   const data = await fsGet(up(`weeks/${wk}`)) || { priorities: [] };
   data.priorities = data.priorities || [];
   data.priorities[i].done = !data.priorities[i].done;
+  
+  if (data.priorities[i].done) {
+    // Archive completed priority
+    const archive = await fsGet(up('priority_archive')) || {};
+    archive[wk] = archive[wk] || [];
+    archive[wk].push({ ...data.priorities[i], completed_at: new Date().toISOString() });
+    await fsSet(up('priority_archive'), archive);
+  }
+  
   await fsSet(up(`weeks/${wk}`), data);
   renderPriorityList(data.priorities);
+  await renderPrioritiesPage();
+}
+
+function renderPriorityArchive(archive) {
+  if (!archive || Object.keys(archive).length === 0) {
+    document.getElementById('p-archive').innerHTML = '<div class="empty">No completed priorities yet</div>';
+    return;
+  }
+  
+  const weeks = Object.keys(archive).sort().reverse();
+  let html = '';
+  
+  weeks.forEach(wk => {
+    const items = archive[wk] || [];
+    const completed = items.length;
+    const pct = completed > 0 ? '✓ ' : '○ ';
+    
+    html += `
+    <div style="padding:8px;background:var(--surface2);border-radius:4px;margin-bottom:6px;">
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;">${pct}Week of ${wk} — ${completed} completed</div>
+      <div style="font-size:0.7rem;color:var(--soft);">
+        ${items.map(p => `<div style="margin:2px 0;">• ${p.text}</div>`).join('')}
+      </div>
+    </div>
+    `;
+  });
+  
+  document.getElementById('p-archive').innerHTML = html;
 }
 
 async function setPrioritiesData() {
@@ -1440,6 +1735,23 @@ async function updateReadingStreak() {
   }
   
   document.getElementById('read-streak').textContent = streak;
+}
+
+async function resetReadingStreak() {
+  if (!confirm('Reset reading streak? This cannot be undone.')) return;
+  // Clear all reading entries in past 365 days
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    const v = await fsGet(up(`daily/${k}`));
+    if (v?.reading) {
+      delete v.reading;
+      await fsSet(up(`daily/${k}`), v);
+    }
+  }
+  await updateReadingStreak();
 }
 
 boot(null);

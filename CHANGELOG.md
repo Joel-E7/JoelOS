@@ -950,12 +950,213 @@ service cloud.firestore {
 
 ---
 
-## Deployment Checklist
+## 🧪 TESTING TOOL — F12 Console Test Script (2026-03-27)
 
-✅ Functions exposed to window (resetReadingStreak, setPadelType, toggleYesterday)  
-✅ Error logging improved with error codes  
-⚠️ **Firestore rules must be set manually in Firebase Console** (REQUIRED)  
-⚠️ Hard refresh required after rules update (Ctrl+Shift+R)  
-✅ All 8 features ready to use once auth works  
+### 30. Comprehensive Console Testing Script
+**Purpose**: Automated testing tool to catch bugs and verify all features work.
+
+**What It Tests**:
+1. **Function Availability** — All functions exposed to `window` object
+2. **Global Variables** — State initialization (uid, currentPage, viewingYesterday, auth, db, LIVE)
+3. **UI Elements** — All DOM elements exist by ID
+4. **Feature Logic** — OTJ conversion, date keys, Padel selector, reading datalist
+5. **Firestore Connectivity** — Firebase init, auth status, connection state
+6. **Event Listeners** — Elements can receive events
+7. **Console Errors** — Counts and lists all errors found
+8. **Manual Verification** — Checklist of visual features to verify in UI
+
+**Test Coverage**:
+- ✓ 45+ automated checks
+- ✓ 9 features explicitly tested (OTJ, yesterday toggle, RPE, mood trigger, padel, etc.)
+- ✓ Error detection and reporting
+- ✓ Pass/fail summary with error details
+
+**How to Use**:
+1. Press F12 to open browser console
+2. Copy entire script from `F12_TEST_SCRIPT.js`
+3. Paste into console and press Enter
+4. Review results (✓ pass, ✗ fail)
+5. See full log with error messages
+
+**Output Format**:
+```
+=== TEST 1: Function Availability ===
+✓ window.resetReadingStreak exists
+✓ window.setPadelType exists
+...
+📊 RESULTS:
+✓ Passed: 42
+✗ Failed: 0
+
+✓✓✓ ALL TESTS PASSED
+```
+
+**Files Created**:
+- `F12_TEST_SCRIPT.js` — Full test suite (900+ lines)
+- `F12_TEST_SCRIPT_USAGE.md` — Detailed instructions, troubleshooting guide
+
+**When to Run**:
+- After deployment
+- After adding new features
+- When debugging console errors
+- Before releasing changes
+- To catch missing function exports
+
+**Typical Issues Caught**:
+- Function not exposed to window (ReferenceError)
+- Missing HTML elements
+- Firebase not initialized
+- Firestore permissions error
+- Broken event listeners
+- Broken date key functions
+
+---
+
+## 🐛 INITIAL DEPLOYMENT ERRORS — FIXES APPLIED (2026-03-27, Post-Test)
+
+### 31. Manifest start_url Invalid Relative Path
+**Problem**: Console warning: `Manifest: property 'start_url' ignored, URL is invalid.`
+
+**Root Cause**: PWA manifest had relative `start_url: './'` which GitHub Pages doesn't accept.
+
+**Solution**: Changed to absolute path for deployed app.
+
+**Code Changed**:
+```javascript
+// Before:
+start_url: './'
+
+// After:
+start_url: '/JoelOS/'
+```
+
+**Result**: PWA manifest now valid, app installable on mobile.
+
+---
+
+### 32. Missing favicon.ico
+**Problem**: Console error: `Failed to load resource: the server responded with a status of 404 (favicon.ico)`
+
+**Root Cause**: Browser requests favicon, file not found on server.
+
+**Solution**: Added inline SVG favicon in `<head>` section.
+
+**Code Added**:
+```html
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23080808' width='100' height='100'/><text x='50' y='75' font-size='60' font-weight='bold' text-anchor='middle' fill='%23c8a96e' font-family='Arial'>J</text></svg>">
+```
+
+**Result**: Favicon displays in browser tab (inline SVG "J" on dark background), no 404 error.
+
+---
+
+### 33. F12 Test Script SyntaxError: Unexpected Token ':'
+**Problem**: When pasting test script into F12 console: `Uncaught SyntaxError: Unexpected token ':'`
+
+**Root Cause**: Bare object literal at end of script is invalid JavaScript syntax:
+```javascript
+{
+  testsPassed: ...,  // <- Unexpected token ':'
+  testsFailed: ...,
+  errors: ...
+}
+```
+
+**Solution**: Wrapped object literal in parentheses to make it a valid expression.
+
+**Code Changed**:
+```javascript
+// Before:
+{
+  testsPassed: TEST_LOG.filter(...),
+  testsFailed: ERRORS.length,
+  errors: ERRORS
+}
+
+// After:
+({
+  testsPassed: TEST_LOG.filter(...),
+  testsFailed: ERRORS.length,
+  errors: ERRORS
+})
+```
+
+**Result**: Test script runs without syntax error, returns summary object for inspection.
+
+---
+
+### 34. Firestore Permission Denied (Firebase Rules Required)
+**Problem**: Console error: `fsGet error: permission-denied Missing or insufficient permissions.`
+
+**Status**: REQUIRES MANUAL ACTION — Not a code bug, security rules need to be set.
+
+**Solution**: Set Firestore security rules in Firebase Console.
+
+**Required Action**:
+1. Go to Firebase Console → joelos project → Firestore → Rules tab
+2. Paste ONE of these rule sets:
+
+**Option A** (User-scoped, recommended):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
+    }
+  }
+}
+```
+
+**Option B** (Auth-only, more permissive):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+3. Click "Publish"
+4. Hard refresh app (Ctrl+Shift+R)
+
+**Note**: Without rules, Firestore blocks all read/write attempts with permission-denied.
+
+---
+
+### 35. Browser Extension Blocking Firestore (ERR_BLOCKED_BY_CLIENT)
+**Problem**: Network error: `POST https://firestore.googleapis.com/... net::ERR_BLOCKED_BY_CLIENT`
+
+**Root Cause**: Browser extension (ad blocker, privacy extension, uBlock Origin, etc.) blocking Firestore API calls.
+
+**Solution**: Add exception to extension or disable temporarily.
+
+**Workaround**:
+1. Open extension settings (popup or extension page)
+2. Find blocklist rules
+3. Add exception for `firestore.googleapis.com`
+4. Alternatively: Use incognito mode (extensions usually disabled)
+
+**Example**:
+- **uBlock Origin**: Add whitelist rule for firestore.googleapis.com
+- **Privacy Badger**: Click to allow firestore.googleapis.com
+- **Adblock Plus**: Add to whitelist
+
+**Result**: Firestore API calls no longer blocked, data syncs properly.
+
+---
+
+## Summary: Pre-Test Deployment Errors
+
+| Error | Issue | Fix | Status |
+|-------|-------|-----|--------|
+| manifest start_url | Invalid relative path | Changed to `/JoelOS/` | ✅ FIXED |
+| favicon.ico 404 | Missing file | Added inline SVG favicon | ✅ FIXED |
+| SyntaxError ':' | Bare object literal | Wrapped in parentheses | ✅ FIXED |
+| permission-denied | Firebase rules not set | Set rules in Firebase Console | ⚠️ MANUAL |
+| ERR_BLOCKED_BY_CLIENT | Browser extension blocking | Add Firestore exception | ⚠️ MANUAL |
 
 ---

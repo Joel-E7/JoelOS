@@ -1017,20 +1017,20 @@ service cloud.firestore {
 ### 31. Manifest start_url Invalid Relative Path
 **Problem**: Console warning: `Manifest: property 'start_url' ignored, URL is invalid.`
 
-**Root Cause**: PWA manifest had relative `start_url: './'` which GitHub Pages doesn't accept.
+**Root Cause**: GitHub Pages + data blob manifest doesn't accept absolute paths. PWA spec requires a resolvable relative URL.
 
-**Solution**: Changed to absolute path for deployed app.
+**Solution**: Use relative path `./` which works with blob-based manifests.
 
 **Code Changed**:
 ```javascript
-// Before:
-start_url: './'
-
-// After:
+// First attempt (failed):
 start_url: '/JoelOS/'
+
+// Correct fix:
+start_url: './'
 ```
 
-**Result**: PWA manifest now valid, app installable on mobile.
+**Result**: Manifest now valid, warning gone. ✅
 
 ---
 
@@ -1088,15 +1088,22 @@ start_url: '/JoelOS/'
 ### 34. Firestore Permission Denied (Firebase Rules Required)
 **Problem**: Console error: `fsGet error: permission-denied Missing or insufficient permissions.`
 
-**Status**: REQUIRES MANUAL ACTION — Not a code bug, security rules need to be set.
+**Status**: EXPECTED — Requires manual setup in Firebase Console (not a code bug).
 
-**Solution**: Set Firestore security rules in Firebase Console.
+**Root Cause**: Firestore security rules not configured. Default rules block all access.
 
-**Required Action**:
-1. Go to Firebase Console → joelos project → Firestore → Rules tab
-2. Paste ONE of these rule sets:
+**Solution**: Set security rules in Firebase Console.
 
-**Option A** (User-scoped, recommended):
+**Setup Instructions**: See `FIREBASE_RULES_SETUP.md` (step-by-step guide with 3 rule options)
+
+**Quick Summary**:
+1. Go to [console.firebase.google.com](https://console.firebase.google.com)
+2. Select **joelos** project → **Firestore Database** → **Rules** tab
+3. Replace default rules with recommended user-scoped rules (see guide for all options)
+4. Click **Publish**
+5. Hard refresh app (Ctrl+Shift+R)
+
+**Recommended Rules** (User-scoped, most secure):
 ```
 rules_version = '2';
 service cloud.firestore {
@@ -1108,22 +1115,7 @@ service cloud.firestore {
 }
 ```
 
-**Option B** (Auth-only, more permissive):
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}
-```
-
-3. Click "Publish"
-4. Hard refresh app (Ctrl+Shift+R)
-
-**Note**: Without rules, Firestore blocks all read/write attempts with permission-denied.
+**Without rules**: Firestore blocks all read/write attempts with permission-denied.
 
 ---
 
@@ -1153,10 +1145,71 @@ service cloud.firestore {
 
 | Error | Issue | Fix | Status |
 |-------|-------|-----|--------|
-| manifest start_url | Invalid relative path | Changed to `/JoelOS/` | ✅ FIXED |
+| manifest start_url | Absolute path not accepted by blob manifest | Changed to `./` | ✅ FIXED |
 | favicon.ico 404 | Missing file | Added inline SVG favicon | ✅ FIXED |
 | SyntaxError ':' | Bare object literal | Wrapped in parentheses | ✅ FIXED |
-| permission-denied | Firebase rules not set | Set rules in Firebase Console | ⚠️ MANUAL |
+| permission-denied | Firebase rules not set | **See FIREBASE_RULES_SETUP.md** | ⚠️ MANUAL |
 | ERR_BLOCKED_BY_CLIENT | Browser extension blocking | Add Firestore exception | ⚠️ MANUAL |
+
+---
+
+## Deployment Checklist (Updated)
+
+✅ Functions exposed to window (resetReadingStreak, setPadelType, toggleYesterday)  
+✅ Error logging improved with error codes  
+✅ F12 test script created and fixed (syntax error resolved)  
+✅ Favicon added (inline SVG)  
+✅ Manifest start_url fixed (relative path `./`)  
+⚠️ **REQUIRED ACTION: Set Firestore rules** — Follow steps in `FIREBASE_RULES_SETUP.md`  
+✅ Hard refresh required after rules update (Ctrl+Shift+R)  
+✅ All 8 features ready to use once Firestore rules are set  
+
+## Next Steps
+
+1. **Deploy Fixed Code**:
+   - Push updated `index.html` to GitHub
+   - Hard refresh app (Ctrl+Shift+R)
+
+2. **Set Firebase Rules** (CRITICAL):
+   - Follow `FIREBASE_RULES_SETUP.md` (5-minute setup)
+   - Use recommended user-scoped rules for security
+   - Click Publish in Firebase Console
+   - Hard refresh app again (Ctrl+Shift+R)
+
+3. **Test After Setup**:
+   - Run F12 test script (`F12_TEST_SCRIPT.js`)
+   - Sign in to verify Firestore data saves
+   - Check console for no permission-denied errors
+
+---
+
+
+## Deployment Checklist (Updated)
+
+✅ Functions exposed to window (resetReadingStreak, setPadelType, toggleYesterday)  
+✅ Error logging improved with error codes  
+✅ F12 test script created and fixed (syntax error resolved)  
+✅ Favicon added (inline SVG)  
+✅ Manifest start_url fixed (relative path )  
+⚠️ **REQUIRED ACTION: Set Firestore rules** — Follow steps in `FIREBASE_RULES_SETUP.md`  
+✅ Hard refresh required after rules update (Ctrl+Shift+R)  
+✅ All 8 features ready to use once Firestore rules are set  
+
+## Next Steps
+
+1. **Deploy Fixed Code**:
+   - Push updated `index.html` to GitHub
+   - Hard refresh app (Ctrl+Shift+R)
+
+2. **Set Firebase Rules** (CRITICAL):
+   - Follow `FIREBASE_RULES_SETUP.md` (5-minute setup)
+   - Use recommended user-scoped rules for security
+   - Click Publish in Firebase Console
+   - Hard refresh app again (Ctrl+Shift+R)
+
+3. **Test After Setup**:
+   - Run F12 test script (`F12_TEST_SCRIPT.js`)
+   - Sign in to verify Firestore data saves
+   - Check console for no permission-denied errors
 
 ---

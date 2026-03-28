@@ -336,7 +336,7 @@ if (LIVE) {
 
 // PWA
 const manifest = {
-  name: 'JE OS', short_name: 'JE OS', start_url: '/JoelOS/', display: 'standalone',
+  name: 'JE OS', short_name: 'JE OS', start_url: 'https://joel-e7.github.io/JoelOS/', display: 'standalone',
   background_color: '#080808', theme_color: '#080808',
   icons: [{ src: 'https://placehold.co/192x192/080808/c8a96e?text=JE', sizes: '192x192', type: 'image/png' }]
 };
@@ -1711,10 +1711,51 @@ window.newPrompt = () => {
   `;
 };
 
-// Expose new functions to window for onclick handlers
+// Expose all functions to window for onclick handlers (module scope fix)
 window.resetReadingStreak = resetReadingStreak;
 window.setPadelType = setPadelType;
 window.toggleYesterday = toggleYesterday;
+// Data functions - Today page
+window.setMood = setMood;
+window.setEnergy = setEnergy;
+window.toggleGym = toggleGym;
+window.addReading = addReading;
+window.setPhone = setPhone;
+window.addWin = addWin;
+window.delWin = delWin;
+window.addResist = addResist;
+window.delResist = delResist;
+window.setGratitude = setGratitude;
+window.setDailyJournal = setDailyJournal;
+// Padel functions
+window.addPadel = addPadel;
+window.delPadel = delPadel;
+window.addPadelSession = addPadelSession;
+window.addPadelMatch = addPadelMatch;
+// Uni functions
+window.addUni = addUni;
+window.delUni = delUni;
+// Priority functions
+window.addPriority = addPriority;
+window.delPriority = delPriority;
+window.togglePriority = togglePriority;
+window.setPrioritiesData = setPrioritiesData;
+// Journal functions
+window.delJournal = delJournal;
+// Review functions
+window.setReviewScore = setReviewScore;
+// UI functions
+window.toggleSidebar = toggleSidebar;
+window.saveMoodTrigger = saveMoodTrigger;
+window.saveGymRPE = saveGymRPE;
+window.renderMatchStats = renderMatchStats;
+// Expose global state for debugging and firestore access
+Object.defineProperty(window, 'uid', { get: () => uid, configurable: true });
+Object.defineProperty(window, 'currentPage', { get: () => currentPage, configurable: true });
+Object.defineProperty(window, 'viewingYesterday', { get: () => viewingYesterday, configurable: true });
+Object.defineProperty(window, 'auth', { get: () => auth, configurable: true });
+Object.defineProperty(window, 'db', { get: () => db, configurable: true });
+Object.defineProperty(window, 'LIVE', { get: () => LIVE, configurable: true });
 
 function boot(user) {
   updateHeader();

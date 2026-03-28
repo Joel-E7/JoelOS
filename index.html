@@ -1019,7 +1019,7 @@ function renderJournalList(entries) {
 // ── PAGE: PRIORITIES ────────────────────
 async function renderPrioritiesPage() {
   const data = await fsGet(up(`weeks/${weekKey()}`)) || { priorities: [] };
-  const archive = await fsGet(up(`weeks/${weekKey()}/priority_archive`)) || {};
+  const archive = await fsGet(up(`archives/priority_archive`)) || {};
 
   let html = `
     <div class="section-group">
@@ -1521,10 +1521,10 @@ async function togglePriority(i) {
   
   if (data.priorities[i].done) {
     // Archive completed priority
-    const archive = await fsGet(up(`weeks/${wk}/priority_archive`)) || { items: [] };
+    const archive = await fsGet(up(`archives/priority_archive`)) || { items: [] };
     archive.items = archive.items || [];
     archive.items.push({ ...data.priorities[i], completed_at: new Date().toISOString() });
-    await fsSet(up(`weeks/${wk}/priority_archive`), archive);
+    await fsSet(up(`archives/priority_archive`), archive);
   }
   
   await fsSet(up(`weeks/${wk}`), data);

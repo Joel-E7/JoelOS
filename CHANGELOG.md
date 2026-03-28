@@ -1474,3 +1474,29 @@ service cloud.firestore {
 
 **The app is now fully functional, secure, and ready for daily use!** 🚀
 
+
+## 🐛 Priority Archive Path Fix (2026-03-28)
+
+### 42. Priority Archive Invalid Firestore Path (FIXED)
+**Problem**: Opening Priorities page showed error: `Invalid document reference... has 5 segments`
+
+**Root Cause**: Path was `users/{uid}/weeks/{week}/priority_archive` (5 segments, ODD number)
+- Firestore requires EVEN number of segments (2, 4, 6, etc.)
+- Pattern: collection/doc/collection/doc
+
+**Solution**: Changed to `users/{uid}/archives/priority_archive` (4 segments, EVEN)
+- More efficient: single shared archive for all weeks, not per-week
+- Cleaner structure: separate archives collection
+
+**Code Changed**:
+```javascript
+// Before (5 segments - wrong):
+const archive = await fsGet(up(`weeks/${weekKey()}/priority_archive`)) || {};
+
+// After (4 segments - correct):
+const archive = await fsGet(up(`archives/priority_archive`)) || {};
+```
+
+**Result**: No more invalid reference errors ✅
+
+---

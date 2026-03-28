@@ -1500,3 +1500,110 @@ const archive = await fsGet(up(`archives/priority_archive`)) || {};
 **Result**: No more invalid reference errors ✅
 
 ---
+
+### 43. Priority Add Button Misaligned (FIXED)
+**Problem**: "Add" button was vertically misaligned compared to the input and select fields
+
+**Root Cause**: Grid had `align-items:flex-end` but button didn't have same padding/height as inputs
+
+**Solution**: 
+- Changed grid alignment to `align-items:stretch` (fills grid cells)
+- Added explicit padding and height to button
+
+**Code Changed**:
+```javascript
+// Before:
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:8px;align-items:flex-end;">
+  <button class="btn-gold" onclick="addPriority()">Add</button>
+
+// After:
+<div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:8px;align-items:stretch;">
+  <button class="btn-gold" onclick="addPriority()" style="padding:6px 8px;height:auto;">Add</button>
+```
+
+**Result**: Button now perfectly aligned with inputs ✅
+
+---
+
+### 44. Button Alignment - Journal, Small Wins, Resistance (FIXED)
+**Problem**: Multiple buttons out of alignment with their input fields (Journal "New Prompt", Small Wins "+", Resistance "+")
+
+**Solution**: Added `align-items:stretch` to all flex containers and explicit padding to buttons
+
+**Result**: All buttons now perfectly aligned ✅
+
+---
+
+### 45. RPE Slider Default & Range (FIXED)
+**Problem**: RPE slider started at 5 (default) instead of 0, and min was 1 instead of 0
+
+**Solution**: Changed min from 1 to 0, default value from 5 to 0
+
+**Result**: RPE now ranges 0-10 starting at 0 ✅
+
+---
+
+### 46. Reading Entry Clear Button (FIXED)
+**Problem**: No way to clear reading entry if made by mistake
+
+**Solution**: Added "Clear" button that clears all reading input fields
+
+**Result**: Users can now clear reading entries before logging ✅
+
+---
+
+## 🔧 REMAINING ISSUES (Not Yet Fixed)
+
+### 47. Padel Side Option (TODO)
+**Issue**: No way to log which court side played when it wasn't own team's serve (rotates per point in padel)
+
+**Needed**: Add "Side" dropdown (Left/Center/Right or similar) to match inputs
+
+---
+
+### 48. Mood Unselect (TODO)
+**Issue**: Can't unselect mood after selection - only able to log new feeling later
+
+**Needed**: Make mood buttons toggle-able (click again to deselect)
+
+---
+
+
+### 47. Mood System Overhaul (FIXED)
+**Problem**: Mood system was confusing:
+- Click mood → stays selected until you click another
+- Unclear when data saves
+- Can't deselect a mood
+- Reason field always shows old value
+
+**Solution**: Complete workflow overhaul:
+1. **Click mood** → shows selected emoji in display (visual feedback only)
+2. **Type reason** → in "What caused it?" field
+3. **Click Submit** → saves BOTH mood + reason together
+4. **Auto-clear** → both emoji selection AND reason field clear after save
+
+**Code Changes**:
+- New function `selectMoodForEntry(v)` — selects mood, updates visual display
+- New function `submitMoodEntry()` — saves mood+reason together, clears both fields
+- Updated HTML to remove old persistent mood highlighting
+- Added mood selection display: `mood-selected-display` element
+
+**Result**: Clear, linear workflow with instant feedback ✅
+
+---
+
+### 48. Padel Court Side Option (FIXED)
+**Problem**: Can't log which court side was played (Left/Right/Center) when it wasn't own team's serve
+
+**Solution**: Added "Side" dropdown selector next to Format and Partner fields
+
+**Options**: Left | Right | Center (optional - defaults to empty)
+
+**Code Changes**:
+- Added `match-side` select element to Padel match fields
+- Updated `addPadelMatch()` function to capture and store side
+- Side stored in Firestore with other match data
+
+**Result**: Can now track court position for every match ✅
+
+---

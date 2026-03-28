@@ -445,17 +445,17 @@ async function renderTodayPage() {
         <div class="card-title">Mood</div>
         <div class="mini-prompt">How are you feeling today?</div>
         <div style="display:flex;gap:6px;">
-          <button onclick="setMood(1)" class="mood-btn" data-v="1" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 1 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 1 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😔</button>
-          <button onclick="setMood(2)" class="mood-btn" data-v="2" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 2 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 2 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😐</button>
-          <button onclick="setMood(3)" class="mood-btn" data-v="3" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 3 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 3 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😊</button>
-          <button onclick="setMood(4)" class="mood-btn" data-v="4" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 4 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 4 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">😄</button>
-          <button onclick="setMood(5)" class="mood-btn" data-v="5" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:${data.mood === 5 ? 'var(--gold-bg)' : 'var(--surface2)'};color:${data.mood === 5 ? 'var(--gold)' : 'var(--soft)'};cursor:pointer;font-size:1.2rem;">🔥</button>
+          <button onclick="selectMoodForEntry(1)" id="mood-btn-1" class="mood-btn" data-v="1" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😔</button>
+          <button onclick="selectMoodForEntry(2)" id="mood-btn-2" class="mood-btn" data-v="2" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😐</button>
+          <button onclick="selectMoodForEntry(3)" id="mood-btn-3" class="mood-btn" data-v="3" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😊</button>
+          <button onclick="selectMoodForEntry(4)" id="mood-btn-4" class="mood-btn" data-v="4" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😄</button>
+          <button onclick="selectMoodForEntry(5)" id="mood-btn-5" class="mood-btn" data-v="5" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">🔥</button>
         </div>
-        <div style="margin-top:8px;display:flex;gap:6px;">
+        <div id="mood-selected-display" style="margin-top:8px;font-size:0.7rem;color:var(--muted);height:16px;"></div>
+        <div style="margin-top:6px;display:flex;gap:6px;">
           <input type="text" id="mood-trigger" placeholder="What caused it?" style="flex:1;font-size:0.7rem;"/>
-          <button class="btn-x" onclick="saveMoodTrigger()" style="flex:0;">✓</button>
+          <button class="btn-gold" onclick="submitMoodEntry()" style="padding:6px 12px;flex:0;">Submit</button>
         </div>
-        ${data.mood_trigger ? `<div style="margin-top:4px;font-size:0.65rem;color:var(--muted);">Noted: ${data.mood_trigger}</div>` : ''}
       </div>
 
       <div class="card">
@@ -479,7 +479,7 @@ async function renderTodayPage() {
         </div>
         <div style="display:flex;gap:6px;align-items:center;">
           <label class="lbl" style="margin:0;flex:0;">RPE:</label>
-          <input type="range" id="gym-rpe" min="1" max="10" value="${data.gym_rpe || 5}" style="flex:1;"/>
+          <input type="range" id="gym-rpe" min="0" max="10" value="${data.gym_rpe || 0}" style="flex:1;"/>
           <span style="color:var(--muted);min-width:20px;text-align:center;" id="rpe-display">${data.gym_rpe || 5}</span>
         </div>
       </div>
@@ -492,7 +492,8 @@ async function renderTodayPage() {
           <datalist id="reading-history"></datalist>
           <input type="number" placeholder="Pages" style="flex:0.6;" id="read-pages"/>
           <input type="number" placeholder="Mins" style="flex:0.6;" id="read-mins"/>
-          <button class="btn-gold" onclick="addReading()">Log</button>
+          <button class="btn-gold" onclick="addReading()" style="padding:6px 12px;">Log</button>
+          <button class="btn" onclick="document.getElementById('read-title').value=''; document.getElementById('read-pages').value=''; document.getElementById('read-mins').value='';" style="padding:6px 8px;flex:0.5;">Clear</button>
         </div>
         <div id="read-display" style="font-size:0.7rem;color:var(--soft);"></div>
       </div>
@@ -512,9 +513,9 @@ async function renderTodayPage() {
       <div class="card">
         <div class="card-title">Small Wins</div>
         <div class="mini-prompt">What went right today?</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;align-items:stretch;">
           <input type="text" placeholder="Add a win..." id="win-input" style="flex:1;"/>
-          <button class="btn-gold" onclick="addWin()">+</button>
+          <button class="btn-gold" onclick="addWin()" style="padding:6px 12px;">+</button>
         </div>
         <div id="wins-display"></div>
       </div>
@@ -522,9 +523,9 @@ async function renderTodayPage() {
       <div class="card">
         <div class="card-title">Resistance</div>
         <div class="mini-prompt">What are you avoiding?</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;align-items:stretch;">
           <input type="text" placeholder="Task you're resisting..." id="resist-input" style="flex:1;"/>
-          <button class="btn-gold" onclick="addResist()">+</button>
+          <button class="btn-gold" onclick="addResist()" style="padding:6px 12px;">+</button>
         </div>
         <div id="resist-display"></div>
       </div>
@@ -711,6 +712,12 @@ async function renderPadelPage() {
               <option value="singles">Singles</option>
               <option value="doubles" selected>Doubles</option>
             </select>
+            <select id="match-side" style="flex:0.6;">
+              <option value="">Side</option>
+              <option value="left">Left</option>
+              <option value="right">Right</option>
+              <option value="center">Center</option>
+            </select>
           </div>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
             <input type="text" id="match-court" placeholder="Court/Venue" style="flex:1;"/>
@@ -796,17 +803,20 @@ async function addPadelMatch() {
   const skill = parseInt(document.getElementById('match-skill').value) || 3;
   const partner = document.getElementById('match-partner').value || '';
   const format = document.getElementById('match-format').value;
+  const side = document.getElementById('match-side').value || '';
   const court = document.getElementById('match-court').value;
   const result = document.getElementById('match-result').value;
   const sets = document.getElementById('match-sets').value;
   const highlights = document.getElementById('match-highlights').value;
   
-  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, skill, partner, format, court, result, sets, highlights });
+  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, skill, partner, format, side, court, result, sets, highlights });
   document.getElementById('match-date').value = todayKey2();
   document.getElementById('match-time').value = '';
   document.getElementById('match-opponent').value = '';
   document.getElementById('match-skill').value = '3';
   document.getElementById('match-partner').value = '';
+  document.getElementById('match-format').value = 'doubles';
+  document.getElementById('match-side').value = '';
   document.getElementById('match-court').value = '';
   document.getElementById('match-result').value = '';
   document.getElementById('match-sets').value = '';
@@ -976,7 +986,7 @@ async function renderJournalPage() {
       <div class="section-label">Journal</div>
       <div class="card">
         <div class="card-title">Reflection</div>
-        <div style="display:flex;gap:6px;margin-bottom:6px;">
+        <div style="display:flex;gap:6px;margin-bottom:6px;align-items:stretch;">
           <select id="j-type">
             <option value="daily">Daily</option>
             <option value="weekly">Weekly</option>
@@ -984,7 +994,7 @@ async function renderJournalPage() {
             <option value="goal">Goal</option>
             <option value="free">Free Write</option>
           </select>
-          <button class="btn-gold" onclick="newPrompt()">New Prompt</button>
+          <button class="btn-gold" onclick="newPrompt()" style="padding:6px 12px;">New Prompt</button>
         </div>
         <div id="j-prompt-display" style="margin-bottom:12px;"></div>
         <textarea id="j-entry" placeholder="Your thoughts..." style="height:120px;"></textarea>
@@ -1027,14 +1037,14 @@ async function renderPrioritiesPage() {
       <div class="card">
         <div class="card-title">Priorities (Up to 5)</div>
         <div class="mini-prompt">What matters most this week?</div>
-        <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:8px;align-items:flex-end;">
+        <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:8px;align-items:stretch;">
           <select id="p-tag" style="padding:6px 8px;">
             <option value="Professional">Professional</option>
             <option value="Health">Health</option>
             <option value="Personal">Personal</option>
           </select>
           <input type="text" placeholder="Add priority..." id="p-input" style="padding:6px 8px;"/>
-          <button class="btn-gold" onclick="addPriority()">Add</button>
+          <button class="btn-gold" onclick="addPriority()" style="padding:6px 8px;height:auto;">Add</button>
         </div>
         <div id="p-list"></div>
       </div>
@@ -1277,6 +1287,51 @@ function barHtml(lbl, val, max, color) {
 }
 
 // ── DATA SETTERS ────────────────────────
+// Global variable to track selected mood for current entry
+let selectedMoodForEntry = null;
+
+// Select mood (visual feedback only, no save yet)
+function selectMoodForEntry(v) {
+  selectedMoodForEntry = v;
+  const moods = ['', '😔', '😐', '😊', '😄', '🔥'];
+  document.querySelectorAll('.mood-btn').forEach(b => {
+    const isSelected = parseInt(b.id.split('-')[2]) === v;
+    b.style.background = isSelected ? 'var(--gold-bg)' : 'var(--surface2)';
+    b.style.color = isSelected ? 'var(--gold)' : 'var(--soft)';
+  });
+  document.getElementById('mood-selected-display').textContent = `Selected: ${moods[v]}`;
+}
+
+// Submit mood entry - saves both mood and trigger, clears both
+async function submitMoodEntry() {
+  if (!selectedMoodForEntry) {
+    alert('Please select a mood first');
+    return;
+  }
+  
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const trigger = document.getElementById('mood-trigger').value.trim();
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  
+  // Save mood and trigger
+  data.mood = selectedMoodForEntry;
+  data.mood_trigger = trigger;
+  await fsSet(up(`daily/${k}`), data);
+  
+  // Clear both fields
+  selectedMoodForEntry = null;
+  document.getElementById('mood-trigger').value = '';
+  document.getElementById('mood-selected-display').textContent = '';
+  document.querySelectorAll('.mood-btn').forEach(b => {
+    b.style.background = 'var(--surface2)';
+    b.style.color = 'var(--soft)';
+  });
+  
+  // Show confirmation
+  toast('Mood logged!');
+  setTimeout(() => renderTodayPage(), 100);
+}
+
 async function setMood(v) {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
@@ -1745,6 +1800,8 @@ window.delJournal = delJournal;
 window.setReviewScore = setReviewScore;
 // UI functions
 window.toggleSidebar = toggleSidebar;
+window.selectMoodForEntry = selectMoodForEntry;
+window.submitMoodEntry = submitMoodEntry;
 window.saveMoodTrigger = saveMoodTrigger;
 window.saveGymRPE = saveGymRPE;
 window.renderMatchStats = renderMatchStats;

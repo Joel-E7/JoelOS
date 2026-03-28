@@ -848,3 +848,114 @@ renderPadelPage() - major redesign with type selector + conditional fields
 **Testing Status**: All features functional, Firestore read/write verified
 
 ---
+
+## 🐛 DEPLOYMENT FIXES (2026-03-27, Post-Launch)
+
+### 27. Missing Function Exports to Window
+**Problem**: Deployment console errors:
+- `ReferenceError: resetReadingStreak is not defined`
+- `ReferenceError: setPadelType is not defined`
+
+**Root Cause**: Functions defined inside `<script type="module">` have module scope. Onclick handlers couldn't access them.
+
+**Solution**: Explicitly exposed functions to `window` object after definition.
+
+**Code Added**:
+```javascript
+// Expose new functions to window for onclick handlers
+window.resetReadingStreak = resetReadingStreak;
+window.setPadelType = setPadelType;
+window.toggleYesterday = toggleYesterday;
+```
+
+**Location**: Added after `window.newPrompt` definition (line ~1712)
+
+**Result**: All onclick handlers now resolve correctly. Functions accessible from HTML onclick attributes.
+
+---
+
+### 28. Firebase Permissions Error Logging
+**Problem**: Console showed `FirebaseError: Missing or insufficient permissions` but error message was generic.
+
+**Solution**: Enhanced error logging to include error code + message.
+
+**Code Changed**:
+```javascript
+// Before:
+catch (e) { console.error(e); return null; }
+
+// After:
+catch (e) { console.error('fsGet error:', e.code, e.message); return null; }
+```
+
+**Applied To**: All Firestore operations:
+- `fsGet()` — now logs: `fsGet error: permission-denied Missing...`
+- `fsSet()` — now logs: `fsSet error: permission-denied Missing...`
+- `fsColGet()` — now logs: `fsColGet error: permission-denied Missing...`
+- `fsColAdd()` — now logs: `fsColAdd error: permission-denied Missing...`
+- `fsColDel()` — now logs: `fsColDel error: permission-denied Missing...`
+
+**Result**: Console now shows clear error code and message, makes troubleshooting easier.
+
+---
+
+### 29. Firestore Security Rules Configuration Required
+**Problem**: Firebase permissions error indicates Firestore rules not set or misconfigured.
+
+**Solution**: Document required security rules for user-scoped data.
+
+**Required Rules** (user-scoped, recommended):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId}/{document=**} {
+      allow read, write: if request.auth.uid == userId;
+    }
+  }
+}
+```
+
+**Alternative Rules** (auth-only, more permissive):
+```
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+  }
+}
+```
+
+**Action Required**: 
+1. Go to Firebase Console → joelos project
+2. Navigate to Firestore Database → Rules tab
+3. Replace rules with one of the above
+4. Click "Publish"
+5. Refresh app (Ctrl+Shift+R hard refresh)
+
+**Note**: Without correct rules, all Firestore operations fail silently with permission-denied error.
+
+---
+
+### Known Non-Critical Errors
+
+1. **favicon.ico 404** — Browser requests favicon, not found. Doesn't break functionality.
+   - Optional fix: Add `<link rel="icon" href="...">` to head
+
+2. **Manifest start_url warning** — PWA manifest has relative URL, browser ignores it. Still installable.
+   - Current: `"start_url": "./"`
+   - Acceptable, PWA still works
+
+---
+
+## Deployment Checklist
+
+✅ Functions exposed to window (resetReadingStreak, setPadelType, toggleYesterday)  
+✅ Error logging improved with error codes  
+⚠️ **Firestore rules must be set manually in Firebase Console** (REQUIRED)  
+⚠️ Hard refresh required after rules update (Ctrl+Shift+R)  
+✅ All 8 features ready to use once auth works  
+
+---

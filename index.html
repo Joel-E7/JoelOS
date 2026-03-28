@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#080808">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="JE OS">
@@ -1806,7 +1807,9 @@ async function resetReadingStreak() {
   await updateReadingStreak();
 }
 
-boot(null);
+// Auth listener handles boot() when user authenticates
+// Removed boot(null) to prevent data access before uid is set
+
 </script>
 </body>
 </html>

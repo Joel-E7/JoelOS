@@ -411,7 +411,14 @@ function mLbl(m) { return new Date(`${m}-01`).toLocaleDateString('en-GB', { mont
 
 window.nav = (page, el) => {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  if (el) el.classList.add('active');
+  if (el) {
+    el.classList.add('active');
+  } else {
+    // Find and highlight by page name match when called without element (e.g. on boot)
+    document.querySelectorAll('.nav-item').forEach(n => {
+      if (n.getAttribute('onclick')?.includes(`'${page}'`)) n.classList.add('active');
+    });
+  }
   currentPage = page;
   const renders = {
     today: renderTodayPage,
@@ -473,25 +480,8 @@ async function renderTodayPage() {
         <div class="card-title">Energy</div>
         <div class="mini-prompt">1 = exhausted, 10 = buzzing</div>
         <div style="display:flex;gap:4px;align-items:center;">
-          <input type="range" min="0" max="10" value="${data.energy || 0}" onchange="setEnergy(this.value)" style="flex:1;padding:0;" id="energy-slider">
+          <input type="range" min="0" max="10" value="${data.energy || 0}" onchange="setEnergy(this.value)" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;" id="energy-slider">
           <span style="width:30px;text-align:right;font-size:0.8rem;color:var(--gold);">${data.energy || 0}/10</span>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">Gym</div>
-        <div class="mini-prompt">Which movements did you hit?</div>
-        <div style="display:flex;gap:6px;margin-bottom:8px;">
-          ${['Push', 'Pull', 'Legs'].map((type, i) => {
-            const key = ['push', 'pull', 'legs'][i];
-            const done = data.gym?.[key];
-            return `<button onclick="toggleGym('${key}')" style="flex:1;padding:8px;border:1px solid ${done ? 'var(--green)' : 'var(--border2)'};border-radius:4px;background:${done ? 'var(--green-bg)' : 'var(--surface2)'};color:${done ? 'var(--green)' : 'var(--soft)'};cursor:pointer;">${done ? '✓ ' : ''}${type}</button>`;
-          }).join('')}
-        </div>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <label class="lbl" style="margin:0;flex:0;">RPE:</label>
-          <input type="range" id="gym-rpe" min="0" max="10" value="${data.gym_rpe || 0}" style="flex:1;"/>
-          <span style="color:var(--muted);min-width:20px;text-align:center;" id="rpe-display">${data.gym_rpe || 5}</span>
         </div>
       </div>
 
@@ -544,13 +534,18 @@ async function renderTodayPage() {
       <div class="card">
         <div class="card-title">Gratitude</div>
         <div class="mini-prompt">What are you grateful for?</div>
-        <input type="text" id="grat-input" placeholder="Three things you're grateful for..." onchange="setGratitude(this.value)"/>
+        <div style="display:flex;gap:6px;align-items:stretch;">
+          <input type="text" id="grat-input" placeholder="Three things you're grateful for..." style="flex:1;margin:0;"/>
+          <button class="btn-gold" onclick="saveGratitude()" style="padding:6px 12px;">Log</button>
+        </div>
+        <div id="grat-saved" style="font-size:0.7rem;color:var(--soft);margin-top:6px;"></div>
       </div>
 
       <div class="card">
         <div class="card-title">Journal</div>
         <div class="mini-prompt">Today's reflection</div>
-        <textarea id="daily-journal" placeholder="What's on your mind?" onchange="setDailyJournal(this.value)" style="height:100px;"></textarea>
+        <textarea id="daily-journal" placeholder="What's on your mind?" style="height:100px;"></textarea>
+        <button class="btn-gold" onclick="saveDailyJournal()" style="width:100%;margin-top:6px;">Log</button>
       </div>
     </div>
   `;
@@ -577,9 +572,19 @@ async function renderTodayData(data) {
     datalist.innerHTML = uniqueTitles.map(t => `<option value="${t}"></option>`).join('');
   }
 
-  // Populate mood trigger field
-  if (data.mood_trigger) {
-    document.getElementById('mood-trigger').value = data.mood_trigger;
+  // Populate mood trigger field and existing mood selection
+  const triggerEl = document.getElementById('mood-trigger');
+  if (triggerEl) triggerEl.value = data.mood_trigger || '';
+  if (data.mood) {
+    document.querySelectorAll('.mood-btn').forEach(b => {
+      const isSelected = parseInt(b.id.split('-')[2]) === data.mood;
+      b.style.background = isSelected ? 'var(--gold-bg)' : 'var(--surface2)';
+      b.style.borderColor = isSelected ? 'var(--gold-dim)' : '';
+      b.style.color = isSelected ? 'var(--gold)' : 'var(--soft)';
+    });
+    const moods = ['','😔','😐','😊','😄','🔥'];
+    const disp = document.getElementById('mood-selected-display');
+    if (disp) disp.textContent = `Saved: ${moods[data.mood]}`;
   }
 
   // Update wins
@@ -590,17 +595,11 @@ async function renderTodayData(data) {
   const resistHtml = (data.resistance || []).map((r, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${r}</span><button class="btn-x" onclick="delResist(${i})">✕</button></div>`).join('');
   document.getElementById('resist-display').innerHTML = resistHtml || '<div class="empty">What you avoid reveals what you need</div>';
 
-  if (data.gratitude) document.getElementById('grat-input').value = data.gratitude;
-  if (data.journal) document.getElementById('daily-journal').value = data.journal;
-
-  // RPE slider listener
-  const rpeSlider = document.getElementById('gym-rpe');
-  if (rpeSlider) {
-    rpeSlider.addEventListener('change', saveGymRPE);
-    rpeSlider.addEventListener('input', (e) => {
-      document.getElementById('rpe-display').textContent = e.target.value;
-    });
+  if (data.gratitude) {
+    document.getElementById('grat-input').value = data.gratitude;
+    document.getElementById('grat-saved').textContent = `Saved: "${data.gratitude}"`;
   }
+  if (data.journal) document.getElementById('daily-journal').value = data.journal;
 }
 
 // ── PAGE: REVIEW ────────────────────────
@@ -1026,7 +1025,7 @@ function renderJournalList(entries) {
   const html = entries.slice(0, 20).map(e => `
     <div style="padding:8px;border-bottom:1px solid var(--border);">
       <div style="font-size:0.7rem;color:var(--text);font-weight:600;margin-bottom:2px;">${fmtDate(e.date)}</div>
-      <div style="font-size:0.7rem;color:var(--soft);margin-bottom:4px;max-height:40px;overflow:hidden;">${e.text.slice(0, 100)}...</div>
+      <div style="font-size:0.7rem;color:var(--soft);margin-bottom:4px;max-height:40px;overflow:hidden;">${e.text.length > 100 ? e.text.slice(0, 100) + '…' : e.text}</div>
       <div style="display:flex;gap:4px;">
         <button class="btn-x" onclick="openEditModal('Journal','journal','${e.id}',[{key:'text',label:'Entry',type:'textarea',rows:5,value:'${(e.text||'').replace(/"/g,'&quot;')}'}])">✎</button>
         <button class="btn-x" onclick="delJournal('${e.id}')">✕</button>
@@ -1062,7 +1061,11 @@ async function renderPrioritiesPage() {
       <div class="card">
         <div class="card-title">Current Obsession</div>
         <div class="mini-prompt">What are you focused on right now?</div>
-        <input type="text" id="p-obsession" placeholder="Your current focus..." onchange="setPrioritiesData()" style="margin-bottom:0;"/>
+        <div style="display:flex;gap:6px;align-items:stretch;">
+          <input type="text" id="p-obsession" placeholder="Your current focus..." style="flex:1;margin:0;"/>
+          <button class="btn-gold" onclick="saveObsession()" style="padding:6px 12px;">Save</button>
+        </div>
+        <div id="obsession-saved" style="font-size:0.7rem;color:var(--soft);margin-top:6px;"></div>
       </div>
 
       <div class="card">
@@ -1074,7 +1077,10 @@ async function renderPrioritiesPage() {
   `;
 
   document.getElementById('content').innerHTML = html;
-  if (data.obsession) document.getElementById('p-obsession').value = data.obsession;
+  if (data.obsession) {
+    document.getElementById('p-obsession').value = data.obsession;
+    document.getElementById('obsession-saved').textContent = `Saved: "${data.obsession}"`;
+  }
   renderPriorityList(data.priorities || []);
   renderPriorityArchive(archive);
 }
@@ -1095,216 +1101,700 @@ function renderPriorityList(priorities) {
 }
 
 // ── PAGE: STATS ──────────────────────────
+let statsTab = 'overview';
+let statsRange = 30;
+
 async function renderStatsPage() {
+  const tabBtnStyle = (t) => statsTab === t
+    ? 'padding:6px 14px;border-radius:5px;font-family:var(--font-m);font-size:0.72rem;cursor:pointer;background:var(--gold-bg);border:1px solid var(--gold-dim);color:var(--gold);'
+    : 'padding:6px 14px;border-radius:5px;font-family:var(--font-m);font-size:0.72rem;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--soft);';
+
+  const rangeBtnStyle = (r) => statsRange === r
+    ? 'padding:4px 10px;border-radius:4px;font-family:var(--font-m);font-size:0.65rem;cursor:pointer;background:var(--surface3);border:1px solid var(--gold-dim);color:var(--gold);'
+    : 'padding:4px 10px;border-radius:4px;font-family:var(--font-m);font-size:0.65rem;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);';
+
   let html = `
     <div class="section-group">
-      <div class="section-label">Analytics</div>
+      <!-- TAB BAR -->
+      <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
+        <button style="${tabBtnStyle('overview')}" onclick="setStatsTab('overview')">Overview</button>
+        <button style="${tabBtnStyle('gym')}" onclick="setStatsTab('gym')">🏋️ Gym</button>
+        <button style="${tabBtnStyle('padel')}" onclick="setStatsTab('padel')">🎾 Padel</button>
+      </div>
+  `;
 
-      <div class="card">
-        <div class="card-title">Gym Sessions</div>
-        <div id="gym-stats-chart"></div>
+  if (statsTab === 'overview') {
+    html += `
+      <!-- TIME RANGE -->
+      <div style="display:flex;gap:6px;margin-bottom:16px;align-items:center;">
+        <span style="font-size:0.65rem;color:var(--muted);">Range:</span>
+        <button style="${rangeBtnStyle(7)}" onclick="setStatsRange(7)">7d</button>
+        <button style="${rangeBtnStyle(30)}" onclick="setStatsRange(30)">30d</button>
+        <button style="${rangeBtnStyle(90)}" onclick="setStatsRange(90)">90d</button>
       </div>
 
+      <!-- MOOD -->
+      <div class="section-label">Mood</div>
       <div class="card">
-        <div class="card-title">Padel Sessions</div>
-        <div id="pd-stats-chart"></div>
-      </div>
-
-      <div class="card">
-        <div class="card-title">30-Day Mood</div>
+        <div class="card-title" style="justify-content:space-between;">
+          <span>Mood Heatmap</span>
+          <span style="font-size:0.65rem;color:var(--muted);">last ${statsRange} days</span>
+        </div>
         <div id="mood-heatmap"></div>
       </div>
-
       <div class="card">
-        <div class="card-title">Phone Usage (14 days)</div>
-        <div id="phone-chart"></div>
+        <div class="card-title" style="justify-content:space-between;">
+          <span>Mood Distribution</span>
+          <span id="mood-avg-label" style="font-size:0.65rem;color:var(--soft);"></span>
+        </div>
+        <div id="mood-dist-chart" style="display:flex;gap:4px;align-items:flex-end;height:60px;"></div>
+        <div id="mood-dist-labels" style="display:flex;gap:4px;margin-top:4px;"></div>
       </div>
 
+      <!-- ENERGY -->
+      <div class="section-label" style="margin-top:16px;">Energy</div>
       <div class="card">
-        <div class="card-title">Reading Stats</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;">
-          <div style="text-align:center;">
-            <div style="font-size:1.2rem;color:var(--gold);font-weight:700;" id="st-pages">0</div>
-            <div style="font-size:0.65rem;color:var(--soft);">pages</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:1.2rem;color:var(--gold);font-weight:700;" id="st-mins">0</div>
-            <div style="font-size:0.65rem;color:var(--soft);">minutes</div>
-          </div>
-          <div style="text-align:center;">
-            <div style="font-size:1.2rem;color:var(--gold);font-weight:700;" id="st-days">0</div>
-            <div style="font-size:0.65rem;color:var(--soft);">days</div>
-          </div>
+        <div class="card-title" style="justify-content:space-between;">
+          <span>Energy Trend</span>
+          <span id="energy-avg-label" style="font-size:0.65rem;color:var(--soft);"></span>
+        </div>
+        <div id="energy-chart" style="display:flex;gap:2px;align-items:flex-end;height:60px;"></div>
+        <div id="energy-chart-labels" style="display:flex;gap:2px;margin-top:4px;overflow:hidden;"></div>
+      </div>
+
+      <!-- PHONE -->
+      <div class="section-label" style="margin-top:16px;">Phone Usage</div>
+      <div class="card">
+        <div class="card-title" style="justify-content:space-between;">
+          <span>Daily Screen Time</span>
+          <span id="phone-avg-label" style="font-size:0.65rem;color:var(--soft);"></span>
+        </div>
+        <div id="phone-chart" style="display:flex;gap:2px;align-items:flex-end;height:60px;"></div>
+        <div id="phone-chart-labels" style="display:flex;gap:2px;margin-top:4px;overflow:hidden;"></div>
+        <div style="display:flex;gap:12px;margin-top:8px;">
+          <span style="font-size:0.62rem;color:var(--green);">■ ≤4h</span>
+          <span style="font-size:0.62rem;color:var(--gold);">■ 4-6h</span>
+          <span style="font-size:0.62rem;color:var(--red);">■ >6h</span>
         </div>
       </div>
 
+      <!-- READING -->
+      <div class="section-label" style="margin-top:16px;">Reading</div>
       <div class="card">
-        <div class="card-title">Weekly Review Scores</div>
-        <div id="rev-chart"></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;">
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.3rem;color:var(--gold);font-weight:800;font-family:var(--font-h);" id="st-pages">0</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">pages</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.3rem;color:var(--gold);font-weight:800;font-family:var(--font-h);" id="st-hrs">0</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">hours</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.3rem;color:var(--gold);font-weight:800;font-family:var(--font-h);" id="st-days">0</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">days read</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.3rem;color:var(--gold);font-weight:800;font-family:var(--font-h);" id="st-streak">0</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">streak</div>
+          </div>
+        </div>
+        <div id="reading-bar-chart" style="display:flex;gap:2px;align-items:flex-end;height:50px;margin-top:4px;"></div>
+        <div style="font-size:0.62rem;color:var(--muted);margin-top:4px;">Pages per day</div>
       </div>
 
+      <!-- WEEKLY REVIEW -->
+      <div class="section-label" style="margin-top:16px;">Weekly Review</div>
       <div class="card">
-        <div class="card-title">Resistance Patterns</div>
+        <div class="card-title">Score Trend <span style="font-size:0.62rem;color:var(--muted);font-weight:400;">(avg across all areas)</span></div>
+        <div id="rev-chart" style="display:flex;gap:4px;align-items:flex-end;height:60px;"></div>
+        <div id="rev-area-breakdown" style="margin-top:12px;"></div>
+      </div>
+
+      <!-- RESISTANCE -->
+      <div class="section-label" style="margin-top:16px;">Resistance</div>
+      <div class="card">
+        <div class="card-title">What You Keep Avoiding</div>
         <div id="resist-chart"></div>
       </div>
 
+      <!-- CORRELATION -->
+      <div class="section-label" style="margin-top:16px;">Patterns</div>
       <div class="card">
-        <div class="card-title">Correlation Hints</div>
-        <div class="mini-prompt">Patterns across your data (last 30 days)</div>
+        <div class="card-title">Correlation Hints <span style="font-size:0.62rem;color:var(--muted);font-weight:400;">last 30 days</span></div>
         <div id="correlation-hints"><div class="empty">Loading...</div></div>
       </div>
+    `;
+  } else if (statsTab === 'gym') {
+    html += `
+      <div class="section-label">Monthly Volume</div>
+      <div class="card">
+        <div class="card-title">Push / Pull / Legs Sessions</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <span style="font-size:0.65rem;color:var(--gold);">■ Push</span>
+          <span style="font-size:0.65rem;color:var(--green);">■ Pull</span>
+          <span style="font-size:0.65rem;color:var(--blue);">■ Legs</span>
+        </div>
+        <div id="gym-monthly-chart" style="display:flex;gap:6px;align-items:flex-end;height:80px;"></div>
+      </div>
 
-    </div>
-  `;
+      <div class="section-label" style="margin-top:16px;">Weekly Consistency</div>
+      <div class="card">
+        <div class="card-title">Did you hit each category? <span style="font-size:0.62rem;color:var(--muted);font-weight:400;">last 12 weeks</span></div>
+        <div id="gym-consistency-grid"></div>
+        <div style="display:flex;gap:10px;margin-top:8px;">
+          <span style="font-size:0.62rem;color:var(--green);">■ Done</span>
+          <span style="font-size:0.62rem;color:var(--surface3);">■ Missed</span>
+        </div>
+      </div>
 
+      <div class="section-label" style="margin-top:16px;">Volume Over Time</div>
+      <div class="card">
+        <div class="card-title">Total kg Lifted per Week</div>
+        <div id="gym-volume-chart" style="display:flex;gap:4px;align-items:flex-end;height:70px;"></div>
+        <div id="gym-volume-labels" style="display:flex;gap:4px;margin-top:4px;overflow:hidden;"></div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px;">Personal Bests</div>
+      <div class="card">
+        <div class="card-title">Max Weight per Exercise</div>
+        <div id="gym-pbs"></div>
+      </div>
+    `;
+  } else if (statsTab === 'padel') {
+    html += `
+      <div class="section-label">Activity</div>
+      <div class="card">
+        <div class="card-title">Sessions + Matches per Month</div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <span style="font-size:0.65rem;color:var(--green);">■ Sessions</span>
+          <span style="font-size:0.65rem;color:var(--gold);">■ Matches</span>
+        </div>
+        <div id="padel-monthly-chart" style="display:flex;gap:6px;align-items:flex-end;height:70px;"></div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px;">Match Record</div>
+      <div class="card">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.4rem;color:var(--green);font-weight:800;font-family:var(--font-h);" id="pd-wins">0</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">wins</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.4rem;color:var(--red);font-weight:800;font-family:var(--font-h);" id="pd-losses">0</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">losses</div>
+          </div>
+          <div style="text-align:center;padding:8px;background:var(--surface2);border-radius:6px;">
+            <div style="font-size:1.4rem;color:var(--gold);font-weight:800;font-family:var(--font-h);" id="pd-winrate">—</div>
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:2px;">win rate</div>
+          </div>
+        </div>
+        <div id="pd-winloss-chart" style="display:flex;gap:3px;align-items:flex-end;height:50px;margin-bottom:4px;"></div>
+        <div style="font-size:0.62rem;color:var(--muted);">Win/loss per month</div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px;">Opponent Breakdown</div>
+      <div class="card">
+        <div class="card-title">Record vs Each Opponent</div>
+        <div id="pd-opponent-breakdown"></div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px;">Form</div>
+      <div class="card">
+        <div class="card-title">Last 10 Matches</div>
+        <div id="pd-recent-form"></div>
+      </div>
+    `;
+  }
+
+  html += `</div>`;
   document.getElementById('content').innerHTML = html;
-  await renderGymChart();
-  await renderPdChart();
-  await renderMoodHm();
-  await renderPhoneChart();
-  await renderReadingStats();
-  await renderRevChart();
-  await renderResistChart();
-  await renderCorrelationHints();
+
+  if (statsTab === 'overview') {
+    await renderMoodHm(statsRange);
+    await renderMoodDist(statsRange);
+    await renderEnergyChart(statsRange);
+    await renderPhoneChart(statsRange);
+    await renderReadingStats(statsRange);
+    await renderRevChart();
+    await renderResistChart(statsRange);
+    await renderCorrelationHints();
+  } else if (statsTab === 'gym') {
+    await renderGymMonthly();
+    await renderGymConsistency();
+    await renderGymVolume();
+    await renderGymPBs();
+  } else if (statsTab === 'padel') {
+    await renderPadelStats();
+  }
 }
 
-async function renderGymChart() {
+window.setStatsTab = (tab) => { statsTab = tab; renderStatsPage(); };
+window.setStatsRange = (r) => { statsRange = r; renderStatsPage(); };
+
+// ── STATS: OVERVIEW CHARTS ───────────────
+
+async function fetchDailyRange(days) {
+  const result = [];
+  const now = new Date();
+  for (let i = days - 1; i >= 0; i--) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    const v = await fsGet(up(`daily/${k}`));
+    result.push({ date: k, ...( v || {}) });
+  }
+  return result;
+}
+
+async function renderMoodHm(days = 30) {
+  const data = await fetchDailyRange(days);
+  const moods = ['', '😔', '😐', '😊', '😄', '🔥'];
+  const moodColors = ['var(--surface3)', '#c0392b', '#c8a96e', '#4caf7d', '#5b8dee', '#f0ad4e'];
+  const cols = [];
+  for (let c = 0; c < Math.ceil(data.length / 7); c++) {
+    const cc = data.slice(c * 7, c * 7 + 7);
+    cols.push(`<div style="display:flex;flex-direction:column;gap:3px;">${cc.map(({ mood, mood_trigger, date }) => {
+      const m = mood || 0;
+      const label = fmtDate(date) + (m ? ' ' + moods[m] : ' –') + (mood_trigger ? ': ' + mood_trigger : '');
+      return `<div style="width:20px;height:20px;border-radius:3px;background:${moodColors[m]};cursor:default;display:flex;align-items:center;justify-content:center;font-size:0.65rem;opacity:${m ? 1 : 0.25};" title="${label}">${m > 0 ? moods[m] : ''}</div>`;
+    }).join('')}</div>`);
+  }
+  const el = document.getElementById('mood-heatmap');
+  if (el) el.innerHTML = `
+    <div style="display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;">${cols.join('')}</div>
+    <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;">
+      ${moods.slice(1).map((m, i) => `<span style="font-size:0.62rem;color:var(--soft);">${m} ${['Low','OK','Good','Great','Peak'][i]}</span>`).join('')}
+    </div>`;
+}
+
+async function renderMoodDist(days = 30) {
+  const data = await fetchDailyRange(days);
+  const counts = [0, 0, 0, 0, 0, 0];
+  const moods = ['', '😔', '😐', '😊', '😄', '🔥'];
+  const moodColors = ['', '#c0392b', '#c8a96e', '#4caf7d', '#5b8dee', '#f0ad4e'];
+  data.forEach(d => { if (d.mood) counts[d.mood]++; });
+  const total = counts.slice(1).reduce((a, b) => a + b, 0);
+  const avg = total ? (data.filter(d => d.mood).reduce((s, d) => s + d.mood, 0) / data.filter(d => d.mood).length).toFixed(1) : null;
+  const maxC = Math.max(1, ...counts.slice(1));
+  const el = document.getElementById('mood-dist-chart');
+  const lbl = document.getElementById('mood-avg-label');
+  const lblEl = document.getElementById('mood-dist-labels');
+  if (lbl) lbl.textContent = avg ? `avg ${avg}/5` : '';
+  if (el) el.innerHTML = counts.slice(1).map((c, i) => {
+    const h = Math.max(2, (c / maxC) * 56);
+    return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;justify-content:flex-end;">
+      <div style="font-size:0.6rem;color:var(--muted);">${c || ''}</div>
+      <div style="width:100%;height:${h}px;background:${moodColors[i+1]};border-radius:2px;" title="${moods[i+1]}: ${c} days"></div>
+    </div>`;
+  }).join('');
+  if (lblEl) lblEl.innerHTML = moods.slice(1).map(m => `<div style="flex:1;text-align:center;font-size:0.8rem;">${m}</div>`).join('');
+}
+
+async function renderEnergyChart(days = 30) {
+  const data = await fetchDailyRange(days);
+  const items = data.filter(d => d.energy);
+  const avg = items.length ? (items.reduce((s, d) => s + d.energy, 0) / items.length).toFixed(1) : null;
+  const el = document.getElementById('energy-chart');
+  const lbl = document.getElementById('energy-avg-label');
+  const lblEl = document.getElementById('energy-chart-labels');
+  if (lbl) lbl.textContent = avg ? `avg ${avg}/10` : '';
+  if (!el) return;
+  const shown = data.slice(-Math.min(days, 30)); // cap bars for readability
+  el.innerHTML = shown.map(d => {
+    const v = d.energy || 0;
+    const h = Math.max(2, (v / 10) * 56);
+    const color = v >= 7 ? 'var(--green)' : v >= 4 ? 'var(--gold)' : v > 0 ? 'var(--red)' : 'var(--surface3)';
+    return `<div style="flex:1;height:${h}px;background:${color};border-radius:2px;min-width:2px;" title="${fmtDate(d.date)}: ${v}/10"></div>`;
+  }).join('');
+  if (lblEl) {
+    // Only show a few date labels to avoid clutter
+    const step = Math.ceil(shown.length / 5);
+    lblEl.innerHTML = shown.map((d, i) => `<div style="flex:1;font-size:0.52rem;color:var(--muted);text-align:center;overflow:hidden;">${i % step === 0 ? fmtDate(d.date).split(' ')[0] : ''}</div>`).join('');
+  }
+}
+
+async function renderPhoneChart(days = 30) {
+  const data = await fetchDailyRange(days);
+  const items = data.filter(d => d.phone?.mins != null);
+  const avg = items.length ? (items.reduce((s, d) => s + d.phone.mins, 0) / items.length / 60).toFixed(1) : null;
+  const el = document.getElementById('phone-chart');
+  const lbl = document.getElementById('phone-avg-label');
+  const lblEl = document.getElementById('phone-chart-labels');
+  if (lbl) lbl.textContent = avg ? `avg ${avg}h/day` : '';
+  if (!el) return;
+  const shown = data.slice(-Math.min(days, 30));
+  const maxV = Math.max(1, ...shown.filter(d => d.phone?.mins).map(d => d.phone.mins / 60), 8);
+  el.innerHTML = shown.map(d => {
+    const hrs = d.phone?.mins != null ? d.phone.mins / 60 : null;
+    if (hrs === null) return `<div style="flex:1;height:2px;background:var(--surface3);border-radius:2px;min-width:2px;align-self:flex-end;"></div>`;
+    const h = Math.max(2, (hrs / maxV) * 56);
+    const color = hrs <= 4 ? 'var(--green)' : hrs <= 6 ? 'var(--gold)' : 'var(--red)';
+    return `<div style="flex:1;height:${h}px;background:${color};border-radius:2px;min-width:2px;" title="${fmtDate(d.date)}: ${hrs.toFixed(1)}h"></div>`;
+  }).join('');
+  if (lblEl) {
+    const step = Math.ceil(shown.length / 5);
+    lblEl.innerHTML = shown.map((d, i) => `<div style="flex:1;font-size:0.52rem;color:var(--muted);text-align:center;overflow:hidden;">${i % step === 0 ? fmtDate(d.date).split(' ')[0] : ''}</div>`).join('');
+  }
+}
+
+async function renderReadingStats(days = 30) {
+  const data = await fetchDailyRange(days);
+  let tp = 0, tm = 0, daysRead = 0;
+  data.forEach(d => { if (d.reading) { tp += d.reading.pages || 0; tm += d.reading.mins || 0; daysRead++; } });
+  const stPages = document.getElementById('st-pages');
+  const stHrs = document.getElementById('st-hrs');
+  const stDays = document.getElementById('st-days');
+  const stStreak = document.getElementById('st-streak');
+  if (stPages) stPages.textContent = tp;
+  if (stHrs) stHrs.textContent = (tm / 60).toFixed(1);
+  if (stDays) stDays.textContent = daysRead;
+  if (stStreak) stStreak.textContent = document.getElementById('read-streak')?.textContent || '0';
+  const el = document.getElementById('reading-bar-chart');
+  if (el) {
+    const maxP = Math.max(1, ...data.map(d => d.reading?.pages || 0));
+    el.innerHTML = data.map(d => {
+      const p = d.reading?.pages || 0;
+      const h = Math.max(p > 0 ? 3 : 1, (p / maxP) * 46);
+      return `<div style="flex:1;height:${h}px;background:${p > 0 ? 'var(--blue)' : 'var(--surface3)'};border-radius:1px;min-width:2px;" title="${fmtDate(d.date)}: ${p}p"></div>`;
+    }).join('');
+  }
+}
+
+async function renderRevChart() {
+  const weeks = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - (i * 7));
+    const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1);
+    weeks.push(d.toISOString().slice(0, 10));
+  }
+  const reviews = await Promise.all(weeks.map(w => fsGet(up(`reviews/${w}`)).then(r => r ? { wk: w, ...r } : null)));
+  const valid = reviews.filter(Boolean);
+  const areas = ['Professional', 'Health', 'Personal', 'Relationships', 'Learning'];
+  const el = document.getElementById('rev-chart');
+  const breakdown = document.getElementById('rev-area-breakdown');
+  if (el) {
+    el.style.cssText = 'display:flex;gap:4px;align-items:flex-end;height:60px;';
+    el.innerHTML = valid.length ? valid.map(r => {
+      const avg = areas.reduce((s, a) => s + (r.scores?.[a] || 0), 0) / areas.length;
+      const h = Math.max(2, (avg / 10) * 56);
+      const color = avg >= 7 ? 'var(--green)' : avg >= 5 ? 'var(--gold)' : 'var(--red)';
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;justify-content:flex-end;">
+        <div style="font-size:0.52rem;color:var(--muted);">${avg.toFixed(1)}</div>
+        <div style="width:100%;height:${h}px;background:${color};border-radius:2px;" title="w/c ${fmtDate(r.wk)}: avg ${avg.toFixed(1)}"></div>
+        <div style="font-size:0.5rem;color:var(--muted);white-space:nowrap;">${fmtDate(r.wk).split(' ')[0]}</div>
+      </div>`;
+    }).join('') : '<div class="empty">No review scores yet</div>';
+  }
+  // Latest week area breakdown
+  if (breakdown && valid.length) {
+    const latest = valid[valid.length - 1];
+    const areaColors = { Professional: 'var(--gold)', Health: 'var(--green)', Personal: 'var(--blue)', Relationships: '#e87c6e', Learning: '#b07fd4' };
+    breakdown.innerHTML = `<div style="font-size:0.65rem;color:var(--muted);margin-bottom:6px;">Latest week breakdown</div>` +
+      areas.map(a => {
+        const score = latest.scores?.[a] || 0;
+        const pct = (score / 10) * 100;
+        return `<div style="margin-bottom:5px;">
+          <div style="display:flex;justify-content:space-between;font-size:0.65rem;margin-bottom:2px;">
+            <span style="color:var(--soft);">${a}</span>
+            <span style="color:${areaColors[a]};">${score}/10</span>
+          </div>
+          <div style="height:4px;background:var(--surface2);border-radius:2px;">
+            <div style="height:100%;width:${pct}%;background:${areaColors[a]};border-radius:2px;transition:width 0.3s;"></div>
+          </div>
+        </div>`;
+      }).join('');
+  }
+}
+
+async function renderResistChart(days = 30) {
+  const data = await fetchDailyRange(days);
+  const items = [];
+  data.forEach(d => { if (d.resistance) items.push(...d.resistance.map(r => ({ text: r, date: d.date }))); });
+  const el = document.getElementById('resist-chart');
+  if (el) {
+    el.innerHTML = items.length
+      ? items.slice(-15).reverse().map(r => `
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+            <span style="font-size:0.72rem;color:var(--soft);">→ ${r.text}</span>
+            <span style="font-size:0.6rem;color:var(--muted);flex-shrink:0;margin-left:8px;">${fmtDate(r.date)}</span>
+          </div>`).join('')
+      : '<div class="empty">No resistance logged yet</div>';
+  }
+}
+
+// ── STATS: GYM TAB ───────────────────────
+
+async function renderGymMonthly() {
   const cols = { push: 'var(--gold)', pull: 'var(--green)', legs: 'var(--blue)' };
-  let data = {};
   const months = [];
+  const counts = {};
   const now = new Date();
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const m = d.toISOString().slice(0, 7);
     months.push(m);
-    data[m] = { push: 0, pull: 0, legs: 0 };
+    counts[m] = { push: 0, pull: 0, legs: 0 };
   }
-  const sessions = await fsColGet(up('gym_sessions')) || [];
-  sessions.forEach(s => {
-    const m = s.date?.slice(0, 7);
-    if (data[m]) data[m] = { ...data[m], ...s };
+  for (let i = 0; i < 180; i++) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    const m = k.slice(0, 7);
+    if (!counts[m]) continue;
+    const v = await fsGet(up(`daily/${k}`));
+    if (v?.gym) {
+      if (v.gym.push) counts[m].push++;
+      if (v.gym.pull) counts[m].pull++;
+      if (v.gym.legs) counts[m].legs++;
+    }
+  }
+  const exercises = await fsColGet(up('exercises')) || [];
+  const seen = {};
+  exercises.forEach(e => {
+    const m = e.date?.slice(0, 7);
+    if (!counts[m] || !['push','pull','legs'].includes(e.gym_category)) return;
+    const key = `${e.date}-${e.gym_category}`;
+    if (!seen[key]) { seen[key] = true; counts[m][e.gym_category]++; }
   });
-
-  const el = document.getElementById('gym-stats-chart');
+  const el = document.getElementById('gym-monthly-chart');
   if (el) {
+    const maxVal = Math.max(1, ...months.flatMap(m => Object.values(counts[m])));
     el.innerHTML = months.map(m => {
-      const bars = Object.entries(data[m] || {}).map(([type, val]) => {
-        const h = Math.max(1, val * 4);
-        return `<div style="flex:1;height:${h}px;background:${cols[type]};border-radius:1px;"></div>`;
+      const bars = Object.entries(counts[m]).map(([type, val]) => {
+        const h = Math.max(2, (val / maxVal) * 72);
+        return `<div style="flex:1;height:${h}px;background:${cols[type]};border-radius:2px;" title="${type}: ${val}">
+          <div style="font-size:0.52rem;color:rgba(255,255,255,0.6);text-align:center;padding-top:2px;">${val || ''}</div>
+        </div>`;
       }).join('');
-      return `<div style="flex:1;min-width:0;"><div style="display:flex;gap:1px;align-items:flex-end;height:60px;">${bars}</div><div style="font-size:0.56rem;color:var(--muted);text-align:center;margin-top:4px;">${mLbl(m)}</div></div>`;
+      return `<div style="flex:1;min-width:0;">
+        <div style="display:flex;gap:2px;align-items:flex-end;height:76px;">${bars}</div>
+        <div style="font-size:0.6rem;color:var(--muted);text-align:center;margin-top:4px;">${mLbl(m)}</div>
+      </div>`;
     }).join('');
   }
 }
 
-async function renderPdChart() {
-  const months = [];
+async function renderGymConsistency() {
   const now = new Date();
+  const day = now.getDay() || 7;
+  const weeks = [];
+  for (let w = 11; w >= 0; w--) {
+    const ws = new Date(now); ws.setDate(now.getDate() - day + 1 - (w * 7));
+    const we = new Date(ws); we.setDate(ws.getDate() + 6);
+    weeks.push({ start: ws.toISOString().slice(0,10), end: we.toISOString().slice(0,10), label: fmtDate(ws.toISOString().slice(0,10)) });
+  }
+  // Build daily gym data map
+  const dailyMap = {};
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(now); d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0,10);
+    const v = await fsGet(up(`daily/${k}`));
+    if (v?.gym) dailyMap[k] = v.gym;
+  }
+  const exercises = await fsColGet(up('exercises')) || [];
+  exercises.forEach(e => {
+    if (!dailyMap[e.date]) dailyMap[e.date] = {};
+    if (e.gym_category) dailyMap[e.date][e.gym_category] = true;
+  });
+
+  const cats = ['push', 'pull', 'legs'];
+  const el = document.getElementById('gym-consistency-grid');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="display:grid;grid-template-columns:40px repeat(${weeks.length},1fr);gap:3px;align-items:center;">
+      <div></div>
+      ${weeks.map(w => `<div style="font-size:0.5rem;color:var(--muted);text-align:center;white-space:nowrap;overflow:hidden;">${w.label.split(' ')[0]}</div>`).join('')}
+      ${cats.map(cat => `
+        <div style="font-size:0.62rem;color:var(--soft);text-transform:uppercase;text-align:right;padding-right:4px;">${cat}</div>
+        ${weeks.map(w => {
+          const hit = Object.entries(dailyMap).some(([date, gym]) => date >= w.start && date <= w.end && gym[cat]);
+          return `<div style="height:16px;border-radius:2px;background:${hit ? 'var(--green)' : 'var(--surface3)'};" title="${w.label}: ${cat} ${hit ? '✓' : '✗'}"></div>`;
+        }).join('')}
+      `).join('')}
+    </div>`;
+}
+
+async function renderGymVolume() {
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const weeks = [];
+  for (let w = 7; w >= 0; w--) {
+    const ws = new Date(now); ws.setDate(now.getDate() - day + 1 - (w * 7));
+    const we = new Date(ws); we.setDate(ws.getDate() + 6);
+    weeks.push({ start: ws.toISOString().slice(0,10), end: we.toISOString().slice(0,10), label: fmtDate(ws.toISOString().slice(0,10)) });
+  }
+  const exercises = await fsColGet(up('exercises')) || [];
+  const weeklyVol = weeks.map(w => {
+    const vol = exercises.filter(e => e.date >= w.start && e.date <= w.end)
+      .reduce((s, e) => s + (e.sets||[]).reduce((ss, set) => ss + (parseInt(set.reps)||0) * (parseFloat(set.weight)||0), 0), 0);
+    return { label: w.label, vol };
+  });
+  const maxV = Math.max(1, ...weeklyVol.map(w => w.vol));
+  const el = document.getElementById('gym-volume-chart');
+  const lblEl = document.getElementById('gym-volume-labels');
+  if (el) {
+    el.innerHTML = weeklyVol.map(w => {
+      const h = Math.max(w.vol > 0 ? 4 : 1, (w.vol / maxV) * 66);
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:2px;">
+        <div style="font-size:0.55rem;color:var(--muted);">${w.vol > 0 ? (w.vol/1000).toFixed(1)+'k' : ''}</div>
+        <div style="width:100%;height:${h}px;background:${w.vol > 0 ? 'var(--blue)' : 'var(--surface3)'};border-radius:2px;" title="${w.label}: ${Math.round(w.vol)}kg"></div>
+      </div>`;
+    }).join('');
+  }
+  if (lblEl) lblEl.innerHTML = weeklyVol.map(w => `<div style="flex:1;font-size:0.52rem;color:var(--muted);text-align:center;overflow:hidden;">${w.label.split(' ')[0]}</div>`).join('');
+}
+
+async function renderGymPBs() {
+  const exercises = await fsColGet(up('exercises')) || [];
+  const pbs = {};
+  exercises.forEach(e => {
+    const maxWeight = Math.max(...(e.sets||[]).map(s => parseFloat(s.weight)||0));
+    if (maxWeight > 0) {
+      if (!pbs[e.name] || maxWeight > pbs[e.name].weight) {
+        pbs[e.name] = { weight: maxWeight, date: e.date };
+      }
+    }
+  });
+  const el = document.getElementById('gym-pbs');
+  if (!el) return;
+  const sorted = Object.entries(pbs).sort((a, b) => b[1].weight - a[1].weight);
+  if (!sorted.length) { el.innerHTML = '<div class="empty">No exercises logged yet</div>'; return; }
+  const catColors = { push: 'var(--gold)', pull: 'var(--green)', legs: 'var(--blue)' };
+  el.innerHTML = sorted.map(([name, pb]) => {
+    const cat = gymCategoryFromExercise(name);
+    const color = catColors[cat] || 'var(--muted)';
+    return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
+      <div>
+        <span style="font-size:0.73rem;color:var(--text);">${name}</span>
+        <span style="font-size:0.6rem;color:${color};margin-left:6px;text-transform:uppercase;">${cat||'other'}</span>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-size:0.8rem;font-weight:700;color:var(--gold);">${pb.weight}kg</div>
+        <div style="font-size:0.58rem;color:var(--muted);">${fmtDate(pb.date)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── STATS: PADEL TAB ─────────────────────
+
+async function renderPadelStats() {
+  const all = await fsColGet(up('padel')) || [];
+  const matches = all.filter(a => a.type === 'match');
+  const sessions = all.filter(a => a.type === 'session' || !a.type);
+
+  // Win/loss summary
+  const wins = matches.filter(m => m.result === 'win').length;
+  const losses = matches.filter(m => m.result === 'loss').length;
+  const winrate = (wins + losses) > 0 ? Math.round((wins / (wins + losses)) * 100) + '%' : '—';
+  const wEl = document.getElementById('pd-wins');
+  const lEl = document.getElementById('pd-losses');
+  const wrEl = document.getElementById('pd-winrate');
+  if (wEl) wEl.textContent = wins;
+  if (lEl) lEl.textContent = losses;
+  if (wrEl) wrEl.textContent = winrate;
+
+  // Monthly sessions + matches chart
+  const now = new Date();
+  const months = [];
+  const mCounts = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push(d.toISOString().slice(0, 7));
+    const m = d.toISOString().slice(0, 7);
+    months.push(m);
+    mCounts[m] = { sessions: 0, matches: 0 };
   }
-  const sessions = await fsColGet(up('padel'));
-  const counts = {};
-  months.forEach(m => counts[m] = 0);
-  sessions.forEach(s => {
-    const m = s.date?.slice(0, 7);
-    if (counts[m] !== undefined) counts[m]++;
+  all.forEach(a => {
+    const m = a.date?.slice(0,7);
+    if (!mCounts[m]) return;
+    if (a.type === 'match') mCounts[m].matches++;
+    else mCounts[m].sessions++;
   });
-  const maxV = Math.max(1, ...Object.values(counts));
-  const el = document.getElementById('pd-stats-chart');
-  if (el) {
-    el.innerHTML = months.map(m => barHtml(mLbl(m), counts[m], maxV, 'var(--green)')).join('');
+  const maxM = Math.max(1, ...months.flatMap(m => [mCounts[m].sessions, mCounts[m].matches]));
+  const mEl = document.getElementById('padel-monthly-chart');
+  if (mEl) {
+    mEl.innerHTML = months.map(m => {
+      const hs = Math.max(mCounts[m].sessions > 0 ? 3 : 1, (mCounts[m].sessions / maxM) * 66);
+      const hm = Math.max(mCounts[m].matches > 0 ? 3 : 1, (mCounts[m].matches / maxM) * 66);
+      return `<div style="flex:1;min-width:0;">
+        <div style="display:flex;gap:2px;align-items:flex-end;height:70px;">
+          <div style="flex:1;height:${hs}px;background:var(--green);border-radius:2px;" title="${mLbl(m)} sessions: ${mCounts[m].sessions}"></div>
+          <div style="flex:1;height:${hm}px;background:var(--gold);border-radius:2px;" title="${mLbl(m)} matches: ${mCounts[m].matches}"></div>
+        </div>
+        <div style="font-size:0.58rem;color:var(--muted);text-align:center;margin-top:3px;">${mLbl(m)}</div>
+      </div>`;
+    }).join('');
   }
-}
 
-async function renderMoodHm() {
-  const cells = [];
-  for (let i = 29; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    cells.push(v?.mood || 0);
+  // Win/loss per month chart
+  const wlEl = document.getElementById('pd-winloss-chart');
+  if (wlEl) {
+    const wlByMonth = {};
+    months.forEach(m => { wlByMonth[m] = { w: 0, l: 0 }; });
+    matches.forEach(m => {
+      const mo = m.date?.slice(0,7);
+      if (!wlByMonth[mo]) return;
+      if (m.result === 'win') wlByMonth[mo].w++;
+      else if (m.result === 'loss') wlByMonth[mo].l++;
+    });
+    const maxWL = Math.max(1, ...months.flatMap(m => [wlByMonth[m].w, wlByMonth[m].l]));
+    wlEl.innerHTML = months.map(m => {
+      const hw = Math.max(wlByMonth[m].w > 0 ? 3 : 1, (wlByMonth[m].w / maxWL) * 46);
+      const hl = Math.max(wlByMonth[m].l > 0 ? 3 : 1, (wlByMonth[m].l / maxWL) * 46);
+      return `<div style="flex:1;display:flex;gap:1px;align-items:flex-end;height:50px;">
+        <div style="flex:1;height:${hw}px;background:var(--green);border-radius:1px;" title="${mLbl(m)} wins: ${wlByMonth[m].w}"></div>
+        <div style="flex:1;height:${hl}px;background:var(--red);border-radius:1px;" title="${mLbl(m)} losses: ${wlByMonth[m].l}"></div>
+      </div>`;
+    }).join('');
   }
-  const cols = [];
-  const moods = ['', '😔', '😐', '😊', '😄', '🔥'];
-  for (let c = 0; c < Math.ceil(cells.length / 5); c++) {
-    const cc = cells.slice(c * 5, c * 5 + 5);
-    cols.push(`<div style="display:flex;flex-direction:column;gap:2px;">${cc.map(v => `<div style="width:16px;height:16px;border-radius:2px;background:${['','#e05a5a','#c8a96e','#4caf7d','#5b8dee','#f0ad4e'][v]};cursor:default;" title="${moods[v]}">${v > 0 ? moods[v] : ''}</div>`).join('')}</div>`);
-  }
-  const el = document.getElementById('mood-heatmap');
-  if (el) el.innerHTML = `<div style="display:flex;gap:4px;overflow-x:auto;">${cols.join('')}</div>`;
-}
 
-async function renderPhoneChart() {
-  const items = [];
-  for (let i = 13; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    const mins = v?.phone?.mins ?? null;
-    const hrs = mins !== null ? mins / 60 : null;
-    items.push({ label: new Date(k + 'T00:00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }), val: hrs });
+  // Opponent breakdown
+  const oppEl = document.getElementById('pd-opponent-breakdown');
+  if (oppEl) {
+    const opps = {};
+    matches.forEach(m => {
+      if (!m.opponent) return;
+      if (!opps[m.opponent]) opps[m.opponent] = { w: 0, l: 0, skill: m.skill };
+      if (m.result === 'win') opps[m.opponent].w++;
+      else if (m.result === 'loss') opps[m.opponent].l++;
+    });
+    const sorted = Object.entries(opps).sort((a, b) => (b[1].w + b[1].l) - (a[1].w + a[1].l));
+    oppEl.innerHTML = sorted.length ? sorted.map(([name, rec]) => {
+      const total = rec.w + rec.l;
+      const wr = total ? Math.round((rec.w / total) * 100) : 0;
+      const barColor = wr >= 60 ? 'var(--green)' : wr >= 40 ? 'var(--gold)' : 'var(--red)';
+      return `<div style="padding:8px 0;border-bottom:1px solid var(--border);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:0.73rem;color:var(--text);">${name}</span>
+          <div style="text-align:right;">
+            <span style="font-size:0.7rem;color:var(--green);">${rec.w}W</span>
+            <span style="font-size:0.7rem;color:var(--muted);"> / </span>
+            <span style="font-size:0.7rem;color:var(--red);">${rec.l}L</span>
+            <span style="font-size:0.65rem;color:${barColor};margin-left:6px;">${wr}%</span>
+          </div>
+        </div>
+        <div style="height:4px;background:var(--surface2);border-radius:2px;">
+          <div style="height:100%;width:${wr}%;background:${barColor};border-radius:2px;"></div>
+        </div>
+      </div>`;
+    }).join('') : '<div class="empty">No matches logged yet</div>';
   }
-  const maxV = Math.max(1, ...items.filter(i => i.val !== null).map(i => i.val), 8);
-  const el = document.getElementById('phone-chart');
-  if (el) {
-    el.innerHTML = items.filter(i => i.val !== null).map(i => {
-      const color = i.val <= 4 ? 'var(--green)' : i.val <= 6 ? 'var(--gold)' : 'var(--red)';
-      return barHtml(i.label, i.val, maxV, color);
-    }).join('') || '<div class="empty">No phone usage logged yet</div>';
-  }
-}
 
-async function renderReadingStats() {
-  let tp = 0, tm = 0, days = 0;
-  for (let i = 0; i < 365; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v?.reading) { tp += v.reading.pages || 0; tm += v.reading.mins || 0; days++; }
-  }
-  document.getElementById('st-pages').textContent = tp;
-  document.getElementById('st-mins').textContent = tm;
-  document.getElementById('st-days').textContent = days;
-}
-
-async function renderRevChart() {
-  const weeks = [];
-  for (let i = 7; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - (i * 7));
-    const day = d.getDay() || 7;
-    d.setDate(d.getDate() - day + 1);
-    weeks.push(d.toISOString().slice(0, 10));
-  }
-  const reviews = await Promise.all(weeks.map(w => fsGet(up(`reviews/${w}`)).then(r => r ? { wk: w, ...r } : null)));
-  const valid = reviews.filter(Boolean);
-  const el = document.getElementById('rev-chart');
-  if (el) {
-    el.innerHTML = valid.length ? valid.map(r => {
-      const areas = ['Professional', 'Health', 'Personal', 'Relationships', 'Learning'];
-      const avg = areas.reduce((s, a) => s + (r.scores?.[a] || 0), 0) / areas.length;
-      return barHtml(fmtDate(r.wk), parseFloat(avg.toFixed(1)), 10, 'var(--gold)');
-    }).join('') : '<div class="empty">No review scores yet</div>';
-  }
-}
-
-async function renderResistChart() {
-  const items = [];
-  for (let i = 0; i < 30; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v?.resistance) items.push(...v.resistance);
-  }
-  const el = document.getElementById('resist-chart');
-  if (el) {
-    el.innerHTML = items.length ? items.slice(-12).reverse().map(r => `<div style="font-size:0.72rem;color:var(--soft);padding:5px 0;border-bottom:1px solid var(--border);">→ ${r}</div>`).join('') : '<div class="empty">No resistance logged yet — patterns appear here over time</div>';
+  // Recent form (last 10)
+  const formEl = document.getElementById('pd-recent-form');
+  if (formEl) {
+    const recent = matches.slice(0, 10);
+    formEl.innerHTML = recent.length ? `
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+        ${recent.map(m => {
+          const isWin = m.result === 'win';
+          return `<div style="width:28px;height:28px;border-radius:50%;background:${isWin ? 'var(--green-bg)' : '#2a0e0e'};border:1px solid ${isWin ? 'var(--green)' : 'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:${isWin ? 'var(--green)' : 'var(--red)'};" title="${fmtDate(m.date)} vs ${m.opponent}: ${m.result}">${isWin ? 'W' : 'L'}</div>`;
+        }).join('')}
+      </div>
+      ${recent.map(m => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.7rem;">
+        <span style="color:var(--soft);">${fmtDate(m.date)} vs ${m.opponent||'—'}</span>
+        <span style="color:${m.result==='win'?'var(--green)':'var(--red)'};">${m.result==='win'?'W':'L'} ${m.sets||''}</span>
+      </div>`).join('')}
+    ` : '<div class="empty">No matches logged yet</div>';
   }
 }
 
@@ -1343,7 +1833,7 @@ async function submitMoodEntry() {
   
   // Save mood and trigger
   data.mood = selectedMoodForEntry;
-  data.mood_trigger = trigger;
+  if (trigger) data.mood_trigger = trigger;
   await fsSet(up(`daily/${k}`), data);
   
   // Clear both fields
@@ -1392,12 +1882,20 @@ async function toggleGym(type) {
   data.gym = data.gym || {};
   data.gym[type] = !data.gym[type];
   await fsSet(up(`daily/${k}`), data);
-  document.getElementById(`gym-${type}`).classList.toggle('done');
+  const btn = document.getElementById(`gym-${type}`);
+  if (btn) {
+    const done = data.gym[type];
+    const labels = { push: 'Push', pull: 'Pull', legs: 'Legs' };
+    btn.style.border = `1px solid ${done ? 'var(--green)' : 'var(--border2)'}`;
+    btn.style.background = done ? 'var(--green-bg)' : 'var(--surface2)';
+    btn.style.color = done ? 'var(--green)' : 'var(--soft)';
+    btn.textContent = (done ? '✓ ' : '') + labels[type];
+  }
 }
 
 async function saveGymRPE() {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
-  const rpe = parseInt(document.getElementById('gym-rpe').value) || 5;
+  const rpe = parseInt(document.getElementById('gym-rpe').value) ?? 0;
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.gym_rpe = rpe;
   await fsSet(up(`daily/${k}`), data);
@@ -1431,10 +1929,12 @@ async function setPhone() {
 }
 
 async function addWin() {
+  const val = document.getElementById('win-input').value.trim();
+  if (!val) return;
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.wins = data.wins || [];
-  data.wins.push(document.getElementById('win-input').value);
+  data.wins.push(val);
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('win-input').value = '';
   await renderTodayData(data);
@@ -1450,10 +1950,12 @@ async function delWin(i) {
 }
 
 async function addResist() {
+  const val = document.getElementById('resist-input').value.trim();
+  if (!val) return;
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.resistance = data.resistance || [];
-  data.resistance.push(document.getElementById('resist-input').value);
+  data.resistance.push(val);
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('resist-input').value = '';
   await renderTodayData(data);
@@ -1475,11 +1977,26 @@ async function setGratitude(v) {
   await fsSet(up(`daily/${k}`), data);
 }
 
+async function saveGratitude() {
+  const v = document.getElementById('grat-input').value.trim();
+  if (!v) return;
+  await setGratitude(v);
+  document.getElementById('grat-saved').textContent = `Saved: "${v}"`;
+  toast('Gratitude logged');
+}
+
 async function setDailyJournal(v) {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.journal = v;
   await fsSet(up(`daily/${k}`), data);
+}
+
+async function saveDailyJournal() {
+  const v = document.getElementById('daily-journal').value.trim();
+  if (!v) return;
+  await setDailyJournal(v);
+  toast('Journal saved');
 }
 
 function getYesterdayKey() {
@@ -1574,12 +2091,13 @@ async function delJournal(id) {
 }
 
 async function addPriority() {
-  const text = document.getElementById('p-input').value;
+  const text = document.getElementById('p-input').value.trim();
   const tag = document.getElementById('p-tag').value;
   if (!text) return;
   const wk = weekKey();
   const data = await fsGet(up(`weeks/${wk}`)) || { priorities: [] };
   data.priorities = data.priorities || [];
+  if (data.priorities.length >= 5) { toast('Max 5 priorities — complete one first'); return; }
   data.priorities.push({ text, tag, done: false });
   await fsSet(up(`weeks/${wk}`), data);
   document.getElementById('p-input').value = '';
@@ -1640,6 +2158,14 @@ async function setPrioritiesData() {
   const data = await fsGet(up(`weeks/${wk}`)) || {};
   data.obsession = document.getElementById('p-obsession').value;
   await fsSet(up(`weeks/${wk}`), data);
+}
+
+async function saveObsession() {
+  const v = document.getElementById('p-obsession').value.trim();
+  if (!v) return;
+  await setPrioritiesData();
+  document.getElementById('obsession-saved').textContent = `Saved: "${v}"`;
+  toast('Obsession saved');
 }
 
 async function setReviewScore(area, val) {
@@ -1808,7 +2334,9 @@ window.delWin = delWin;
 window.addResist = addResist;
 window.delResist = delResist;
 window.setGratitude = setGratitude;
+window.saveGratitude = saveGratitude;
 window.setDailyJournal = setDailyJournal;
+window.saveDailyJournal = saveDailyJournal;
 // Padel functions
 window.addPadel = addPadel;
 window.delPadel = delPadel;
@@ -1823,6 +2351,7 @@ window.addPriority = addPriority;
 window.delPriority = delPriority;
 window.togglePriority = togglePriority;
 window.setPrioritiesData = setPrioritiesData;
+window.saveObsession = saveObsession;
 // Journal functions
 window.delJournal = delJournal;
 // Review functions
@@ -1831,7 +2360,6 @@ window.setReviewScore = setReviewScore;
 window.toggleSidebar = toggleSidebar;
 window.selectMoodForEntry = selectMoodForEntry;
 window.submitMoodEntry = submitMoodEntry;
-window.saveMoodTrigger = saveMoodTrigger;
 window.saveGymRPE = saveGymRPE;
 window.renderMatchStats = renderMatchStats;
 // Expose global state for debugging and firestore access
@@ -1899,6 +2427,9 @@ function gymCategoryFromExercise(name) {
 async function renderWorkoutPage() {
   const exercises = await fsColGet(up('exercises')) || [];
   const gymStreak = await calcGymStreak();
+  const todayData = await fsGet(up(`daily/${todayKey2()}`)) || {};
+  const todayGym = todayData.gym || {};
+  const todayGymRpe = todayData.gym_rpe ?? 0;
 
   const allExNames = [...new Set([...ALL_MACHINES, ...exercises.map(e => e.name)])];
 
@@ -1924,6 +2455,24 @@ async function renderWorkoutPage() {
               <div style="font-size:0.8rem;">${done ? '✓' : '–'}</div>
             </div>`;
           }).join('')}
+        </div>
+      </div>
+
+      <!-- TODAY'S GYM -->
+      <div class="card">
+        <div class="card-title">Today's Gym</div>
+        <div class="mini-prompt">Which movements did you hit?</div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          ${['Push', 'Pull', 'Legs'].map((type, i) => {
+            const key = ['push', 'pull', 'legs'][i];
+            const done = todayGym?.[key];
+            return `<button id="gym-${key}" onclick="toggleGym('${key}')" style="flex:1;padding:10px;border:1px solid ${done ? 'var(--green)' : 'var(--border2)'};border-radius:4px;background:${done ? 'var(--green-bg)' : 'var(--surface2)'};color:${done ? 'var(--green)' : 'var(--soft)'};cursor:pointer;font-size:0.8rem;">${done ? '✓ ' : ''}${type}</button>`;
+          }).join('')}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <label class="lbl" style="margin:0;flex:0;white-space:nowrap;">Session RPE:</label>
+          <input type="range" id="gym-rpe" min="0" max="10" value="${todayGymRpe}" style="flex:1;" onchange="saveGymRPE()" oninput="document.getElementById('rpe-display').textContent=this.value"/>
+          <span style="color:var(--gold);min-width:24px;text-align:center;font-weight:600;" id="rpe-display">${todayGymRpe}</span>
         </div>
       </div>
 
@@ -2339,7 +2888,7 @@ async function renderCorrelationHints() {
     const d = new Date(); d.setDate(d.getDate() - i);
     const k = d.toISOString().slice(0,10);
     const v = await fsGet(up(`daily/${k}`));
-    if (v) data.push(v);
+    if (v) data.push({ ...v, date: k }); // attach date key
   }
   
   if (data.length < 7) { el.innerHTML = '<div class="empty">Need 7+ days of data for patterns</div>'; return; }
@@ -2408,27 +2957,66 @@ function boot(user) {
   updateHeader();
   if (!user) document.getElementById('uname').textContent = 'Offline';
   currentPrompt = PROMPTS.daily[0];
-  updateReadingStreak();
+  updateStreaks();
   nav('today');
 }
 
-async function updateReadingStreak() {
-  let streak = 0;
+async function updateStreaks() {
+  let readStreak = 0;
+  let mainStreak = 0;
   const today = new Date();
-  
+
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
     d.setDate(d.getDate() - i);
     const k = d.toISOString().slice(0, 10);
     const v = await fsGet(up(`daily/${k}`));
-    if (v?.reading?.pages > 0 || v?.reading?.mins > 0) {
-      streak++;
+
+    // Main streak: any data logged counts (mood, energy, gym, reading, wins, journal, phone)
+    const hasAnyData = v && (v.mood || v.energy || v.gym?.push || v.gym?.pull || v.gym?.legs ||
+      v.reading?.pages > 0 || (v.wins && v.wins.length > 0) || v.journal || v.phone?.mins > 0);
+
+    // Reading streak: pages or mins logged
+    const hasReading = v?.reading?.pages > 0 || v?.reading?.mins > 0;
+
+    if (i === 0) {
+      // Today: only count if data exists, but don't break streak if today is empty yet
+      if (hasAnyData) mainStreak++;
+      if (hasReading) readStreak++;
+    } else {
+      if (hasAnyData) mainStreak++;
+      else break; // break main streak on first missing past day
+    }
+
+    // Reading streak is separate — break only on non-reading days in the past
+    // (handled below since we need independent traversal)
+  }
+
+  // Recalculate reading streak independently to handle today-empty case
+  readStreak = 0;
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - i);
+    const k = d.toISOString().slice(0, 10);
+    const v = await fsGet(up(`daily/${k}`));
+    const hasReading = v?.reading?.pages > 0 || v?.reading?.mins > 0;
+    if (hasReading) {
+      readStreak++;
     } else if (i > 0) {
+      // Allow today to be empty (i===0) without breaking streak
       break;
     }
   }
-  
-  document.getElementById('read-streak').textContent = streak;
+
+  const mainEl = document.getElementById('main-streak');
+  const readEl = document.getElementById('read-streak');
+  if (mainEl) mainEl.textContent = mainStreak;
+  if (readEl) readEl.textContent = readStreak;
+}
+
+// Keep for backwards compat (called from resetReadingStreak)
+async function updateReadingStreak() {
+  await updateStreaks();
 }
 
 async function resetReadingStreak() {

@@ -1709,3 +1709,179 @@ Requires 7+ days of data to surface anything. Shows empty state otherwise.
 **Change**: `doExportAll()` now exports the `exercises` collection alongside existing `padel`, `journal`, `uni_log`.
 
 ---
+
+## 🐛 Bug Fix Batch (2026-03-28)
+
+### 57. Mood trigger not saving / not repopulating (FIXED)
+**Problem**: Submitting mood without typing a trigger overwrote any existing `mood_trigger` with an empty string. On page reload, the `if (data.mood_trigger)` check was falsy for `""` so the field never repopulated.
+
+**Fix**: Only write `mood_trigger` to Firestore if the input is non-empty. `renderTodayData()` now always sets the trigger field value from saved data (`triggerEl.value = data.mood_trigger || ''`), and also restores the visual highlight of the saved mood button with a "Saved: 😊" label.
+
+---
+
+### 58. Main streak always showed 0 (FIXED)
+**Problem**: `#main-streak` in the sidebar had no function calculating or writing to it. `boot()` only called `updateReadingStreak()` which only updated `#read-streak`.
+
+**Fix**: Replaced `updateReadingStreak()` with `updateStreaks()` which calculates both: reading streak (pages or mins > 0) and main/day streak (any data logged — mood, energy, gym, reading, wins, journal, or phone).
+
+---
+
+### 59. Reading streak broke at midnight if today was empty (FIXED)
+**Problem**: The streak loop treated `i === 0` (today) the same as past days — if no reading was logged yet today, it immediately stopped and returned 0.
+
+**Fix**: `i === 0` is now skipped in the break check. If today has no reading entry, the streak continues counting backwards from yesterday.
+
+---
+
+### 60. Gym chart always empty (FIXED)
+**Problem**: `renderGymChart()` read from `gym_sessions` — a collection that doesn't exist. Gym data lives in `daily/{date}.gym`.
+
+**Fix**: Chart now reads from `daily/{date}` for the past 180 days, tallying `gym.push`, `gym.pull`, `gym.legs` per month. Also cross-references the `exercises` collection for auto-detected categories, deduplicating per day per category.
+
+---
+
+### 61. `toggleGym()` null crash + visual state not updating (FIXED)
+**Problem**: `toggleGym()` called `document.getElementById('gym-push')` etc. but buttons had no IDs. Also used `classList.toggle('done')` which had no matching CSS class.
+
+**Fix**: Added `id="gym-${key}"` to each gym button in the HTML template. `toggleGym()` now directly updates `border`, `background`, `color`, and `textContent` on the button element.
+
+---
+
+### 62. RPE display showed 5 on load but slider started at 0 (FIXED)
+**Problem**: Display span used `${data.gym_rpe || 5}` (falsy fallback to 5) while slider used `${data.gym_rpe || 0}`. They disagreed when RPE was unset.
+
+**Fix**: Both now use `?? 0` (nullish coalescing) — shows 0 when unset, preserves 0 when explicitly saved as 0.
+
+---
+
+### 63. RPE saves as 5 when set to 0 (FIXED)
+**Problem**: `saveGymRPE()` used `parseInt(...) || 5` which treated a valid RPE of 0 as falsy.
+
+**Fix**: Changed to `?? 0`.
+
+---
+
+### 64. RPE slider stacked event listeners on every re-render (FIXED)
+**Problem**: `renderTodayData()` called `addEventListener` for `change` and `input` on the RPE slider every time it ran — each page refresh added another listener on top.
+
+**Fix**: Removed the `addEventListener` block entirely. RPE slider now uses inline `onchange="saveGymRPE()"` and `oninput="..."` attributes directly in the HTML template.
+
+---
+
+### 65. Energy slider no live feedback while dragging (FIXED)
+**Problem**: `onchange` only fires when the user releases the slider, so the displayed value lagged.
+
+**Fix**: Added `oninput="this.nextElementSibling.textContent=this.value+'/10'"` for immediate display as you drag.
+
+---
+
+### 66. Correlation hints `d.date` always undefined (FIXED)
+**Problem**: `fsGet()` returns Firestore document data only — no key attached. `d.date` was always `undefined`, breaking the day-of-week mood pattern calculation.
+
+**Fix**: Each fetched object is now spread with its date key attached: `{ ...v, date: k }`.
+
+---
+
+### 67. Journal list always appended `...` even on short entries (FIXED)
+**Problem**: `e.text.slice(0, 100) + '...'` appended ellipsis regardless of text length.
+
+**Fix**: `e.text.length > 100 ? e.text.slice(0, 100) + '…' : e.text`
+
+---
+
+### 68. Wins and resistance accepted empty strings (FIXED)
+**Problem**: `addWin()` and `addResist()` pushed whatever was in the input, including blank strings.
+
+**Fix**: Both now `.trim()` the input and return early if empty.
+
+---
+
+### 69. Priority limit not enforced (FIXED)
+**Problem**: Card said "Up to 5" but nothing in `addPriority()` prevented adding more.
+
+**Fix**: Added `if (data.priorities.length >= 5) { toast('Max 5 priorities — complete one first'); return; }`.
+
+---
+
+### 70. Nav item not highlighted on boot (FIXED)
+**Problem**: `nav('today')` in `boot()` called without an `el` argument, so the active class was never applied to any sidebar item on initial load.
+
+**Fix**: When `el` is null, `nav()` now finds the matching nav item by scanning `onclick` attributes for the page name and applies `.active` to it.
+
+---
+
+### 71. Mood heatmap cells too small (FIXED)
+**Problem**: 16×16px cells with emoji stuffed inside were barely readable (as seen in screenshot).
+
+**Fix**: Cells now 22×22px with a 3px border radius. Empty days use `opacity: 0.3` instead of a harsh red. Hover tooltip now includes the date, mood emoji, and trigger text. Added a legend below the grid (😔 Low → 🔥 Peak).
+
+---
+
+### 72. Dead code removed: `setMood()`, `saveMoodTrigger()`
+These functions were exposed on `window` but never called from any UI element (both superseded by `selectMoodForEntry()` + `submitMoodEntry()`). Removed from `window` exports.
+
+---
+
+## 🔧 Fixes & Stats Overhaul (2026-03-28)
+
+### 73. Current Obsession — Save button added (FIXED)
+**Problem**: No explicit save button; used `onchange` which fired on blur.
+
+**Fix**: Replaced with a Save button, `saveObsession()` function, and a "Saved: ..." confirmation display below the field. Saved value repopulates on page load.
+
+---
+
+### 74. Gratitude — Log button added (FIXED)
+**Problem**: No button; auto-saved on blur via `onchange`.
+
+**Fix**: Explicit Log button triggers `saveGratitude()`. Shows "Saved: ..." confirmation inline. Input no longer has `onchange`.
+
+---
+
+### 75. Daily Journal — Log button added (FIXED)
+**Problem**: No button; auto-saved on blur via `onchange`.
+
+**Fix**: Explicit Log button below the textarea triggers `saveDailyJournal()` with a toast confirmation.
+
+---
+
+### 76. Gym card removed from Today page
+**Change**: Push/Pull/Legs toggles and RPE slider removed from the Today page. They now live on the Workout page as a "Today's Gym" card, sitting between the streak card and the exercise logger. The auto-tick from logging an exercise still writes to the same Firestore path.
+
+**Data**: No change to data structure — `daily/{date}.gym` and `daily/{date}.gym_rpe` unchanged.
+
+---
+
+### 77. Stats page — full overhaul
+**Previous state**: Flat list of disconnected charts, fixed ranges, no organisation.
+
+**New structure**: Three tabs (Overview / Gym / Padel) with a 7d / 30d / 90d time range toggle on Overview.
+
+**Overview tab**:
+- Mood heatmap (columns of 7, adapts to range) + distribution bar chart with average label
+- Energy trend bars colour-coded (green ≥7, gold ≥4, red <4) with average label
+- Phone usage bars with colour legend and average label
+- Reading — 4 stat tiles (pages, hours, days read, streak) + daily pages bar chart
+- Weekly review score trend (12 weeks, colour-coded by score) + latest week per-area progress bar breakdown
+- Resistance list with dates attached
+- Correlation hints (unchanged logic)
+
+**Gym tab**:
+- Monthly push/pull/legs session counts (6 months, grouped bars with count labels)
+- Weekly consistency heatmap — 12 weeks × push/pull/legs grid, green = done, dim = missed
+- Weekly kg volume chart (8 weeks, reads from exercises collection)
+- Personal bests table — max weight per exercise, sorted descending, with category colour and date achieved
+
+**Padel tab**:
+- Monthly sessions + matches grouped bars (6 months)
+- Win/loss summary tiles (wins, losses, win rate %)
+- Monthly win/loss bars
+- Opponent breakdown — win rate progress bars per opponent
+- Recent form — last 10 matches as W/L circles + detail list
+
+**Supporting additions**:
+- `fetchDailyRange(days)` — shared helper that fetches and returns `days` worth of daily data in one pass, used by all Overview charts to avoid duplicate Firestore traversals per render
+- `statsTab` and `statsRange` module-level state variables preserve selected tab/range across re-renders
+- `setStatsTab()` and `setStatsRange()` exposed on `window`
+
+---

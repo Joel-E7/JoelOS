@@ -2019,3 +2019,102 @@ Dropdown closes on any click outside the sidebar bottom area.
 **Fix**: Added `selectedMoodForEntry = data.mood` inside the mood restore block in `renderTodayData`. The in-memory variable now stays in sync with the saved value, so Submit works immediately without needing to re-click the emoji.
 
 ---
+
+## 🔧 Fixes & Mood Overhaul (2026-03-28)
+
+### 92. Mood trigger persisting in input on reload (FIXED)
+**Problem**: The saved trigger text was being restored into the editable input field on every page load, making it look like an unsaved entry rather than saved data.
+
+**Fix**: Input field always starts blank on load. The saved trigger now appears inline in the entry card list (below the emoji buttons), formatted as "Saved: 😊 — trigger text".
+
+---
+
+### 93. Reading inputs pre-filled on reload (FIXED)
+**Problem**: Title, pages and minutes inputs were being populated from the saved day's reading entry on every load, making it look like there was unsaved data ready to log again.
+
+**Fix**: Inputs always start blank. The saved reading entry is displayed only in the read-only `#read-display` line below the inputs (e.g. "Deep Work • 32p • 25m").
+
+---
+
+### 94. Gym consistency grid cells invisible (FIXED)
+**Problem**: Missed cells used `var(--surface3)` (#1c1c1c) which is nearly black on the dark background. Only the one green "Done" cell was visible — the grid looked almost empty.
+
+**Fix**: Missed cells now use `var(--surface2)` with a `var(--border2)` border, making them clearly visible as empty slots. Legend updated from `■ Missed` to `□ Missed` to match.
+
+---
+
+### 95. Multi-entry timestamped mood logging
+**Feature**: Mood card rebuilt to support up to 3 entries per day, each with an emoji, time logged, and optional trigger note.
+
+**Before**: Single mood + trigger per day. Submitting again overwrote the previous entry. Trigger text repopulated into the input on reload.
+
+**After**:
+- Log button appends a new entry to `data.moods[]` with emoji, trigger, and timestamp
+- Each entry displays as a card showing: emoji, label (Low/OK/Good/Great/Peak), time, and trigger text
+- Edit (✎) — prompt to update the trigger note
+- Delete (✕) — removes the entry
+- At 3 entries the input section hides and a notice appears: "3 entries logged today — delete one to add another"
+- Input always starts blank on reload — no pre-filling
+
+**Heatmap**: Averages all entries for the day (rounded to nearest whole number) for the heatmap colour. Tooltip shows all entries for that day: `😊 14:32: gym done | 🔥 19:00: good session`.
+
+**Backwards compat**: Existing flat `mood`/`mood_trigger` data still loads and displays correctly as a single-entry card. On next submit, old data is migrated into the `moods[]` array. The legacy `mood` field is kept updated as the running average so correlation hints, CSV export, and streak calculations all work without changes.
+
+**Data structure**:
+```
+daily/{date}.moods: [
+  { mood: 4, trigger: "Good gym", time: "14:32", ts: 1711634000000 },
+  { mood: 5, trigger: "Evening run", time: "19:15", ts: 1711651000000 }
+]
+daily/{date}.mood: 5  // average, kept for backwards compat
+```
+
+---
+
+## 🐛 Fixes & Features (2026-03-28)
+
+### 96. Syntax error — orphaned setMood body (FIXED)
+**Problem**: `Uncaught SyntaxError: Unexpected token '}'` on load. The `setMood` function declaration was removed during the mood overhaul but its body (4 lines + closing brace) was left in place, floating after `delMoodEntry`. Dead `saveMoodTrigger` function also removed at the same time.
+
+**Fix**: Removed the orphaned lines and `saveMoodTrigger` (never called from UI).
+
+---
+
+### 97. Save confirmation indicators — Energy, Phone, RPE
+**Feature**: Added a green "✓ Saved" flash indicator to sliders and fields that auto-save without a button, so it's clear data went through.
+
+- **Energy** — "✓ Saved" appears in the card title for 1.5s after releasing the slider
+- **Phone Usage** — same, appears after clicking Set
+- **Session RPE** (Workout page) — "✓" appears next to the RPE value for 1.5s
+
+---
+
+### 98. Padel doubles — second opponent field added
+**Feature**: Match log form now has an "Opponent 2 (doubles)" field alongside the existing Opponent 1. Partner field relabelled "Your partner (doubles)" for clarity.
+
+**All display surfaces updated**:
+- History list shows "W vs Carlos & Miguel (w/ Alex)"
+- Edit modal exposes Opponent 1, Opponent 2, and Your Partner
+- Match Record card tracks win/loss against each opponent individually
+- Stats Padel tab — opponent breakdown and recent form both show "Opponent1 & Opponent2"
+
+**Backwards compat**: Existing matches with one opponent display correctly.
+
+**Data**: `opponent2` field added to Firestore padel documents (optional, empty string if singles).
+
+---
+
+### 99. Mood card restore — trigger no longer pre-fills input
+**Fix**: Saved trigger text was repopulating the editable input on every page load. Input now always starts blank. Saved trigger shown inline in the entry card as part of the "Saved: 😊 — trigger text" display.
+
+---
+
+### 100. Reading inputs no longer pre-fill on reload
+**Fix**: Title, pages, and minutes inputs were populated from the saved entry on load, making it look like unsaved data. Inputs now always start blank. Saved entry shown read-only in the display line below.
+
+---
+
+### 101. Gym consistency grid cells made visible
+**Fix**: Missed cells used `var(--surface3)` (#1c1c1c), nearly invisible on the dark background. Changed to `var(--surface2)` with a `var(--border2)` border. Legend updated to `□ Missed`.
+
+---

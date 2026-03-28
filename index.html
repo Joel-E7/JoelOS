@@ -632,23 +632,26 @@ async function renderTodayPage() {
       
       <div class="card">
         <div class="card-title">Mood</div>
-        <div class="mini-prompt">How are you feeling today?</div>
-        <div style="display:flex;gap:6px;">
-          <button onclick="selectMoodForEntry(1)" id="mood-btn-1" class="mood-btn" data-v="1" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😔</button>
-          <button onclick="selectMoodForEntry(2)" id="mood-btn-2" class="mood-btn" data-v="2" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😐</button>
-          <button onclick="selectMoodForEntry(3)" id="mood-btn-3" class="mood-btn" data-v="3" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😊</button>
-          <button onclick="selectMoodForEntry(4)" id="mood-btn-4" class="mood-btn" data-v="4" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😄</button>
-          <button onclick="selectMoodForEntry(5)" id="mood-btn-5" class="mood-btn" data-v="5" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">🔥</button>
-        </div>
-        <div id="mood-selected-display" style="margin-top:8px;font-size:0.7rem;color:var(--muted);height:16px;"></div>
-        <div style="margin-top:6px;display:flex;gap:6px;">
-          <input type="text" id="mood-trigger" placeholder="What caused it?" style="flex:1;font-size:0.7rem;"/>
-          <button class="btn-gold" onclick="submitMoodEntry()" style="padding:6px 12px;flex:0;">Submit</button>
+        <div class="mini-prompt">How are you feeling today? Up to 3 entries.</div>
+        <div id="mood-entries-list"></div>
+        <div id="mood-input-section">
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <button onclick="selectMoodForEntry(1)" id="mood-btn-1" class="mood-btn" data-v="1" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😔</button>
+            <button onclick="selectMoodForEntry(2)" id="mood-btn-2" class="mood-btn" data-v="2" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😐</button>
+            <button onclick="selectMoodForEntry(3)" id="mood-btn-3" class="mood-btn" data-v="3" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😊</button>
+            <button onclick="selectMoodForEntry(4)" id="mood-btn-4" class="mood-btn" data-v="4" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">😄</button>
+            <button onclick="selectMoodForEntry(5)" id="mood-btn-5" class="mood-btn" data-v="5" style="flex:1;padding:8px;border:1px solid var(--border2);border-radius:4px;background:var(--surface2);color:var(--soft);cursor:pointer;font-size:1.2rem;">🔥</button>
+          </div>
+          <div id="mood-selected-display" style="margin-top:6px;font-size:0.7rem;color:var(--muted);height:16px;"></div>
+          <div style="margin-top:4px;display:flex;gap:6px;">
+            <input type="text" id="mood-trigger" placeholder="What caused it? (optional)" style="flex:1;font-size:0.7rem;"/>
+            <button class="btn-gold" onclick="submitMoodEntry()" style="padding:6px 12px;flex:0;">Log</button>
+          </div>
         </div>
       </div>
 
       <div class="card">
-        <div class="card-title">Energy</div>
+        <div class="card-title">Energy <span id="energy-saved" style="font-size:0.62rem;color:var(--green);font-weight:400;opacity:0;transition:opacity 0.4s;"></span></div>
         <div class="mini-prompt">1 = exhausted, 10 = buzzing</div>
         <div style="display:flex;gap:4px;align-items:center;">
           <input type="range" min="0" max="10" value="${data.energy || 0}" onchange="setEnergy(this.value)" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;" id="energy-slider">
@@ -671,7 +674,7 @@ async function renderTodayPage() {
       </div>
 
       <div class="card">
-        <div class="card-title">Phone Usage</div>
+        <div class="card-title">Phone Usage <span id="phone-saved" style="font-size:0.62rem;color:var(--green);font-weight:400;opacity:0;transition:opacity 0.4s;"></span></div>
         <div class="mini-prompt">Hours and minutes spent today</div>
         <div style="display:flex;gap:6px;align-items:center;margin-bottom:6px;">
           <input type="number" step="1" min="0" placeholder="Hours" id="phone-hrs" value="${Math.floor(data.phone?.mins ? data.phone.mins / 60 : 0)}" style="flex:0.6;"/>
@@ -726,14 +729,9 @@ async function renderTodayPage() {
 }
 
 async function renderTodayData(data) {
-  // Update reading display
-  const readData = data.reading ? `<div>${data.reading.title} • ${data.reading.pages}p • ${data.reading.mins}m</div>` : '<div class="empty">No reading logged yet</div>';
+  // Update reading display only — inputs stay blank ready for new entry
+  const readData = data.reading ? `<div>${data.reading.title ? `<strong>${data.reading.title}</strong> • ` : ''}${data.reading.pages}p • ${data.reading.mins}m</div>` : '<div class="empty">No reading logged yet</div>';
   document.getElementById('read-display').innerHTML = readData;
-  if (data.reading) {
-    document.getElementById('read-title').value = data.reading.title || '';
-    document.getElementById('read-pages').value = data.reading.pages || '';
-    document.getElementById('read-mins').value = data.reading.mins || '';
-  }
 
   // Populate reading title autocomplete
   const allDaily = await fsColGet(up('daily')) || [];
@@ -745,19 +743,8 @@ async function renderTodayData(data) {
 
   // Populate mood trigger field and existing mood selection
   const triggerEl = document.getElementById('mood-trigger');
-  if (triggerEl) triggerEl.value = data.mood_trigger || '';
-  if (data.mood) {
-    selectedMoodForEntry = data.mood; // keep in sync so Submit works without re-clicking
-    document.querySelectorAll('.mood-btn').forEach(b => {
-      const isSelected = parseInt(b.id.split('-')[2]) === data.mood;
-      b.style.background = isSelected ? 'var(--gold-bg)' : 'var(--surface2)';
-      b.style.borderColor = isSelected ? 'var(--gold-dim)' : '';
-      b.style.color = isSelected ? 'var(--gold)' : 'var(--soft)';
-    });
-    const moods = ['','😔','😐','😊','😄','🔥'];
-    const disp = document.getElementById('mood-selected-display');
-    if (disp) disp.textContent = `Saved: ${moods[data.mood]}`;
-  }
+  if (triggerEl) triggerEl.value = '';
+  renderMoodEntries(data);
 
   // Update wins
   const winsHtml = (data.wins || []).map((w, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${w}</span><button class="btn-x" onclick="delWin(${i})">✕</button></div>`).join('');
@@ -910,11 +897,14 @@ async function renderPadelPage() {
             <input type="time" id="match-time" style="flex:0.5;"/>
           </div>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input type="text" id="match-opponent" placeholder="Opponent name" style="flex:1;"/>
+            <input type="text" id="match-opponent" placeholder="Opponent 1" style="flex:1;"/>
             <input type="number" id="match-skill" min="1" max="5" placeholder="Skill (1-5)" style="flex:0.4;"/>
           </div>
           <div style="display:flex;gap:6px;margin-bottom:6px;">
-            <input type="text" id="match-partner" placeholder="Partner (if doubles)" style="flex:1;"/>
+            <input type="text" id="match-opponent2" placeholder="Opponent 2 (doubles)" style="flex:1;"/>
+          </div>
+          <div style="display:flex;gap:6px;margin-bottom:6px;">
+            <input type="text" id="match-partner" placeholder="Your partner (doubles)" style="flex:1;"/>
             <select id="match-format" style="flex:0.6;">
               <option value="singles">Singles</option>
               <option value="doubles" selected>Doubles</option>
@@ -1045,6 +1035,7 @@ async function addPadelMatch() {
   const date = document.getElementById('match-date').value || todayKey2();
   const time = document.getElementById('match-time').value || '';
   const opponent = document.getElementById('match-opponent').value;
+  const opponent2 = document.getElementById('match-opponent2').value || '';
   const skill = parseInt(document.getElementById('match-skill').value) || 3;
   const partner = document.getElementById('match-partner').value || '';
   const format = document.getElementById('match-format').value;
@@ -1053,11 +1044,12 @@ async function addPadelMatch() {
   const result = document.getElementById('match-result').value;
   const sets = document.getElementById('match-sets').value;
   const highlights = document.getElementById('match-highlights').value;
-  
-  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, skill, partner, format, side, court, result, sets, highlights });
+
+  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, opponent2, skill, partner, format, side, court, result, sets, highlights });
   document.getElementById('match-date').value = todayKey2();
   document.getElementById('match-time').value = '';
   document.getElementById('match-opponent').value = '';
+  document.getElementById('match-opponent2').value = '';
   document.getElementById('match-skill').value = '3';
   document.getElementById('match-partner').value = '';
   document.getElementById('match-format').value = 'doubles';
@@ -1079,11 +1071,14 @@ async function renderMatchStats(activities) {
   const wins = matches.filter(m => m.result === 'win').length;
   const losses = matches.filter(m => m.result === 'loss').length;
   const opponents = {};
-  
+
   matches.forEach(m => {
-    if (!opponents[m.opponent]) opponents[m.opponent] = { wins: 0, losses: 0 };
-    if (m.result === 'win') opponents[m.opponent].wins++;
-    else if (m.result === 'loss') opponents[m.opponent].losses++;
+    // Track each opponent individually
+    [m.opponent, m.opponent2].filter(Boolean).forEach(opp => {
+      if (!opponents[opp]) opponents[opp] = { wins: 0, losses: 0 };
+      if (m.result === 'win') opponents[opp].wins++;
+      else if (m.result === 'loss') opponents[opp].losses++;
+    });
   });
   
   let html = `<div style="margin-bottom:8px;"><strong>${wins}-${losses}</strong> record</div>`;
@@ -1115,12 +1110,14 @@ function renderPadelHistory(activities) {
   const html = sorted.slice(0, 15).map((a, i) => {
     if (a.type === 'match') {
       const result = a.result === 'win' ? '✓ W' : a.result === 'loss' ? '✕ L' : '—';
+      const oppDisplay = a.opponent2 ? `${a.opponent} & ${a.opponent2}` : a.opponent;
+      const partnerDisplay = a.partner ? ` (w/ ${a.partner})` : '';
       return `
         <div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.7rem;">
-          <div style="color:var(--text);font-weight:600;">${fmtDate(a.date)} ${result} vs ${a.opponent}</div>
+          <div style="color:var(--text);font-weight:600;">${fmtDate(a.date)} ${result} vs ${oppDisplay}${partnerDisplay}</div>
           <div style="color:var(--soft);">${a.format} • ${a.court || '—'} • Sets: ${a.sets || '—'}</div>
           <div style="display:flex;gap:4px;margin-top:4px;">
-            <button class="btn-x" onclick="openEditModal('Padel','padel','${a.id}',[{key:'date',label:'Date',type:'date',value:'${a.date}'},{key:'opponent',label:'Opponent',value:'${a.opponent||''}'},{key:'result',label:'Result',value:'${a.result||''}'},{key:'sets',label:'Sets',value:'${a.sets||''}'}])">✎</button>
+            <button class="btn-x" onclick="openEditModal('Padel','padel','${a.id}',[{key:'date',label:'Date',type:'date',value:'${a.date}'},{key:'opponent',label:'Opponent 1',value:'${a.opponent||''}'},{key:'opponent2',label:'Opponent 2',value:'${a.opponent2||''}'},{key:'partner',label:'Your Partner',value:'${a.partner||''}'},{key:'result',label:'Result',value:'${a.result||''}'},{key:'sets',label:'Sets',value:'${a.sets||''}'}])">✎</button>
             <button class="btn-x" onclick="delPadel('${a.id}')">✕</button>
           </div>
         </div>
@@ -1606,7 +1603,7 @@ async function renderStatsPage() {
         <div id="gym-consistency-grid"></div>
         <div style="display:flex;gap:10px;margin-top:8px;">
           <span style="font-size:0.62rem;color:var(--green);">■ Done</span>
-          <span style="font-size:0.62rem;color:var(--surface3);">■ Missed</span>
+          <span style="font-size:0.62rem;color:var(--soft);">□ Missed</span>
         </div>
       </div>
 
@@ -1712,13 +1709,30 @@ async function renderMoodHm(days = 30) {
   const data = await fetchDailyRange(days);
   const moods = ['', '😔', '😐', '😊', '😄', '🔥'];
   const moodColors = ['var(--surface3)', '#c0392b', '#c8a96e', '#4caf7d', '#5b8dee', '#f0ad4e'];
+
+  // Helper: get averaged mood value for a day's data (handles new array and old flat field)
+  const getDayMood = (d) => {
+    if (d.moods?.length) {
+      return Math.round(d.moods.reduce((s, m) => s + m.mood, 0) / d.moods.length);
+    }
+    return d.mood || 0;
+  };
+
+  const getDayTooltip = (d) => {
+    if (d.moods?.length) {
+      return d.moods.map(m => `${moods[m.mood]} ${m.time}${m.trigger ? ': ' + m.trigger : ''}`).join(' | ');
+    }
+    const m = d.mood || 0;
+    return fmtDate(d.date) + (m ? ' ' + moods[m] : ' –') + (d.mood_trigger ? ': ' + d.mood_trigger : '');
+  };
+
   const cols = [];
   for (let c = 0; c < Math.ceil(data.length / 7); c++) {
     const cc = data.slice(c * 7, c * 7 + 7);
-    cols.push(`<div style="display:flex;flex-direction:column;gap:3px;">${cc.map(({ mood, mood_trigger, date }) => {
-      const m = mood || 0;
-      const label = fmtDate(date) + (m ? ' ' + moods[m] : ' –') + (mood_trigger ? ': ' + mood_trigger : '');
-      return `<div style="width:20px;height:20px;border-radius:3px;background:${moodColors[m]};cursor:default;display:flex;align-items:center;justify-content:center;font-size:0.65rem;opacity:${m ? 1 : 0.25};" title="${label}">${m > 0 ? moods[m] : ''}</div>`;
+    cols.push(`<div style="display:flex;flex-direction:column;gap:3px;">${cc.map(d => {
+      const m = getDayMood(d);
+      const tip = fmtDate(d.date) + ' ' + getDayTooltip(d);
+      return `<div style="width:20px;height:20px;border-radius:3px;background:${moodColors[m]};cursor:default;display:flex;align-items:center;justify-content:center;font-size:0.65rem;opacity:${m ? 1 : 0.25};" title="${tip}">${m > 0 ? moods[m] : ''}</div>`;
     }).join('')}</div>`);
   }
   const el = document.getElementById('mood-heatmap');
@@ -1734,9 +1748,15 @@ async function renderMoodDist(days = 30) {
   const counts = [0, 0, 0, 0, 0, 0];
   const moods = ['', '😔', '😐', '😊', '😄', '🔥'];
   const moodColors = ['', '#c0392b', '#c8a96e', '#4caf7d', '#5b8dee', '#f0ad4e'];
-  data.forEach(d => { if (d.mood) counts[d.mood]++; });
-  const total = counts.slice(1).reduce((a, b) => a + b, 0);
-  const avg = total ? (data.filter(d => d.mood).reduce((s, d) => s + d.mood, 0) / data.filter(d => d.mood).length).toFixed(1) : null;
+
+  const getMoodVal = (d) => {
+    if (d.moods?.length) return Math.round(d.moods.reduce((s, m) => s + m.mood, 0) / d.moods.length);
+    return d.mood || 0;
+  };
+
+  data.forEach(d => { const m = getMoodVal(d); if (m) counts[m]++; });
+  const daysWithMood = data.filter(d => getMoodVal(d) > 0);
+  const avg = daysWithMood.length ? (daysWithMood.reduce((s, d) => s + getMoodVal(d), 0) / daysWithMood.length).toFixed(1) : null;
   const maxC = Math.max(1, ...counts.slice(1));
   const el = document.getElementById('mood-dist-chart');
   const lbl = document.getElementById('mood-avg-label');
@@ -1969,7 +1989,7 @@ async function renderGymConsistency() {
         <div style="font-size:0.62rem;color:var(--soft);text-transform:uppercase;text-align:right;padding-right:4px;">${cat}</div>
         ${weeks.map(w => {
           const hit = Object.entries(dailyMap).some(([date, gym]) => date >= w.start && date <= w.end && gym[cat]);
-          return `<div style="height:16px;border-radius:2px;background:${hit ? 'var(--green)' : 'var(--surface3)'};" title="${w.label}: ${cat} ${hit ? '✓' : '✗'}"></div>`;
+          return `<div style="height:16px;border-radius:2px;background:${hit ? 'var(--green)' : 'var(--surface2)'};border:1px solid ${hit ? 'transparent' : 'var(--border2)'};" title="${w.label}: ${cat} ${hit ? '✓' : '✗'}"></div>`;
         }).join('')}
       `).join('')}
     </div>`;
@@ -2115,9 +2135,11 @@ async function renderPadelStats() {
     const opps = {};
     matches.forEach(m => {
       if (!m.opponent) return;
-      if (!opps[m.opponent]) opps[m.opponent] = { w: 0, l: 0, skill: m.skill };
-      if (m.result === 'win') opps[m.opponent].w++;
-      else if (m.result === 'loss') opps[m.opponent].l++;
+    [m.opponent, m.opponent2].filter(Boolean).forEach(opp => {
+      if (!opps[opp]) opps[opp] = { w: 0, l: 0, skill: m.skill };
+      if (m.result === 'win') opps[opp].w++;
+      else if (m.result === 'loss') opps[opp].l++;
+    });
     });
     const sorted = Object.entries(opps).sort((a, b) => (b[1].w + b[1].l) - (a[1].w + a[1].l));
     oppEl.innerHTML = sorted.length ? sorted.map(([name, rec]) => {
@@ -2149,13 +2171,17 @@ async function renderPadelStats() {
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
         ${recent.map(m => {
           const isWin = m.result === 'win';
-          return `<div style="width:28px;height:28px;border-radius:50%;background:${isWin ? 'var(--green-bg)' : '#2a0e0e'};border:1px solid ${isWin ? 'var(--green)' : 'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:${isWin ? 'var(--green)' : 'var(--red)'};" title="${fmtDate(m.date)} vs ${m.opponent}: ${m.result}">${isWin ? 'W' : 'L'}</div>`;
+          const opp = m.opponent2 ? `${m.opponent} & ${m.opponent2}` : (m.opponent || '—');
+          return `<div style="width:28px;height:28px;border-radius:50%;background:${isWin ? 'var(--green-bg)' : '#2a0e0e'};border:1px solid ${isWin ? 'var(--green)' : 'var(--red)'};display:flex;align-items:center;justify-content:center;font-size:0.65rem;color:${isWin ? 'var(--green)' : 'var(--red)'};" title="${fmtDate(m.date)} vs ${opp}: ${m.result}">${isWin ? 'W' : 'L'}</div>`;
         }).join('')}
       </div>
-      ${recent.map(m => `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.7rem;">
-        <span style="color:var(--soft);">${fmtDate(m.date)} vs ${m.opponent||'—'}</span>
-        <span style="color:${m.result==='win'?'var(--green)':'var(--red)'};">${m.result==='win'?'W':'L'} ${m.sets||''}</span>
-      </div>`).join('')}
+      ${recent.map(m => {
+        const opp = m.opponent2 ? `${m.opponent} & ${m.opponent2}` : (m.opponent || '—');
+        return `<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:0.7rem;">
+          <span style="color:var(--soft);">${fmtDate(m.date)} vs ${opp}</span>
+          <span style="color:${m.result==='win'?'var(--green)':'var(--red)'};">${m.result==='win'?'W':'L'} ${m.sets||''}</span>
+        </div>`;
+      }).join('')}
     ` : '<div class="empty">No matches logged yet</div>';
   }
 }
@@ -2182,60 +2208,137 @@ function selectMoodForEntry(v) {
   document.getElementById('mood-selected-display').textContent = `Selected: ${moods[v]}`;
 }
 
-// Submit mood entry - saves both mood and trigger, clears both
+// Submit mood entry - appends timestamped entry, max 3 per day
 async function submitMoodEntry() {
   if (!selectedMoodForEntry) {
-    alert('Please select a mood first');
+    toast('Select an emoji first');
     return;
   }
-  
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const trigger = document.getElementById('mood-trigger').value.trim();
   const data = await fsGet(up(`daily/${k}`)) || {};
-  
-  // Save mood and trigger
-  data.mood = selectedMoodForEntry;
-  if (trigger) data.mood_trigger = trigger;
+
+  // Migrate old flat mood to moods array
+  if (!data.moods) {
+    data.moods = data.mood ? [{ mood: data.mood, trigger: data.mood_trigger || '', time: '—', ts: 0 }] : [];
+  }
+  if (data.moods.length >= 3) { toast('Max 3 mood entries per day'); return; }
+
+  const now = new Date();
+  const time = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  data.moods.push({ mood: selectedMoodForEntry, trigger, time, ts: now.getTime() });
+
+  // Keep legacy mood field = average for backwards compat
+  const avg = Math.round(data.moods.reduce((s, m) => s + m.mood, 0) / data.moods.length);
+  data.mood = avg;
+
   await fsSet(up(`daily/${k}`), data);
-  
-  // Clear both fields
+
   selectedMoodForEntry = null;
   document.getElementById('mood-trigger').value = '';
   document.getElementById('mood-selected-display').textContent = '';
   document.querySelectorAll('.mood-btn').forEach(b => {
     b.style.background = 'var(--surface2)';
     b.style.color = 'var(--soft)';
+    b.style.borderColor = '';
   });
-  
-  // Show confirmation
-  toast('Mood logged!');
-  setTimeout(() => renderTodayPage(), 100);
+
+  toast('Mood logged');
+  renderMoodEntries(data);
 }
 
-async function setMood(v) {
-  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
-  const data = await fsGet(up(`daily/${k}`)) || {};
-  data.mood = v;
-  await fsSet(up(`daily/${k}`), data);
-  document.querySelectorAll('.mood-btn').forEach(b => b.classList.toggle('sel', parseInt(b.dataset.v) === v));
+function renderMoodEntries(data) {
+  const moods = ['','😔','😐','😊','😄','🔥'];
+  const moodColors = ['','#c0392b','#c8a96e','#4caf7d','#5b8dee','#f0ad4e'];
+  const moodLabels = ['','Low','OK','Good','Great','Peak'];
+
+  // Normalise to moods array (backwards compat with old flat mood field)
+  const entries = data.moods?.length
+    ? data.moods
+    : (data.mood ? [{ mood: data.mood, trigger: data.mood_trigger || '', time: '—', ts: 0 }] : []);
+
+  const listEl = document.getElementById('mood-entries-list');
+  const inputEl = document.getElementById('mood-input-section');
+
+  if (listEl) {
+    if (!entries.length) {
+      listEl.innerHTML = '';
+    } else {
+      listEl.innerHTML = entries.map((e, i) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border-left:3px solid ${moodColors[e.mood]};">
+          <span style="font-size:1.3rem;">${moods[e.mood]}</span>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:0.72rem;color:var(--text);font-weight:600;">${moodLabels[e.mood]} <span style="color:var(--muted);font-weight:400;font-size:0.65rem;">${e.time}</span></div>
+            ${e.trigger ? `<div style="font-size:0.68rem;color:var(--soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.trigger}</div>` : ''}
+          </div>
+          <button class="btn-x" onclick="editMoodEntry(${i})" title="Edit">✎</button>
+          <button class="btn-x" onclick="delMoodEntry(${i})" title="Delete">✕</button>
+        </div>`).join('');
+    }
+  }
+
+  // Hide/show input based on count
+  if (inputEl) {
+    inputEl.style.display = entries.length >= 3 ? 'none' : 'block';
+    if (entries.length >= 3) {
+      // Show a "max reached" notice
+      const notice = document.getElementById('mood-max-notice');
+      if (!notice) {
+        const n = document.createElement('div');
+        n.id = 'mood-max-notice';
+        n.style.cssText = 'font-size:0.68rem;color:var(--muted);margin-top:6px;text-align:center;';
+        n.textContent = '3 entries logged today — delete one to add another';
+        listEl.after(n);
+      }
+    } else {
+      document.getElementById('mood-max-notice')?.remove();
+    }
+  }
 }
 
-async function saveMoodTrigger() {
+window.editMoodEntry = async (i) => {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
-  const trigger = document.getElementById('mood-trigger').value.trim();
-  if (!trigger) return;
   const data = await fsGet(up(`daily/${k}`)) || {};
-  data.mood_trigger = trigger;
+  const entries = data.moods || (data.mood ? [{ mood: data.mood, trigger: data.mood_trigger || '', time: '—', ts: 0 }] : []);
+  const entry = entries[i];
+  if (!entry) return;
+
+  const moods = ['','😔','😐','😊','😄','🔥'];
+  const newTrigger = prompt(`Edit note for ${moods[entry.mood]} (${entry.time}):`, entry.trigger || '');
+  if (newTrigger === null) return; // cancelled
+
+  entries[i].trigger = newTrigger.trim();
+  data.moods = entries;
   await fsSet(up(`daily/${k}`), data);
-  document.getElementById('mood-trigger').value = '';
-  setTimeout(() => renderTodayPage(), 100);
-}
+  renderMoodEntries(data);
+  toast('Updated');
+};
+
+window.delMoodEntry = async (i) => {
+  if (!confirm('Delete this mood entry?')) return;
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  const entries = data.moods || (data.mood ? [{ mood: data.mood, trigger: data.mood_trigger || '', time: '—', ts: 0 }] : []);
+  entries.splice(i, 1);
+  data.moods = entries;
+  // Recalc legacy field
+  data.mood = entries.length ? Math.round(entries.reduce((s, m) => s + m.mood, 0) / entries.length) : null;
+  await fsSet(up(`daily/${k}`), data);
+  renderMoodEntries(data);
+  toast('Deleted');
+};
 
 async function setEnergy(v) {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.energy = parseInt(v);
   await fsSet(up(`daily/${k}`), data);
+  const indicator = document.getElementById('energy-saved');
+  if (indicator) {
+    indicator.textContent = '✓ Saved';
+    indicator.style.opacity = '1';
+    setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
+  }
 }
 
 async function toggleGym(type) {
@@ -2262,6 +2365,12 @@ async function saveGymRPE() {
   data.gym_rpe = rpe;
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('rpe-display').textContent = rpe;
+  const indicator = document.getElementById('rpe-saved');
+  if (indicator) {
+    indicator.textContent = '✓';
+    indicator.style.opacity = '1';
+    setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
+  }
 }
 
 async function addReading() {
@@ -2288,6 +2397,12 @@ async function setPhone() {
   const totalMins = hrs * 60 + mins;
   data.phone = { mins: totalMins };
   await fsSet(up(`daily/${k}`), data);
+  const indicator = document.getElementById('phone-saved');
+  if (indicator) {
+    indicator.textContent = '✓ Saved';
+    indicator.style.opacity = '1';
+    setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
+  }
 }
 
 async function addWin() {
@@ -2714,6 +2829,7 @@ window.setReviewScore = setReviewScore;
 window.toggleSidebar = toggleSidebar;
 window.selectMoodForEntry = selectMoodForEntry;
 window.submitMoodEntry = submitMoodEntry;
+// editMoodEntry and delMoodEntry already assigned as window.xxx at definition site
 window.saveGymRPE = saveGymRPE;
 window.renderMatchStats = renderMatchStats;
 // Expose global state for debugging and firestore access
@@ -2873,6 +2989,7 @@ async function renderWorkoutPage() {
           <label class="lbl" style="margin:0;flex:0;white-space:nowrap;">Session RPE:</label>
           <input type="range" id="gym-rpe" min="0" max="10" value="${todayGymRpe}" style="flex:1;" onchange="saveGymRPE()" oninput="document.getElementById('rpe-display').textContent=this.value"/>
           <span style="color:var(--gold);min-width:24px;text-align:center;font-weight:600;" id="rpe-display">${todayGymRpe}</span>
+          <span id="rpe-saved" style="font-size:0.6rem;color:var(--green);opacity:0;transition:opacity 0.4s;">✓</span>
         </div>
       </div>
 

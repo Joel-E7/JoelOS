@@ -2118,3 +2118,221 @@ daily/{date}.mood: 5  // average, kept for backwards compat
 **Fix**: Missed cells used `var(--surface3)` (#1c1c1c), nearly invisible on the dark background. Changed to `var(--surface2)` with a `var(--border2)` border. Legend updated to `□ Missed`.
 
 ---
+
+### 102. Energy — Log button added, slider resets after saving (FIXED)
+**Problem**: Energy slider was pre-filled with the saved value on every load (same issue as reading/gratitude), and auto-saved on release with no explicit confirmation or reset.
+
+**Fix**: Slider now always starts at 0. Saved value shown as a "Saved: X/10" label above the slider. Log button saves the value, resets the slider back to 0, and shows "✓ Saved X/10" in the card title for 2 seconds. Rejecting a 0 value with a toast to prevent accidental zero saves.
+
+---
+
+## 🐛 Bug Fixes & Performance (2026-03-28)
+
+### 103. `setMood is not defined` ReferenceError (FIXED)
+**Problem**: `window.setMood = setMood` in the exports block threw a ReferenceError because `setMood` was removed during the mood overhaul but its window export was never cleaned up.
+
+**Fix**: Removed the stale `window.setMood` export.
+
+---
+
+### 104. `ALL_MACHINES` not initialised error on Workout page (FIXED)
+**Problem**: `const MACHINES` and `const ALL_MACHINES` were declared near the bottom of the script (~line 2918), but `renderWorkoutPage` is referenced in the `nav()` renders object which is created on every navigation call. In JS modules, `const` declarations are not hoisted — referencing them before their declaration in the execution order throws `ReferenceError: Cannot access 'ALL_MACHINES' before initialization`.
+
+**Fix**: Moved `MACHINES`, `ALL_MACHINES`, and `gymCategoryFromExercise` to immediately after the global state declarations at the top of the script (before any page render functions), so they're always initialised before use.
+
+---
+
+### 105. `otj_targets` invalid Firestore path (FIXED)
+**Problem**: Firestore requires an even number of path segments (collection/doc pairs). `users/{uid}/otj_targets` has 3 segments — invalid.
+
+**Fix**: Changed to `users/{uid}/settings/otj_targets` (4 segments). Applied to all 3 references: `renderUniPage`, `editOTJTarget`, and the fsSet call.
+
+---
+
+### 106. Stats page load time — parallel fetching (PERFORMANCE)
+**Changes**:
+
+**`fetchDailyRange`** — was a sequential `for` loop firing one `fsGet` per day, waiting for each before starting the next. Now uses `Promise.all` to fire all requests simultaneously. 30 days: ~4.5s → ~150ms. 90 days: ~13.5s → ~150ms.
+
+**Per-render cache** — `fetchDailyRange` results are cached in `_dailyRangeCache` keyed by `days`. Since 6 overview charts all call `fetchDailyRange(statsRange)`, the data is fetched once and reused. Cache is cleared at the start of each `renderStatsPage` call.
+
+**Overview charts** — all 8 render functions moved from sequential `await` chain to `Promise.all`, so they all start simultaneously rather than one after another.
+
+**Gym tab charts** — `renderGymMonthly` was fetching 180 days sequentially (~27s). `renderGymConsistency` was fetching 90 days sequentially (~13.5s). Both converted to `Promise.all`.
+
+**Gym tab charts** — also moved to `Promise.all` alongside the overview charts.
+
+**Net effect**: Stats page load time drops from potentially 40+ seconds (on 90d range) to 1-2 round trips.
+
+---
+
+## 🤖 AI Integration — Gemini 2.5 Flash (2026-03-28)
+
+### 107. AI Layer — core infrastructure
+**Added**: `askAI(messages, maxTokens)` — shared function routing all AI calls through Gemini 2.5 Flash. API key fetched from `settings/ai` in Firestore and cached in `_aiKey`. Returns `{ text }` on success or `{ error, text }` on failure.
+
+**Helpers**:
+- `aiFormatResponse(text)` — converts Gemini markdown to styled HTML (bold headings, bullet points, numbered lists)
+- `aiLoadingHtml(msg)` — consistent loading state across all AI cards
+- `saveAISuggestion(type, html)` — saves to `ai_saves` collection when user taps "Save this"
+
+---
+
+### 108. Settings page (new nav item)
+**Location**: Data section of sidebar (below Stats)
+
+**Features**:
+- Gemini API key input (password field, stored at `users/{uid}/settings/ai`)
+- "Test" button verifies the key works with a live ping
+- Saved AI Suggestions — shows everything the user has tapped "Save this" on, with type label and date
+
+**How to get a key**: Free at aistudio.google.com — 15 req/min, 1M tokens/day on free tier.
+
+---
+
+### 109. Meals page (new nav item)
+**Location**: Data section of sidebar
+
+**Fridge → Recipe feature**:
+- Ingredient textarea + optional dietary notes field
+- Taps Gemini, returns 3 recipe suggestions
+- Each shows: name, ~calories, protein/carbs/fat summary
+- "▼ Show recipe" expands to full ingredients + steps
+- "💾 Save" saves the summary to ai_saves
+- Nut-free filter applied automatically in the prompt (peanut + tree nut allergy)
+
+**Meal log**: Simple name + notes log per day, persisted to `meals` collection.
+
+---
+
+### 110. Workout — AI Session Coach
+**Location**: Workout page, above the gym toggle card
+
+**How it works**:
+- Chat thread — messages persist within the session (cleared on "✕ Clear")
+- First message: builds context from personal bests, last 5 training days, today's exercises so far, then sends to Gemini
+- Subsequent messages: full conversation history sent, so coach remembers what was planned and adjusts based on your feedback
+- Quick-send buttons: "📋 Plan today", "🎯 This week", "📈 Overload"
+- "💾 Save session notes" saves the coach's responses to ai_saves
+
+---
+
+### 111. Workout — AI Flexibility Routine
+**Location**: Workout page, below Session Coach
+
+**How it works**: Reads this week's exercises and muscle groups trained, generates a targeted 6-8 exercise mobility routine prioritising heavily loaded muscles. Format: exercise name, reps/hold time, brief reason.
+
+---
+
+### 112. Stats — AI Insights
+**Location**: Stats page → Overview tab, below Correlation Hints
+
+**How it works**: Reads last 14 days of daily data (mood, energy, gym, reading, phone, wins, resistance) + 15 most recent exercises. Returns 4-5 specific observations referencing actual numbers. "💾 Save this" available.
+
+---
+
+### 113. Journal — AI Prompt
+**Location**: Journal page, "✨ AI" button alongside existing "Prompt" button
+
+**How it works**: Reads last 7 days of mood, energy, and resistance entries. Generates one personalised, data-specific question. Displayed in the same prompt card as manual prompts.
+
+---
+
+### 114. Habits — AI Habit Suggestion
+**Location**: Habits page, bottom card
+
+**How it works**: Reads existing habits, last 14 days of resistance entries, and low-energy day count. Returns one "After X, I will Y for Z" habit suggestion sized for ADHD (5 mins or less to start) with a one-sentence explanation. "Try Another" regenerates.
+
+---
+
+## 🐛 Post-AI Build Audit (2026-03-28)
+
+### 115. Illegal return statement — renderHabitsList orphaned (FIXED)
+**Problem**: `function renderHabitsList(items, todayChecks) {` declaration was consumed when the AI habit suggestion card was inserted into `renderHabitsPage`. The function body was left floating after the closing `}` of `renderHabitsPage`, causing `SyntaxError: Illegal return statement` on load.
+
+**Fix**: Restored the missing function declaration.
+
+---
+
+### 116. Duplicate window assignments for all AI functions (FIXED)
+**Problem**: All 13 AI functions were assigned `window.x = window.x` at the bottom of the exports block (no-ops, but misleading and flagged by audit).
+
+**Fix**: Removed the redundant block. All AI functions are already assigned via `window.x = async () => {...}` at definition, which is sufficient.
+
+---
+
+### 117. `habits` — odd-segment Firestore document path (FIXED)
+**Problem**: `fsGet(up('habits'))` and `fsSet(up('habits'))` expanded to `users/{uid}/habits` — 3 segments. Document reads/writes require even-segment paths (collection/document pairs).
+
+**Fix**: Changed to `up('user_data/habits')` → `users/{uid}/user_data/habits` (4 segments). Applied to all 8 references.
+
+**Note**: This is a path change — if you have existing habits data at the old path it won't migrate automatically. Since this is early in the app's life the data loss is minimal, but worth being aware of.
+
+---
+
+## 🤖 AI Overhaul — Shared Chat + Voice (2026-03-28)
+
+### 118. Shared AI chat component — replaces all one-shot cards
+**Architecture change**: Every AI feature now uses a single shared `renderChatHTML(id, title, subtitle, quickBtns)` component. Previously each AI card had its own bespoke one-shot button + output div. Now every card is a full conversation thread.
+
+**How it works**:
+- `initChat(id, systemPromptFn)` registers a chat with a context-builder function
+- On the first message, `systemPromptFn()` is called to build the system context (fetches relevant Firestore data), prepended to the first message before sending to Gemini
+- Subsequent messages send the full conversation history — the AI remembers everything said in the session
+- Each assistant response gets a "💾 Save" button
+- "✕ Clear" resets the conversation
+
+**Chat IDs and their contexts**:
+- `workout-coach` — PBs, last 5 training days, today's exercises
+- `workout-flex` — this week's exercises and muscle groups
+- `stats-insights` — 14 days of daily data + 15 recent exercises
+- `journal-ai` — 7 days of mood, energy, resistance
+- `habits-ai` — existing habits, resistance patterns, low-energy count
+- `meals-ai` — fridge ingredients + dietary notes (nut-free enforced)
+
+---
+
+### 119. Voice input — mic button on every AI chat
+**Feature**: 🎤 button appears next to Send on every AI card (Chrome/Edge only — Web Speech API).
+
+**How it works**: Tap to start recording, tap again to stop (or silence auto-stops). Transcript populates the input field and auto-sends. While recording, button turns 🔴. Falls back gracefully — button simply doesn't appear if browser doesn't support it.
+
+**No API key needed** — uses the browser's built-in `webkitSpeechRecognition`. Language set to `en-GB`.
+
+---
+
+### 120. Voice output toggle — per-session, persisted
+**Feature**: 🔊/🔇 toggle in the top-right of every AI card. When on, AI responses are read aloud via `speechSynthesis` after arriving (capped at 500 chars to avoid very long readings). State persists in `localStorage` as `jeos_voice` so it survives page reloads and navigation.
+
+All toggles sync — turning voice on/off in one card updates all visible cards.
+
+---
+
+### 121. Meals page — fridge-to-chat flow
+**Change**: Replaced the one-shot "Suggest" button with a proper conversational flow.
+
+**How it works**:
+1. Enter ingredients in the textarea + optional dietary notes
+2. Tap "Start cooking chat" — initialises the meals AI chat with your fridge as context
+3. Auto-sends "Suggest 3 recipes I can make with these ingredients" to kick things off
+4. Continue the conversation: ask for macros, full steps, substitutions, variations
+5. Quick-send buttons: "Suggest 3 recipes", "Show macros", "Full recipe"
+6. Save any response with 💾
+
+Nut-free filter still applied automatically in every meals context.
+
+---
+
+### 122. Voice picker — Settings page
+**Feature**: Voice Output card added to Settings page. Lists all English voices available on the device, grouped by locale (UK first, then US, AU, Other).
+
+**How it works**:
+- Dropdown populates via `speechSynthesis.getVoices()` on page load (handles the async delay some browsers have before voices are ready)
+- Default voice marked with ★
+- Preview button — speaks "Hey Joel, this is what I sound like. How does this work for you?" in the selected voice so you can audition it before saving
+- Save button — stores the voice name in `localStorage` as `jeos_voice_name`
+- `speakText()` now looks up the saved voice name on every call and uses it if found; falls back to the browser default if not set or not found
+
+**Device notes**: Available voices depend entirely on what's installed. Windows typically has Microsoft Sonia, Libby, Ryan for en-GB. Mac has Daniel. Android has Google UK English Female/Male.
+
+---

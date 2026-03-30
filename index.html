@@ -261,6 +261,14 @@ button{cursor:pointer;transition:all 0.15s;}
             <span class="ni-icon">📈</span>
             <span class="ni-label">Stats</span>
           </div>
+          <div class="nav-item" onclick="nav('meals')">
+            <span class="ni-icon">🍽️</span>
+            <span class="ni-label">Meals</span>
+          </div>
+          <div class="nav-item" onclick="nav('settings')">
+            <span class="ni-icon">⚙️</span>
+            <span class="ni-label">Settings</span>
+          </div>
         </div>
       </nav>
       <div class="sidebar-bottom">
@@ -347,6 +355,27 @@ const C = {};
 let currentPage = 'today';
 let editState = { col: null, id: null, fields: [] };
 let viewingYesterday = false;
+
+// ── MACHINE CATALOGUE (declared early — used in nav renders object) ──
+const MACHINES = {
+  push: ['Chest Press (Machine)','Pec Deck','Shoulder Press (Machine)','Incline Chest Press','Dumbbell Press','Barbell Bench Press','Overhead Press (Barbell)','Tricep Pushdown','Tricep Dip Machine','Push-ups','Dips','Lateral Raise'],
+  pull: ['Lat Pulldown','Cable Row','Seated Row Machine','Bicep Curl Machine','Preacher Curl','Dumbbell Curl','Pull-ups','Assisted Pull-up Machine','Face Pull','Rear Delt Fly','Deadlift','Romanian Deadlift'],
+  legs: ['Leg Press','Hack Squat','Leg Curl','Leg Extension','Calf Raise','Smith Machine Squat','Barbell Squat','Bulgarian Split Squat','Hip Thrust','Glute Bridge','Walking Lunges','Step-ups'],
+  other: ['Plank','Cable Crunch','Ab Rollout','Russian Twist','Hanging Leg Raise','Treadmill (Run)','Rowing Machine','Bike (Cardio)','Stairmaster','Custom']
+};
+const ALL_MACHINES = Object.values(MACHINES).flat();
+
+function gymCategoryFromExercise(name) {
+  const n = name.toLowerCase();
+  for (const [cat, list] of Object.entries(MACHINES)) {
+    if (cat === 'other') continue;
+    if (list.some(m => m.toLowerCase() === n)) return cat;
+  }
+  if (['press','fly','dip','push','tri','chest','shoulder','front'].some(k => n.includes(k))) return 'push';
+  if (['pull','row','curl','lat','bicep','deadlift','face','rear'].some(k => n.includes(k))) return 'pull';
+  if (['squat','leg','lunge','hip','glute','calf','step','hack'].some(k => n.includes(k))) return 'legs';
+  return null;
+}
 
 if (LIVE) {
   const app = initializeApp(FIREBASE_CONFIG);
@@ -601,7 +630,9 @@ window.nav = (page, el) => {
     journal: renderJournalPage,
     priorities: renderPrioritiesPage,
     habits: renderHabitsPage,
-    stats: renderStatsPage
+    stats: renderStatsPage,
+    meals: renderMealsPage,
+    settings: renderSettingsPage
   };
   renders[page]?.();
   updateHeader();
@@ -609,7 +640,7 @@ window.nav = (page, el) => {
 };
 
 function updateHeader() {
-  const titles = { today: 'Today', review: 'Weekly Review', energy: 'Energy Map', padel: 'Padel', workout: 'Workout', uni: 'Uni Log', journal: 'Journal', priorities: 'Priorities', habits: 'Habits', stats: 'Stats' };
+  const titles = { today: 'Today', review: 'Weekly Review', energy: 'Energy Map', padel: 'Padel', workout: 'Workout', uni: 'Uni Log', journal: 'Journal', priorities: 'Priorities', habits: 'Habits', stats: 'Stats', meals: 'Meals', settings: 'Settings' };
   document.getElementById('page-title').textContent = titles[currentPage];
   const now = new Date();
   document.getElementById('top-date').textContent = now.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -653,9 +684,11 @@ async function renderTodayPage() {
       <div class="card">
         <div class="card-title">Energy <span id="energy-saved" style="font-size:0.62rem;color:var(--green);font-weight:400;opacity:0;transition:opacity 0.4s;"></span></div>
         <div class="mini-prompt">1 = exhausted, 10 = buzzing</div>
+        ${data.energy ? `<div style="font-size:0.7rem;color:var(--soft);margin-bottom:6px;">Saved: <span style="color:var(--gold);font-weight:600;">${data.energy}/10</span></div>` : ''}
         <div style="display:flex;gap:4px;align-items:center;">
-          <input type="range" min="0" max="10" value="${data.energy || 0}" onchange="setEnergy(this.value)" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;" id="energy-slider">
-          <span style="width:30px;text-align:right;font-size:0.8rem;color:var(--gold);">${data.energy || 0}/10</span>
+          <input type="range" min="0" max="10" value="0" oninput="this.nextElementSibling.textContent=this.value+'/10'" style="flex:1;padding:0;" id="energy-slider">
+          <span style="width:30px;text-align:right;font-size:0.8rem;color:var(--gold);" id="energy-display">0/10</span>
+          <button class="btn-gold" onclick="setEnergy(document.getElementById('energy-slider').value)" style="padding:6px 10px;flex:0;">Log</button>
         </div>
       </div>
 
@@ -1151,7 +1184,7 @@ const OTJ_ANNUAL_TARGET = 200; // hours — configurable
 
 async function renderUniPage() {
   const entries = await fsColGet(up('uni_log'));
-  const targets = await fsGet(up('otj_targets')) || { annual: OTJ_ANNUAL_TARGET };
+  const targets = await fsGet(up('settings/otj_targets')) || { annual: OTJ_ANNUAL_TARGET };
   const annualTarget = targets.annual || OTJ_ANNUAL_TARGET;
 
   // Calculate totals
@@ -1283,10 +1316,10 @@ window.filterUniList = () => {
 };
 
 window.editOTJTarget = async () => {
-  const current = (await fsGet(up('otj_targets')) || { annual: OTJ_ANNUAL_TARGET }).annual;
+  const current = (await fsGet(up('settings/otj_targets')) || { annual: OTJ_ANNUAL_TARGET }).annual;
   const val = prompt(`Annual OTJ target (hours):`, current);
   if (!val || isNaN(parseInt(val))) return;
-  await fsSet(up('otj_targets'), { annual: parseInt(val) });
+  await fsSet(up('settings/otj_targets'), { annual: parseInt(val) });
   toast(`Target set to ${val}h`);
   renderUniPage();
 };
@@ -1336,7 +1369,7 @@ async function renderJournalPage() {
             <option value="goal">Goal</option>
             <option value="free">Free Write</option>
           </select>
-          <button class="btn-gold" onclick="newPrompt()" style="padding:6px 12px;">New Prompt</button>
+          <button class="btn-gold" onclick="newPrompt()" style="padding:6px 12px;">Prompt</button>
         </div>
         <div id="j-prompt-display" style="margin-bottom:12px;"></div>
         <textarea id="j-entry" placeholder="Your thoughts..." style="height:120px;"></textarea>
@@ -1364,6 +1397,17 @@ async function renderJournalPage() {
   document.getElementById('content').innerHTML = html;
   _journalEntries = entries;
   renderJournalList(entries);
+
+  // Inject AI chat card
+  const jCard = document.getElementById('j-entry').closest('.card');
+  if (jCard) {
+    const aiDiv = document.createElement('div');
+    aiDiv.innerHTML = renderChatHTML('journal-ai', 'Journal Coach',
+      'Generates prompts from your data and continues the conversation.',
+      [{ label: '✨ Generate prompt', text: 'Give me a journal prompt based on my recent data' }]);
+    jCard.after(aiDiv.firstElementChild);
+    initChat('journal-ai', ctxJournal);
+  }
 }
 
 let _journalEntries = [];
@@ -1464,6 +1508,7 @@ let statsTab = 'overview';
 let statsRange = 30;
 
 async function renderStatsPage() {
+  _dailyRangeCache = {}; // clear per-render cache
   const tabBtnStyle = (t) => statsTab === t
     ? 'padding:6px 14px;border-radius:5px;font-family:var(--font-m);font-size:0.72rem;cursor:pointer;background:var(--gold-bg);border:1px solid var(--gold-dim);color:var(--gold);'
     : 'padding:6px 14px;border-radius:5px;font-family:var(--font-m);font-size:0.72rem;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--soft);';
@@ -1583,6 +1628,10 @@ async function renderStatsPage() {
         <div class="card-title">Correlation Hints <span style="font-size:0.62rem;color:var(--muted);font-weight:400;">last 30 days</span></div>
         <div id="correlation-hints"><div class="empty">Loading...</div></div>
       </div>
+
+      <!-- AI INSIGHTS -->
+      <div class="section-label" style="margin-top:16px;">AI Insights</div>
+      <div id="ai-insights-container"></div>
     `;
   } else if (statsTab === 'gym') {
     html += `
@@ -1670,19 +1719,30 @@ async function renderStatsPage() {
   document.getElementById('content').innerHTML = html;
 
   if (statsTab === 'overview') {
-    await renderMoodHm(statsRange);
-    await renderMoodDist(statsRange);
-    await renderEnergyChart(statsRange);
-    await renderPhoneChart(statsRange);
-    await renderReadingStats(statsRange);
-    await renderRevChart();
-    await renderResistChart(statsRange);
-    await renderCorrelationHints();
+    await Promise.all([
+      renderMoodHm(statsRange),
+      renderMoodDist(statsRange),
+      renderEnergyChart(statsRange),
+      renderPhoneChart(statsRange),
+      renderReadingStats(statsRange),
+      renderRevChart(),
+      renderResistChart(statsRange),
+      renderCorrelationHints()
+    ]);
+    const insightsCont = document.getElementById('ai-insights-container');
+    if (insightsCont) {
+      insightsCont.innerHTML = renderChatHTML('stats-insights', 'Pattern Analysis',
+        'Ask about your data or get a full analysis of the last 14 days.',
+        [{ label: '🔍 Analyse last 14 days', text: 'Analyse my last 14 days of data and give me specific observations' }]);
+      initChat('stats-insights', ctxInsights);
+    }
   } else if (statsTab === 'gym') {
-    await renderGymMonthly();
-    await renderGymConsistency();
-    await renderGymVolume();
-    await renderGymPBs();
+    await Promise.all([
+      renderGymMonthly(),
+      renderGymConsistency(),
+      renderGymVolume(),
+      renderGymPBs()
+    ]);
   } else if (statsTab === 'padel') {
     await renderPadelStats();
   }
@@ -1693,15 +1753,19 @@ window.setStatsRange = (r) => { statsRange = r; renderStatsPage(); };
 
 // ── STATS: OVERVIEW CHARTS ───────────────
 
+// Per-render daily data cache — cleared on each renderStatsPage call
+let _dailyRangeCache = {};
+
 async function fetchDailyRange(days) {
-  const result = [];
+  if (_dailyRangeCache[days]) return _dailyRangeCache[days];
   const now = new Date();
-  for (let i = days - 1; i >= 0; i--) {
-    const d = new Date(now); d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    result.push({ date: k, ...( v || {}) });
-  }
+  const keys = Array.from({ length: days }, (_, i) => {
+    const d = new Date(now); d.setDate(d.getDate() - (days - 1 - i));
+    return d.toISOString().slice(0, 10);
+  });
+  const values = await Promise.all(keys.map(k => fsGet(up(`daily/${k}`))));
+  const result = keys.map((k, i) => ({ date: k, ...(values[i] || {}) }));
+  _dailyRangeCache[days] = result;
   return result;
 }
 
@@ -1917,18 +1981,22 @@ async function renderGymMonthly() {
     months.push(m);
     counts[m] = { push: 0, pull: 0, legs: 0 };
   }
-  for (let i = 0; i < 180; i++) {
+  // Fetch 180 days in parallel
+  const dailyKeys180 = Array.from({ length: 180 }, (_, i) => {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
+    return d.toISOString().slice(0, 10);
+  });
+  const dailyVals180 = await Promise.all(dailyKeys180.map(k => fsGet(up(`daily/${k}`))));
+  dailyKeys180.forEach((k, i) => {
     const m = k.slice(0, 7);
-    if (!counts[m]) continue;
-    const v = await fsGet(up(`daily/${k}`));
+    if (!counts[m]) return;
+    const v = dailyVals180[i];
     if (v?.gym) {
       if (v.gym.push) counts[m].push++;
       if (v.gym.pull) counts[m].pull++;
       if (v.gym.legs) counts[m].legs++;
     }
-  }
+  });
   const exercises = await fsColGet(up('exercises')) || [];
   const seen = {};
   exercises.forEach(e => {
@@ -1964,14 +2032,14 @@ async function renderGymConsistency() {
     const we = new Date(ws); we.setDate(ws.getDate() + 6);
     weeks.push({ start: ws.toISOString().slice(0,10), end: we.toISOString().slice(0,10), label: fmtDate(ws.toISOString().slice(0,10)) });
   }
-  // Build daily gym data map
+  // Build daily gym data map — parallel fetch
   const dailyMap = {};
-  for (let i = 0; i < 90; i++) {
+  const gymKeys90 = Array.from({ length: 90 }, (_, i) => {
     const d = new Date(now); d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0,10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v?.gym) dailyMap[k] = v.gym;
-  }
+    return d.toISOString().slice(0, 10);
+  });
+  const gymVals90 = await Promise.all(gymKeys90.map(k => fsGet(up(`daily/${k}`))));
+  gymKeys90.forEach((k, i) => { if (gymVals90[i]?.gym) dailyMap[k] = gymVals90[i].gym; });
   const exercises = await fsColGet(up('exercises')) || [];
   exercises.forEach(e => {
     if (!dailyMap[e.date]) dailyMap[e.date] = {};
@@ -2329,16 +2397,24 @@ window.delMoodEntry = async (i) => {
 };
 
 async function setEnergy(v) {
+  const val = parseInt(v);
+  if (!val) { toast('Move the slider first'); return; }
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
-  data.energy = parseInt(v);
+  data.energy = val;
   await fsSet(up(`daily/${k}`), data);
+  // Reset slider to 0, update saved label
+  const slider = document.getElementById('energy-slider');
+  const display = document.getElementById('energy-display');
+  if (slider) slider.value = 0;
+  if (display) display.textContent = '0/10';
   const indicator = document.getElementById('energy-saved');
   if (indicator) {
-    indicator.textContent = '✓ Saved';
+    indicator.textContent = `✓ Saved ${val}/10`;
     indicator.style.opacity = '1';
-    setTimeout(() => { indicator.style.opacity = '0'; }, 1500);
+    setTimeout(() => { indicator.style.opacity = '0'; }, 2000);
   }
+  toast(`Energy ${val}/10 logged`);
 }
 
 async function toggleGym(type) {
@@ -2793,7 +2869,6 @@ window.resetReadingStreak = resetReadingStreak;
 window.setPadelType = setPadelType;
 window.toggleYesterday = toggleYesterday;
 // Data functions - Today page
-window.setMood = setMood;
 window.setEnergy = setEnergy;
 window.toggleGym = toggleGym;
 window.addReading = addReading;
@@ -2829,7 +2904,7 @@ window.setReviewScore = setReviewScore;
 window.toggleSidebar = toggleSidebar;
 window.selectMoodForEntry = selectMoodForEntry;
 window.submitMoodEntry = submitMoodEntry;
-// editMoodEntry and delMoodEntry already assigned as window.xxx at definition site
+// editMoodEntry, delMoodEntry and all AI functions already assigned as window.xxx = at definition site
 window.saveGymRPE = saveGymRPE;
 window.renderMatchStats = renderMatchStats;
 // Expose global state for debugging and firestore access
@@ -2906,26 +2981,6 @@ window.doExportCSV = async (type = 'daily') => {
 };
 
 // ── MACHINE CATALOGUE ────────────────────
-const MACHINES = {
-  push: ['Chest Press (Machine)','Pec Deck','Shoulder Press (Machine)','Incline Chest Press','Dumbbell Press','Barbell Bench Press','Overhead Press (Barbell)','Tricep Pushdown','Tricep Dip Machine','Push-ups','Dips','Lateral Raise'],
-  pull: ['Lat Pulldown','Cable Row','Seated Row Machine','Bicep Curl Machine','Preacher Curl','Dumbbell Curl','Pull-ups','Assisted Pull-up Machine','Face Pull','Rear Delt Fly','Deadlift','Romanian Deadlift'],
-  legs: ['Leg Press','Hack Squat','Leg Curl','Leg Extension','Calf Raise','Smith Machine Squat','Barbell Squat','Bulgarian Split Squat','Hip Thrust','Glute Bridge','Walking Lunges','Step-ups'],
-  other: ['Plank','Cable Crunch','Ab Rollout','Russian Twist','Hanging Leg Raise','Treadmill (Run)','Rowing Machine','Bike (Cardio)','Stairmaster','Custom']
-};
-const ALL_MACHINES = Object.values(MACHINES).flat();
-
-function gymCategoryFromExercise(name) {
-  const n = name.toLowerCase();
-  for (const [cat, list] of Object.entries(MACHINES)) {
-    if (cat === 'other') continue;
-    if (list.some(m => m.toLowerCase() === n)) return cat;
-  }
-  if (['press','fly','dip','push','tri','chest','shoulder','front'].some(k => n.includes(k))) return 'push';
-  if (['pull','row','curl','lat','bicep','deadlift','face','rear'].some(k => n.includes(k))) return 'pull';
-  if (['squat','leg','lunge','hip','glute','calf','step','hack'].some(k => n.includes(k))) return 'legs';
-  return null;
-}
-
 // ── PAGE: WORKOUT ────────────────────────
 async function renderWorkoutPage() {
   // Render shell immediately — no waiting
@@ -2973,6 +3028,9 @@ async function renderWorkoutPage() {
           }).join('')}
         </div>
       </div>
+
+      <!-- AI CARDS injected after render -->
+      <div id="ai-workout-cards"></div>
 
       <!-- TODAY'S GYM -->
       <div class="card">
@@ -3063,6 +3121,25 @@ async function renderWorkoutPage() {
   `;
 
   document.getElementById('content').innerHTML = html;
+
+  // Inject AI chat cards
+  const aiContainer = document.getElementById('ai-workout-cards');
+  if (aiContainer) {
+    aiContainer.innerHTML =
+      renderChatHTML('workout-coach', 'Session Coach',
+        'Plans your session from your history. Report back after each set to adjust the plan.',
+        [
+          { label: '📋 Plan today', text: 'Plan my session for today' },
+          { label: '🎯 This week', text: 'What should I focus on this week?' },
+          { label: '📈 Overload', text: 'Suggest progressive overload for my main lifts' }
+        ]) +
+      renderChatHTML('workout-flex', 'Flexibility Routine',
+        'Dynamic mobility routine based on what you\'ve trained this week.',
+        [{ label: '🧘 Generate routine', text: 'Generate a flexibility routine based on my training this week' }]);
+    initChat('workout-coach', ctxWorkoutCoach);
+    initChat('workout-flex', ctxFlexibility);
+  }
+
   _allExercises = exercises;
   await renderTodaysExercises(exercises);
   renderVolumeChart(exercises);
@@ -3296,7 +3373,7 @@ function updateRestDisplay() {
 
 // ── PAGE: HABITS ─────────────────────────
 async function renderHabitsPage() {
-  const habits = await fsGet(up('habits')) || { items: [] };
+  const habits = await fsGet(up('user_data/habits')) || { items: [] };
   const todayChecks = await fsGet(up(`habit_checks/${todayKey2()}`)) || {};
 
   let html = `
@@ -3336,10 +3413,21 @@ async function renderHabitsPage() {
             </div>
           </div>` : ''}
       </div>
+
+      <div id="ai-habits-container"></div>
     </div>
   `;
 
   document.getElementById('content').innerHTML = html;
+
+  // Inject AI chat card
+  const habitsAiCont = document.getElementById('ai-habits-container');
+  if (habitsAiCont) {
+    habitsAiCont.innerHTML = renderChatHTML('habits-ai', 'Habit Coach',
+      'Suggests new habits based on your patterns and has a proper conversation about behaviour design.',
+      [{ label: '💡 Suggest a habit', text: 'Suggest a new habit based on my patterns' }]);
+    initChat('habits-ai', ctxHabits);
+  }
 }
 
 function renderHabitsList(items, todayChecks) {
@@ -3366,10 +3454,10 @@ window.addHabit = async () => {
   const action = document.getElementById('habit-action').value.trim();
   const duration = document.getElementById('habit-duration').value.trim();
   if (!anchor || !action) { toast('Fill in anchor and action'); return; }
-  const habits = await fsGet(up('habits')) || { items: [] };
+  const habits = await fsGet(up('user_data/habits')) || { items: [] };
   habits.items = habits.items || [];
   habits.items.push({ anchor, action, duration, streak: 0, created: todayKey2() });
-  await fsSet(up('habits'), habits);
+  await fsSet(up('user_data/habits'), habits);
   toast('Habit added');
   await renderHabitsPage();
 };
@@ -3380,7 +3468,7 @@ window.toggleHabit = async (i) => {
   todayChecks[key] = !todayChecks[key];
   
   // Update streak
-  const habits = await fsGet(up('habits')) || { items: [] };
+  const habits = await fsGet(up('user_data/habits')) || { items: [] };
   if (habits.items[i]) {
     if (todayChecks[key]) {
       const yesterday = getYesterdayKey();
@@ -3389,7 +3477,7 @@ window.toggleHabit = async (i) => {
     } else {
       habits.items[i].streak = Math.max(0, (habits.items[i].streak || 1) - 1);
     }
-    await fsSet(up('habits'), habits);
+    await fsSet(up('user_data/habits'), habits);
   }
   
   await fsSet(up(`habit_checks/${todayKey2()}`), todayChecks);
@@ -3398,9 +3486,9 @@ window.toggleHabit = async (i) => {
 
 window.delHabit = async (i) => {
   if (!confirm('Delete this habit?')) return;
-  const habits = await fsGet(up('habits')) || { items: [] };
+  const habits = await fsGet(up('user_data/habits')) || { items: [] };
   habits.items.splice(i, 1);
-  await fsSet(up('habits'), habits);
+  await fsSet(up('user_data/habits'), habits);
   await renderHabitsPage();
 };
 
@@ -3478,6 +3566,482 @@ async function renderCorrelationHints() {
   `).join('');
 }
 
+
+
+// ── AI LAYER ─────────────────────────────
+let _aiKey = null;
+
+async function getAIKey() {
+  if (_aiKey) return _aiKey;
+  const cfg = await fsGet(up('settings/ai'));
+  _aiKey = cfg?.key || null;
+  return _aiKey;
+}
+
+async function askAI(messages, maxTokens = 800) {
+  const key = await getAIKey();
+  if (!key) {
+    return { error: 'no_key', text: 'Add your Gemini API key in Settings first.' };
+  }
+  try {
+    const contents = messages.map(m => ({
+      role: m.role === 'assistant' ? 'model' : 'user',
+      parts: [{ text: m.content }]
+    }));
+    const resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${key}`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } }) }
+    );
+    const data = await resp.json();
+    if (data.error) return { error: 'api', text: `API error: ${data.error.message}` };
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+    return { text };
+  } catch (e) {
+    return { error: 'network', text: `Network error: ${e.message}` };
+  }
+}
+
+function aiFormatResponse(text) {
+  return text.split('\n').filter(l => l.trim()).map(l => {
+    if (/^\*\*(.+)\*\*$/.test(l)) return `<div style="font-size:0.72rem;font-weight:700;color:var(--text);margin:8px 0 4px;">${l.replace(/\*\*/g,'')}</div>`;
+    if (/^[\*\-•]\s/.test(l)) return `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0 3px 10px;border-left:2px solid var(--gold-dim);">${l.replace(/^[\*\-•]\s/,'')}</div>`;
+    if (/^\d+\.\s/.test(l)) return `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0;">${l}</div>`;
+    return `<div style="font-size:0.72rem;color:var(--soft);padding:2px 0;">${l}</div>`;
+  }).join('');
+}
+
+function aiLoadingHtml(msg = 'Thinking...') {
+  return `<div style="font-size:0.7rem;color:var(--muted);font-style:italic;padding:8px 0;">✨ ${msg}</div>`;
+}
+
+async function saveAISuggestion(type, html) {
+  const text = html.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim();
+  await fsColAdd(up('ai_saves'), { type, text, date: todayKey2(), ts: Date.now() });
+  toast('Saved ✓');
+}
+window.saveAISuggestion = saveAISuggestion;
+
+// ── VOICE ─────────────────────────────────
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let _voiceEnabled = JSON.parse(localStorage.getItem('jeos_voice') || 'false');
+let _activeRec = null;
+
+function setVoice(on) {
+  _voiceEnabled = on;
+  localStorage.setItem('jeos_voice', JSON.stringify(on));
+  document.querySelectorAll('.ai-voice-toggle').forEach(b => {
+    b.textContent = on ? '🔊' : '🔇';
+    b.style.opacity = on ? '1' : '0.4';
+  });
+}
+window.setVoice = setVoice;
+
+function speakText(text) {
+  if (!_voiceEnabled) return;
+  window.speechSynthesis.cancel();
+  const clean = text.replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').trim().slice(0,500);
+  const utt = new SpeechSynthesisUtterance(clean);
+  utt.rate = 1.05; utt.pitch = 1;
+  const savedName = localStorage.getItem('jeos_voice_name');
+  if (savedName) {
+    const voices = window.speechSynthesis.getVoices();
+    const match = voices.find(v => v.name === savedName);
+    if (match) utt.voice = match;
+  }
+  window.speechSynthesis.speak(utt);
+}
+
+function populateVoicePicker(savedVoice) {
+  const picker = document.getElementById('voice-picker');
+  if (!picker) return;
+
+  const fill = () => {
+    const voices = window.speechSynthesis.getVoices();
+    const english = voices.filter(v => v.lang.startsWith('en'));
+    if (!english.length) { picker.innerHTML = '<option value="">No voices found</option>'; return; }
+
+    // Group by lang
+    const groups = {};
+    english.forEach(v => {
+      const g = v.lang === 'en-GB' ? 'English (UK)' : v.lang === 'en-US' ? 'English (US)' : v.lang === 'en-AU' ? 'English (AU)' : 'English (Other)';
+      if (!groups[g]) groups[g] = [];
+      groups[g].push(v);
+    });
+
+    const order = ['English (UK)', 'English (US)', 'English (AU)', 'English (Other)'];
+    picker.innerHTML = order.filter(g => groups[g]).map(g =>
+      `<optgroup label="${g}">${groups[g].map(v =>
+        `<option value="${v.name}" ${v.name === savedVoice ? 'selected' : ''}>${v.name}${v.default ? ' ★' : ''}</option>`
+      ).join('')}</optgroup>`
+    ).join('');
+  };
+
+  // Voices may not be ready immediately
+  if (window.speechSynthesis.getVoices().length) {
+    fill();
+  } else {
+    window.speechSynthesis.onvoiceschanged = fill;
+  }
+}
+
+window.previewVoice = () => {
+  const picker = document.getElementById('voice-picker');
+  if (!picker?.value) return;
+  window.speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance("Hey Joel, this is what I sound like. How does this work for you?");
+  const voices = window.speechSynthesis.getVoices();
+  const match = voices.find(v => v.name === picker.value);
+  if (match) utt.voice = match;
+  utt.rate = 1.05;
+  window.speechSynthesis.speak(utt);
+};
+
+window.saveVoice = () => {
+  const picker = document.getElementById('voice-picker');
+  if (!picker?.value) return;
+  localStorage.setItem('jeos_voice_name', picker.value);
+  const status = document.getElementById('voice-status');
+  if (status) { status.textContent = `✓ Saved: ${picker.value}`; status.style.color = 'var(--green)'; }
+  toast(`Voice set to ${picker.value}`);
+};
+
+window.startVoiceInput = (chatId) => {
+  if (!SpeechRec) { toast('Voice not supported in this browser — use Chrome'); return; }
+  if (_activeRec) { _activeRec.stop(); _activeRec = null; return; }
+  const rec = new SpeechRec();
+  rec.lang = 'en-GB'; rec.interimResults = false; rec.maxAlternatives = 1;
+  _activeRec = rec;
+  const btn = document.getElementById(`voice-btn-${chatId}`);
+  if (btn) { btn.textContent = '🔴'; btn.style.background = 'rgba(200,50,50,0.2)'; }
+  rec.onresult = (e) => {
+    const transcript = e.results[0][0].transcript;
+    const input = document.getElementById(`chat-input-${chatId}`);
+    if (input) input.value = transcript;
+    _activeRec = null;
+    if (btn) { btn.textContent = '🎤'; btn.style.background = ''; }
+    window.aiChatSend(chatId);
+  };
+  rec.onerror = rec.onend = () => {
+    _activeRec = null;
+    if (btn) { btn.textContent = '🎤'; btn.style.background = ''; }
+  };
+  rec.start();
+};
+
+// ── SHARED CHAT COMPONENT ─────────────────
+const _chats = {};
+
+function initChat(id, systemPromptFn) {
+  if (!_chats[id]) _chats[id] = { history: [], systemPromptFn, loading: false };
+  else _chats[id].systemPromptFn = systemPromptFn;
+}
+
+function renderChatHTML(id, title, subtitle, quickBtns = []) {
+  const hasVoice = !!SpeechRec;
+  const voiceBtn = hasVoice ? `<button id="voice-btn-${id}" class="btn" onclick="startVoiceInput('${id}')" style="padding:6px 10px;flex:0;" title="Voice input">🎤</button>` : '';
+  const voiceToggle = `<button class="ai-voice-toggle btn" onclick="setVoice(!_voiceEnabled)" style="padding:4px 7px;font-size:0.8rem;opacity:${_voiceEnabled?'1':'0.4'};" title="Toggle voice output">${_voiceEnabled?'🔊':'🔇'}</button>`;
+  const quickHtml = quickBtns.map(q =>
+    `<button class="btn" onclick="aiChatQuick('${id}',${JSON.stringify(q.text)})" style="font-size:0.62rem;padding:3px 7px;">${q.label}</button>`
+  ).join('');
+  return `
+    <div class="card" style="border-color:var(--gold-dim);" id="ai-card-${id}">
+      <div class="card-title" style="justify-content:space-between;">
+        <span>✨ ${title}</span>
+        <div style="display:flex;gap:6px;align-items:center;">${voiceToggle}<span style="font-size:0.6rem;color:var(--muted);">Gemini 2.5 Flash</span></div>
+      </div>
+      ${subtitle ? `<div class="mini-prompt">${subtitle}</div>` : ''}
+      <div id="chat-thread-${id}" style="max-height:320px;overflow-y:auto;margin-bottom:8px;"></div>
+      ${quickHtml ? `<div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:8px;">${quickHtml}</div>` : ''}
+      <div style="display:flex;gap:6px;align-items:center;">
+        <input type="text" id="chat-input-${id}" placeholder="Ask anything..." style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')aiChatSend('${id}')"/>
+        ${voiceBtn}
+        <button class="btn-gold" onclick="aiChatSend('${id}')" style="padding:6px 12px;flex:0;">Send</button>
+      </div>
+      <div style="margin-top:6px;">
+        <button class="btn" onclick="aiChatClear('${id}')" style="font-size:0.62rem;padding:3px 8px;color:var(--muted);">✕ Clear</button>
+      </div>
+    </div>`;
+}
+
+function renderChatThread(id) {
+  const chat = _chats[id];
+  const thread = document.getElementById(`chat-thread-${id}`);
+  if (!thread || !chat) return;
+  if (!chat.history.length) { thread.innerHTML = ''; return; }
+  thread.innerHTML = chat.history.map((m, idx) => {
+    const isUser = m.role === 'user';
+    const isLastAI = !isUser && idx === chat.history.length - 1;
+    const saveBtn = isLastAI ? `<button class="btn" onclick="saveAISuggestion('${id}',this.closest('.ai-bubble').querySelector('.ai-body').innerHTML)" style="font-size:0.6rem;padding:2px 6px;margin-top:4px;">💾 Save</button>` : '';
+    return `<div style="margin-bottom:8px;display:flex;${isUser?'justify-content:flex-end;':''}">
+      <div class="ai-bubble" style="max-width:88%;padding:8px 10px;border-radius:8px;${isUser?'background:var(--gold-bg);border:1px solid var(--gold-dim);':'background:var(--surface2);border:1px solid var(--border2);'}">
+        <div style="font-size:0.6rem;color:${isUser?'var(--gold)':'var(--muted)'};margin-bottom:3px;">${isUser?'You':'✨ AI'}</div>
+        <div class="ai-body" style="font-size:0.72rem;color:var(--text);">${isUser ? m.content : aiFormatResponse(m.content)}</div>
+        ${saveBtn}
+      </div>
+    </div>`;
+  }).join('');
+  thread.scrollTop = thread.scrollHeight;
+}
+
+window.aiChatSend = async (id) => {
+  const chat = _chats[id];
+  const input = document.getElementById(`chat-input-${id}`);
+  const thread = document.getElementById(`chat-thread-${id}`);
+  if (!chat || !input || !thread) return;
+  const msg = input.value.trim();
+  if (!msg || chat.loading) return;
+  input.value = '';
+  chat.loading = true;
+
+  let sendMsg = msg;
+  if (!chat.history.length && chat.systemPromptFn) {
+    const ctx = await chat.systemPromptFn();
+    if (ctx) sendMsg = `${ctx}\n\nUser: ${msg}`;
+  }
+
+  chat.history.push({ role: 'user', content: msg });
+  renderChatThread(id);
+  thread.innerHTML += aiLoadingHtml();
+  thread.scrollTop = thread.scrollHeight;
+
+  const messages = chat.history.map((m, i) => {
+    if (i === 0 && m.role === 'user' && sendMsg !== msg) return { role: 'user', content: sendMsg };
+    return m;
+  });
+
+  const res = await askAI(messages, 700);
+  chat.history.push({ role: 'assistant', content: res.text });
+  chat.loading = false;
+  renderChatThread(id);
+  if (!res.error) speakText(res.text);
+};
+
+window.aiChatQuick = (id, msg) => {
+  const input = document.getElementById(`chat-input-${id}`);
+  if (input) { input.value = msg; window.aiChatSend(id); }
+};
+
+window.aiChatClear = (id) => {
+  if (_chats[id]) _chats[id].history = [];
+  renderChatThread(id);
+};
+
+// ── AI CONTEXT BUILDERS ───────────────────
+async function ctxWorkoutCoach() {
+  const exercises = await fsColGet(up('exercises')) || [];
+  const pbMap = {};
+  exercises.forEach(e => {
+    const maxW = Math.max(0, ...(e.sets||[]).map(s=>parseFloat(s.weight)||0));
+    if (!pbMap[e.name] || maxW > pbMap[e.name]) pbMap[e.name] = maxW;
+  });
+  const recentDays = [...new Set(exercises.slice(0,20).map(e=>e.date))].slice(0,5);
+  const todayEx = exercises.filter(e=>e.date===todayKey2());
+  return `You are a personal gym coach for Joel, 25yo male doing push/pull/legs split. Be concise, direct, specific. No filler.
+PBs: ${Object.entries(pbMap).slice(0,15).map(([n,w])=>`${n}: ${w}kg`).join(', ')||'none yet'}
+Last 5 training days: ${recentDays.join(', ')||'none yet'}
+Recent: ${exercises.slice(0,10).map(e=>`${e.date} ${e.name} ${(e.sets||[]).map(s=>`${s.reps}x${s.weight}kg`).join(',')}`).join(' | ')||'none'}
+Today: ${todayEx.length?todayEx.map(e=>e.name).join(', '):'nothing logged yet'}
+Base suggestions on PBs, suggest progressive overload. Keep replies short. Adjust plan as Joel reports back.`;
+}
+
+async function ctxFlexibility() {
+  const exercises = await fsColGet(up('exercises')) || [];
+  const weekEx = exercises.filter(e=>e.date>=weekKey());
+  const cats = [...new Set(weekEx.map(e=>e.gym_category).filter(Boolean))];
+  return `You are a mobility coach. Be specific and practical.
+This week: ${cats.join(', ')||'nothing yet'} | Muscles: ${weekEx.map(e=>e.name).slice(0,15).join(', ')||'none'}
+Prioritise muscles most loaded this week. Format each exercise: name — sets/reps or hold — brief reason.`;
+}
+
+async function ctxInsights() {
+  const [data, exercises] = await Promise.all([fetchDailyRange(14), fsColGet(up('exercises'))]);
+  const ctx = data.map(d => {
+    const mood = d.moods?.length ? Math.round(d.moods.reduce((s,m)=>s+m.mood,0)/d.moods.length) : (d.mood||0);
+    return `${d.date}: mood=${mood}/5 energy=${d.energy||0}/10 gym=${JSON.stringify(d.gym||{})} reading=${d.reading?.pages||0}p phone=${d.phone?.mins?Math.round(d.phone.mins/60*10)/10+'h':'—'} wins=${d.wins?.length||0} resistance=${(d.resistance||[]).join('|')||'—'}`;
+  }).join('\n');
+  return `You are a personal data analyst and life coach for Joel — 25yo, data science apprentice, ADHD, gym PPL, padel. Direct, reference actual numbers, no fluff.
+Last 14 days:\n${ctx}
+Recent exercises:\n${(exercises||[]).slice(0,15).map(e=>`${e.date}: ${e.name} ${(e.sets||[]).map(s=>`${s.reps}x${s.weight}kg`).join(',')} [${e.gym_category||'?'}]`).join('\n')}
+Give specific observations. Be a coach.`;
+}
+
+async function ctxJournal() {
+  const data = await fetchDailyRange(7);
+  const mood = data.filter(d=>d.mood||d.moods?.length).map(d=>{
+    const m = d.moods?.length?Math.round(d.moods.reduce((s,x)=>s+x.mood,0)/d.moods.length):d.mood;
+    return `${d.date}: ${['','😔','😐','😊','😄','🔥'][m]||'?'}`;
+  }).join(', ');
+  return `You are a reflective journaling coach for Joel — 25yo, ADHD, data science apprentice. Direct and personal.
+Last 7 days — moods: ${mood||'not logged'} | energy: ${data.filter(d=>d.energy).map(d=>`${d.energy}/10`).join(', ')||'not logged'} | avoidance: ${data.flatMap(d=>d.resistance||[]).join(', ')||'none'}
+Start with one specific prompt from his data, then continue the conversation naturally.`;
+}
+
+async function ctxHabits() {
+  const [habitsData, data] = await Promise.all([
+    fsGet(up('user_data/habits')).then(r=>r||{items:[]}),
+    fetchDailyRange(14)
+  ]);
+  const existing = (habitsData.items||[]).map(h=>`After ${h.anchor} → ${h.action}`).join('; ')||'none yet';
+  return `You are a habit design coach for Joel — 25yo, ADHD, data science apprentice, gym PPL, padel.
+Existing habits: ${existing}
+Avoidance patterns: ${data.flatMap(d=>d.resistance||[]).join(', ')||'none'}
+Low energy days (last 14): ${data.filter(d=>(d.energy||0)<4).length}/14
+Suggest "After X, I will Y for Z" habits. Keep them small (≤5 min). Reference his data. Have a proper conversation.`;
+}
+
+async function ctxMeals(ingredients, extra) {
+  return `You are a practical cooking assistant for Joel. IMPORTANT: He has a severe tree nut AND peanut allergy — never include nuts.
+Ingredients: ${ingredients}${extra?'\nNotes: '+extra:''}
+Suggest recipes, discuss ideas, answer follow-ups. For each recipe give: name, ~kcal per serving (nearest 50), protein/carbs/fat. Offer full steps when asked.`;
+}
+
+
+// ── PAGE: SETTINGS ────────────────────────
+async function renderSettingsPage() {
+  const cfg = await fsGet(up('settings/ai')) || {};
+  const aiSaves = await fsColGet(up('ai_saves')) || [];
+  const savedVoice = localStorage.getItem('jeos_voice_name') || '';
+
+  let html = `
+    <div class="section-group">
+      <div class="section-label">Settings</div>
+
+      <div class="card">
+        <div class="card-title">AI Configuration</div>
+        <div class="mini-prompt">Gemini 2.5 Flash — free tier, 15 req/min. Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);">aistudio.google.com</a></div>
+        <label class="lbl" style="margin-top:8px;">Gemini API Key</label>
+        <div style="display:flex;gap:6px;align-items:stretch;">
+          <input type="password" id="ai-key-input" placeholder="${cfg.key ? '••••••••••••••••' : 'Paste your API key here...'}" style="flex:1;margin:0;font-family:monospace;"/>
+          <button class="btn-gold" onclick="saveAIKey()" style="padding:6px 12px;">Save</button>
+          ${cfg.key ? `<button class="btn" onclick="testAIKey()" style="padding:6px 10px;">Test</button>` : ''}
+        </div>
+        <div id="ai-key-status" style="font-size:0.65rem;margin-top:6px;color:var(--soft);">${cfg.key ? '✓ Key saved' : 'No key saved yet'}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Voice Output</div>
+        <div class="mini-prompt">Pick the voice used when 🔊 is enabled. Lists all English voices available on your device.</div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:8px;">
+          <select id="voice-picker" style="flex:1;margin:0;">
+            <option value="">Loading voices...</option>
+          </select>
+          <button class="btn-gold" onclick="previewVoice()" style="padding:6px 10px;">Preview</button>
+          <button class="btn" onclick="saveVoice()" style="padding:6px 10px;">Save</button>
+        </div>
+        <div id="voice-status" style="font-size:0.65rem;color:var(--soft);">${savedVoice ? `Current: ${savedVoice}` : 'Using browser default'}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Saved AI Suggestions</div>
+        <div class="mini-prompt">Suggestions you tapped "Save this" on</div>
+        ${aiSaves.length ? aiSaves.slice(0, 20).map(s => `
+          <div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.7rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+              <span style="color:var(--gold);font-size:0.62rem;text-transform:uppercase;">${s.type}</span>
+              <span style="color:var(--muted);font-size:0.6rem;">${fmtDate(s.date)}</span>
+            </div>
+            <div style="color:var(--soft);">${s.text.slice(0, 200)}${s.text.length > 200 ? '…' : ''}</div>
+          </div>`).join('') : '<div class="empty">Nothing saved yet</div>'}
+      </div>
+    </div>
+  `;
+
+  document.getElementById('content').innerHTML = html;
+  populateVoicePicker(savedVoice);
+}
+
+window.saveAIKey = async () => {
+  const key = document.getElementById('ai-key-input').value.trim();
+  if (!key) { toast('Paste a key first'); return; }
+  await fsSet(up('settings/ai'), { key });
+  _aiKey = key;
+  document.getElementById('ai-key-status').textContent = '✓ Key saved';
+  document.getElementById('ai-key-status').style.color = 'var(--green)';
+  toast('API key saved');
+  setTimeout(() => renderSettingsPage(), 800);
+};
+
+window.testAIKey = async () => {
+  const status = document.getElementById('ai-key-status');
+  if (status) status.textContent = '⏳ Testing...';
+  const res = await askAI([{ role: 'user', content: 'Reply with exactly: "JE OS connection successful"' }], 30);
+  if (res.error) {
+    if (status) { status.textContent = '✗ ' + res.text; status.style.color = 'var(--red)'; }
+  } else {
+    if (status) { status.textContent = '✓ Connected — ' + res.text; status.style.color = 'var(--green)'; }
+  }
+};
+
+// ── PAGE: MEALS ───────────────────────────
+async function renderMealsPage() {
+  const mealLog = await fsColGet(up('meals')) || [];
+
+  let html = `
+    <div class="section-group">
+      <div class="section-label">Meals</div>
+
+      <div class="card">
+        <div class="card-title">🥦 What's in your fridge?</div>
+        <div class="mini-prompt">Enter ingredients then start chatting. Nut-free filter applied automatically.</div>
+        <textarea id="fridge-input" placeholder="e.g. chicken breast, rice, broccoli, olive oil, garlic, eggs..." style="height:60px;margin-bottom:6px;"></textarea>
+        <input type="text" id="fridge-extra" placeholder="Dietary notes (optional)..." style="margin-bottom:8px;"/>
+        <button class="btn-gold" onclick="startMealsChat()" style="width:100%;">Start cooking chat</button>
+      </div>
+
+      <div id="ai-meals-container"></div>
+
+      <div class="card">
+        <div class="card-title">Meal Log</div>
+        <div class="mini-prompt">Log what you ate today</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input type="text" id="meal-name" placeholder="Meal name..." style="flex:1;margin:0;"/>
+          <input type="text" id="meal-notes" placeholder="Notes..." style="flex:1;margin:0;"/>
+          <button class="btn-gold" onclick="logMeal()" style="padding:6px 12px;">Log</button>
+        </div>
+        <div id="meal-log-list">
+          ${mealLog.slice(0,10).map(m => `
+            <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.7rem;display:flex;justify-content:space-between;">
+              <span style="color:var(--text);">${m.name}</span>
+              <span style="color:var(--muted);font-size:0.62rem;">${fmtDate(m.date)}${m.notes ? ' — '+m.notes : ''}</span>
+            </div>`).join('') || '<div class="empty">No meals logged yet</div>'}
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+window.startMealsChat = () => {
+  const ingredients = document.getElementById('fridge-input')?.value.trim();
+  if (!ingredients) { toast('List some ingredients first'); return; }
+  const extra = document.getElementById('fridge-extra')?.value.trim() || '';
+  const cont = document.getElementById('ai-meals-container');
+  if (!cont) return;
+
+  // Re-init with fresh context from current fridge input
+  _chats['meals-ai'] = null;
+  cont.innerHTML = renderChatHTML('meals-ai', 'Cooking Assistant',
+    'Ask for recipes, substitutions, macros, full steps — anything about cooking.',
+    [
+      { label: '🍳 Suggest 3 recipes', text: 'Suggest 3 recipes I can make with these ingredients' },
+      { label: '📊 Show macros', text: 'Give me macros for your first suggestion' },
+      { label: '📖 Full recipe', text: 'Give me the full recipe and steps for that one' }
+    ]);
+  initChat('meals-ai', () => ctxMeals(ingredients, extra));
+  // Auto-send first message
+  window.aiChatQuick('meals-ai', 'Suggest 3 recipes I can make with these ingredients');
+};
+
+window.logMeal = async () => {
+  const name = document.getElementById('meal-name')?.value.trim();
+  if (!name) { toast('Enter a meal name'); return; }
+  const notes = document.getElementById('meal-notes')?.value.trim() || '';
+  await fsColAdd(up('meals'), { name, notes, date: todayKey2() });
+  toast('Meal logged');
+  renderMealsPage();
+};
 
 function boot(user) {
   updateHeader();

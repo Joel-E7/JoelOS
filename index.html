@@ -183,6 +183,7 @@ button{cursor:pointer;transition:all 0.15s;}
 #omni-result{margin-top:10px;font-size:0.7rem;color:var(--soft);min-height:24px;line-height:1.6;}
 #omni-dump-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.65rem;padding:4px 10px;cursor:pointer;}
 #omni-dump-btn:hover{color:var(--text);border-color:var(--border3);}
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
 </style>
 </head>
 <body>
@@ -354,6 +355,27 @@ button{cursor:pointer;transition:all 0.15s;}
 <button id="ask-fab" onclick="openAskJeOS()" title="Ask JE OS (Ctrl+/)" style="position:fixed;bottom:80px;right:24px;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);color:var(--soft);font-size:1rem;cursor:pointer;z-index:250;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.15s,color 0.15s;display:none;align-items:center;justify-content:center;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--soft)'">🔍</button>
 
 <!-- ASK JE OS OVERLAY -->
+<!-- QR SCANNER FAB -->
+<button id="qr-fab" onclick="openQRScanner()" title="Scan QR code" style="position:fixed;bottom:136px;right:24px;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);color:var(--soft);font-size:1rem;cursor:pointer;z-index:250;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.15s,color 0.15s;display:none;align-items:center;justify-content:center;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--soft)'">📱</button>
+
+<!-- QR SCANNER OVERLAY -->
+<div id="qr-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.9);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+  <div style="color:var(--text);margin-bottom:20px;font-size:0.9rem;text-align:center;">
+    <div style="font-size:1.5rem;margin-bottom:10px;">📱</div>
+    <div>Point at QR code</div>
+  </div>
+  <div id="qr-canvas-container" style="width:100%;max-width:400px;aspect-ratio:1;border:2px solid var(--gold);border-radius:12px;background:var(--surface);display:none;position:relative;">
+    <video id="qr-video" style="width:100%;height:100%;object-fit:cover;border-radius:10px;display:none;"></video>
+    <canvas id="qr-canvas" style="width:100%;height:100%;position:absolute;top:0;left:0;border-radius:10px;"></canvas>
+  </div>
+  <div id="qr-file-input-container" style="margin-top:20px;display:none;">
+    <input type="file" id="qr-file-input" accept="image/*" style="display:none;"/>
+    <button class="btn-gold" onclick="document.getElementById('qr-file-input').click()" style="padding:10px 20px;margin-bottom:10px;">📸 Choose photo</button>
+  </div>
+  <button class="btn" onclick="closeQRScanner()" style="margin-top:20px;padding:10px 20px;font-size:0.85rem;">Cancel</button>
+  <div id="qr-status" style="margin-top:20px;font-size:0.8rem;color:var(--soft);text-align:center;min-height:20px;"></div>
+</div>
+
 <div id="ask-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;display:none;align-items:flex-start;justify-content:center;padding-top:80px;">
   <div id="ask-sheet" style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:600px;margin:0 16px;padding:20px;animation:slideDown 0.2s ease;">
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
@@ -4427,6 +4449,123 @@ ${items.map((item, i) => `${i}. ${item.text}`).join('\n')}`;
 };
 
 // ── ASK JE OS (SEMANTIC SEARCH) ──────────
+// ── QR CODE SCANNER ──────────────────────────────
+window.openQRScanner = async () => {
+  const overlay = document.getElementById('qr-overlay');
+  if (overlay) overlay.style.display = 'flex';
+  const statusEl = document.getElementById('qr-status');
+  statusEl.textContent = 'Initializing...';
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    const video = document.getElementById('qr-video');
+    const canvas = document.getElementById('qr-canvas');
+    const container = document.getElementById('qr-canvas-container');
+    if (video && canvas && container) {
+      video.srcObject = stream;
+      video.style.display = 'block';
+      container.style.display = 'block';
+      statusEl.textContent = 'Scanning...';
+      const ctx = canvas.getContext('2d');
+      const scanInterval = setInterval(async () => {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const code = jsQR(imageData.data, canvas.width, canvas.height);
+        if (code && code.data) {
+          clearInterval(scanInterval);
+          stream.getTracks().forEach(t => t.stop());
+          routeQRCode(code.data);
+          closeQRScanner();
+        }
+      }, 200);
+    }
+  } catch (err) {
+    const fileContainer = document.getElementById('qr-file-input-container');
+    if (fileContainer) fileContainer.style.display = 'block';
+    statusEl.textContent = 'Camera unavailable. Choose photo.';
+    const fileInput = document.getElementById('qr-file-input');
+    if (fileInput) {
+      fileInput.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const img = new Image();
+          img.onload = () => {
+            const canvas = document.getElementById('qr-canvas');
+            if (canvas) {
+              canvas.width = img.width;
+              canvas.height = img.height;
+              const ctx = canvas.getContext('2d');
+              ctx.drawImage(img, 0, 0);
+              const imageData = ctx.getImageData(0, 0, img.width, img.height);
+              const code = jsQR(imageData.data, img.width, img.height);
+              if (code && code.data) {
+                routeQRCode(code.data);
+                closeQRScanner();
+              } else {
+                statusEl.textContent = 'No QR code found.';
+              }
+            }
+          };
+          img.src = evt.target.result;
+        };
+        reader.readAsDataURL(file);
+      };
+    }
+  }
+};
+
+window.closeQRScanner = () => {
+  const overlay = document.getElementById('qr-overlay');
+  if (overlay) overlay.style.display = 'none';
+  const video = document.getElementById('qr-video');
+  if (video && video.srcObject) {
+    video.srcObject.getTracks().forEach(t => t.stop());
+    video.srcObject = null;
+  }
+};
+
+function routeQRCode(data) {
+  if (data.startsWith('jeos://')) {
+    const url = new URL('http://dummy' + data.replace('jeos://', '/'));
+    const page = url.pathname.replace('/page/', '');
+    const action = url.searchParams.get('action');
+    if (page && page !== '/') {
+      nav(page);
+      toast('📱 Scanned: ' + page);
+    } else if (action) {
+      handleQRAction(action);
+    }
+  } else if (data.startsWith('http')) {
+    window.open(data, '_blank');
+  } else {
+    nav(data);
+    toast('📱 Scanned: ' + data);
+  }
+}
+
+function handleQRAction(action) {
+  const now = new Date();
+  const today = todayKey2();
+  if (action === 'sleep-log') {
+    toast('😴 Sleep logged');
+    fsGet(up('daily/' + today)).then(doc => {
+      doc = doc || {};
+      doc.sleep_logged_at = now.toISOString();
+      fsSet(up('daily/' + today), doc);
+    });
+  } else if (action === 'meal') {
+    nav('meals');
+    toast('🍽️ Meal page opened');
+  } else {
+    toast('⚠️ Unknown action: ' + action);
+  }
+}
+
+document.getElementById('qr-overlay')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('qr-overlay')) closeQRScanner();
+});
+
 window.openAskJeOS = () => {
   const overlay = document.getElementById('ask-overlay');
   if (!overlay) return;
@@ -6454,6 +6593,8 @@ function boot(user) {
   const fab = document.getElementById('omni-fab');
   if (fab) fab.style.display = 'flex';
   const askFab = document.getElementById('ask-fab');
+  const qrFab = document.getElementById('qr-fab');
+  if (qrFab) qrFab.style.display = 'flex';
   if (askFab) askFab.style.display = 'flex';
 
   // iPhone Action Button deep-link: ?quicklog=<text>

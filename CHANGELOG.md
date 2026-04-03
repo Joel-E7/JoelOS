@@ -2336,3 +2336,348 @@ Nut-free filter still applied automatically in every meals context.
 **Device notes**: Available voices depend entirely on what's installed. Windows typically has Microsoft Sonia, Libby, Ryan for en-GB. Mac has Daniel. Android has Google UK English Female/Male.
 
 ---
+
+### 123. Model updated — Gemini Flash Lite (paid tier)
+**Change**: Model string updated from `gemini-2.5-flash-preview-04-17` to `gemini-2.0-flash-lite`. All UI labels updated to "Gemini Flash Lite". Settings page description updated to note paid tier / data not used for training.
+
+**Note**: If the exact model ID differs, update the string in `askAI()`. Verify the correct ID at aistudio.google.com before committing API spend.
+
+---
+
+### 124. Rolling window — token management
+**Feature**: Chat history is now capped at 8 messages (plus the system context first message) before being sent to the API. On a long session, only the most recent 8 exchanges are included — the system context is always kept so the AI retains its persona and data, but old messages are dropped.
+
+**Why**: Without this, a 20-message session sends all 20 messages on every request, with input tokens compounding. The rolling window keeps each request roughly constant in size regardless of how long the conversation runs.
+
+**Effect on conversation quality**: Minimal for most use cases. The AI loses access to very early messages but retains the last 8 which covers everything relevant in a typical session.
+
+---
+
+## 🧠 Workout Memory + Recipe Book (2026-03-30)
+
+### 125. Workout coach — dynamic context refresh every message
+**Change**: The workout coach now rebuilds its system context on every message rather than just the first. This means it always has your latest PBs and today's logged exercises — if you log bench press mid-conversation, the next message sees it immediately.
+
+**How it works**: `_chats['workout-coach'].refreshCtx = true` flags the chat for per-message refresh. In `aiChatSend`, when `refreshCtx` is set, `ctxWorkoutCoach()` is called before every send and the fresh context is prepended to the latest user message. The rolling window applies to the conversation history only — the context is always current.
+
+---
+
+### 126. Session difficulty feedback
+**Feature**: "Session Feedback" card below the AI cards on the Workout page. Rate each category (Push, Pull, Legs, Flexibility) as "too easy", "about right", or "too hard" after your session.
+
+**Storage**: Stored at `user_data/workout_feedback` as `{ "push__2026-03-30": "too easy", "legs__2026-03-28": "too hard", ... }`. Keyed by category + date so history is preserved.
+
+**Coach integration**: `ctxWorkoutCoach()` reads the last 6 feedback entries and includes them in the system context on every message: `"Session difficulty feedback: push (2026-03-28): too easy | legs (2026-03-26): about right"`. The coach is instructed to use this to calibrate suggestions — back off on "too hard" sessions, push harder on "too easy".
+
+---
+
+### 127. Meals page — Recipe Book tab
+**Feature**: Meals page now has 3 tabs: 🍳 Cook, 📖 Recipe Book, 📝 Log.
+
+**Recipe Book**: Stores saved recipes in the `recipes` Firestore collection. Each recipe shows: name, macros, ingredients, and a "▼ Show steps" toggle for the full method. Delete button per recipe. No AI involved — once saved it's yours permanently.
+
+**Saving**: From the cooking chat, when the AI gives you a recipe you like, call `saveToRecipeBook(name, macros, ingredients, steps)` — available as `window.saveToRecipeBook`. The quick-action buttons in the chat include this flow.
+
+**Data structure**:
+```
+/users/{uid}/recipes/{id}
+  name, macros, ingredients, steps, date
+```
+
+---
+
+## 🏋️ Coach Profile System (2026-03-30)
+
+### 128. Coach profile doc — replaces raw exercise traversal
+**Architecture change**: `ctxWorkoutCoach()` no longer traverses the full exercises collection on every session start. Instead it reads a single pre-built `user_data/coach_profile` document (~120 tokens flat).
+
+**Profile structure**:
+```json
+{
+  "pb_alltime": { "Bench Press": 85, "Squat": 100 },
+  "pb_90d":     { "Bench Press": 82.5, "Squat": 95 },
+  "last_sessions": {
+    "push": { "date": "2026-03-28", "exercises": ["Bench 4x8@82.5kg"], "feedback": "about right" },
+    "pull": { "date": "2026-03-26", "exercises": ["Lat PD 4x10@60kg"], "feedback": "too easy" },
+    "legs": { "date": "2026-03-24", "exercises": ["Leg Press 4x10@120kg"], "feedback": "too hard" },
+    "flex": { "date": "2026-03-27", "exercises": ["Hip flexor 60s"], "feedback": "about right" }
+  },
+  "updated": "2026-03-30"
+}
+```
+
+**Token cost**: ~120 tokens per session start vs ~350+ with raw traversal. Stays flat regardless of how many exercises are in the collection.
+
+---
+
+### 129. Both all-time and 90-day PBs tracked
+**Feature**: `buildCoachProfile()` calculates PBs over two windows:
+- `pb_alltime` — max weight ever lifted per exercise
+- `pb_90d` — max weight in the last 90 days
+
+**Context display**: When the two differ, the coach sees `"Bench Press: 82.5kg (90d) / 85kg (ATH)"`. This means progressive overload suggestions are based on what you've actually been lifting recently, while the all-time record is visible for context.
+
+---
+
+### 130. Save Session button
+**Feature**: "💾 Save Session to Coach Profile" button added to the Workout page, above the Session Feedback card.
+
+**Trigger**: Manual — tap when you're done with a workout. Runs `buildCoachProfile()` which scans all exercises, recalculates PBs, identifies last session per category, attaches the most recent feedback rating, and writes to `user_data/coach_profile`.
+
+**Why manual**: Gives you control over when the profile updates. Rate your session difficulty first (too easy/about right/too hard), then save — the feedback gets baked in.
+
+---
+
+### 131. refreshCtx removed from workout coach
+**Change**: `_chats['workout-coach'].refreshCtx = true` removed. The coach profile is lean enough that reading it once per session (first message only) is sufficient and cheaper than rebuilding on every message.
+
+---
+
+## 🏋️ Coach Profile — Two-Doc Split & Live Session (2026-03-30)
+
+### 132. Two-doc coach profile split
+**Architecture**: Coach context now reads from two separate documents rather than one:
+
+- `user_data/coach_profile` — PBs, last session per category with relative recency, updated manually on Save Session
+- `user_data/session_today` — what's been logged in the current session, updated live on every exercise save
+
+This solves the mid-session accuracy problem: the profile always reflects completed sessions, and `session_today` always reflects what's happening right now.
+
+---
+
+### 133. Live session_today updates
+**Feature**: `updateSessionToday(entry)` is called immediately after every exercise is saved to Firestore. It reads the current `session_today` doc, resets it if the date has changed (new day), appends the exercise summary and category, and writes back.
+
+**Result**: The coach context always shows what you've actually logged this session, even if the full profile hasn't been saved yet. No hallucination risk about session completion.
+
+---
+
+### 134. PB overwrite rules — explicit
+**All-time PBs**: Strict greater-than only. If stored is 85kg and you log 84kg, the stored value is unchanged. All-time records never decrease.
+
+**90-day PBs**: Full recalculate from scratch on every Save Session. If you haven't matched a weight in 90 days, it naturally drops out. This gives the coach an accurate picture of what you're actually capable of right now vs your historical peak.
+
+---
+
+### 135. Relative recency in session context
+**Change**: Last session lines now show relative time rather than absolute dates.
+
+Before: `Push (2026-03-28, too hard): Bench 4x8@80kg`
+After: `Push (3 days ago, too hard): Bench 4x8@80kg`
+
+The coach can reason about recency directly — "that was recent, back off" vs "that was 3 weeks ago, you've recovered" — without needing to know today's date.
+
+---
+
+### 136. session_today resets on new day
+**Behaviour**: When `updateSessionToday` runs, it checks `doc.date` against today's date. If they don't match (you've crossed midnight), the doc is reset to a fresh state before writing. Prevents yesterday's session from leaking into today's context.
+
+---
+
+## 🏋️ Coach Profile — Deload & Session Type (2026-03-30)
+
+### 137. days_ago capped at 21
+**Change**: `days_ago` stored in the coach profile is capped at 21 (3 weeks) regardless of actual gap.
+
+**Why**: The distinction between "47 days ago" and "51 days ago" carries no meaningful signal for the coach — both just mean "it's been a while". An uncapped value would let the model treat arbitrarily large gaps as increasingly different, potentially over-correcting weight suggestions. Beyond 21 days the only thing that matters is *that* there was an extended gap, not exactly how long.
+
+**Deload flag**: A separate boolean `deload: true` is stored on the session when the raw gap exceeded 21 days. This gives the coach the signal it needs ("extended gap happened") without the noise of the exact number.
+
+---
+
+### 138. Deload/long gap handling in coach context
+**Feature**: When any category has `deload: true` in the profile, a note is appended to the coach's context:
+
+> "Note: push/legs last trained 3+ weeks ago — suggest conservative starting weights and build back up."
+
+This prevents the coach from using pre-gap PBs as the baseline for a return-to-training session. Instead it's explicitly told to start conservative and build back.
+
+---
+
+### 139. session_type — inferred from first exercise
+**Feature**: `session_today` now stores a `session_type` field, set to the gym category of the first non-other exercise logged in that session.
+
+**How it works**: `updateSessionToday()` checks if `doc.session_type` is null. If so, and the incoming exercise has a category (push/pull/legs — not 'other'), it sets `session_type` from that exercise. It never overwrites once set for the day.
+
+**Coach context**: The context now opens with `Today: Push session` (or Pull/Legs/Flex/not determined yet). This lets the coach front-load relevant PBs and session history for that category from the first message rather than inferring mid-conversation.
+
+---
+
+### 140. PBs sorted by session type in context
+**Feature**: When session type is known, the PB list in the coach context is sorted to show exercises relevant to that category first.
+
+**Example**: On a push day, Bench Press, OHP, and Tricep Pushdown appear before Lat Pulldown and Squat in the PB list. The coach sees the most relevant numbers immediately, and the token window is used more efficiently since the 15-PB cap hits after the relevant ones.
+
+---
+
+## 🐛 Full Audit — Bug Fixes & Improvements (2026-03-30)
+
+### 141. gymCategoryFromExercise — `front` keyword moved from push to legs
+**Problem**: `front` in the push keyword list caused Front Squat and Front Rack Lunge to be auto-categorised as Push.
+**Fix**: Removed `front` from push keywords, added to legs keywords. Push keywords now: press, fly, dip, push, tri, chest, shoulder.
+
+### 142. idbFlushQueue — queue deadlock on permanent errors (FIXED)
+**Problem**: Any Firestore error (including permission-denied, validation errors) hit the `catch { break }` block, stopping the flush loop. The failed item was never deleted, so it would retry forever on every reconnect, blocking all subsequent writes.
+**Fix**: Distinguishes network errors (`unavailable`, `!navigator.onLine`) from permanent errors. Network errors break (retry later). Permanent errors log a warning and delete the item to unblock the queue.
+
+### 143. startRest — cross-page crash (FIXED)
+**Problem**: Rest timer ran as a background `setInterval`. If you navigated away from the Workout page, the timer finished, tried to update `#rest-display` (which no longer existed), and threw an unhandled TypeError.
+**Fix**: Added a guard at the top of the interval callback — if `#rest-display` is not in the DOM, clear the interval silently.
+
+### 144. editMoodEntry — replaced window.prompt() with inline edit
+**Problem**: `window.prompt()` is a blocking native dialog, inconsistent with the app's dark UI.
+**Fix**: Clicking ✎ on a mood entry replaces that entry card's innerHTML with an input row (current trigger pre-filled) + Save/Cancel buttons. `saveMoodEdit(i)` writes the updated value and calls `renderMoodEntries`. Mood entry cards now have `id="mood-entry-${i}"` for targeted updates.
+
+### 145. togglePriority — completed item now spliced from array (FIXED)
+**Problem**: Item was marked `done: true` and archived but stayed in the active priorities list. Relied on `renderPrioritiesPage` to visually hide it, which required a full page re-render.
+**Fix**: Item is spliced from `priorities[]` after archiving. Single `renderPrioritiesPage()` call replaces the previous double-render.
+
+### 146. addWin / addResist — soft cap at 10 (FIXED)
+**Problem**: Unbounded arrays that could bloat daily Firestore docs over time, especially resistance which feeds into `ctxInsights`.
+**Fix**: Both reject with a toast at 10 items.
+
+### 147. logExercise — weight NaN validation + XSS sanitisation (FIXED)
+**Problem**: `parseFloat("85kg")` returns NaN, silently stored as 0, corrupting PB calculations. Exercise name injected directly into innerHTML allowed self-XSS.
+**Fix**: Raw weight string checked for `isNaN` — toast shown if non-numeric. `sanitiseHtml()` helper added (escapes `& < > " '`) and applied to `e.name` and `e.notes` in both `renderExerciseHistory` and `renderTodaysExercises`. Name also sanitised before storage in `logExercise`.
+
+### 148. updateStreaks — parallelised (PERFORMANCE)
+**Problem**: Two sequential loops of 365 `fsGet` calls each — up to ~109s combined at 150ms/call.
+**Fix**: Single `Promise.all` fetches all 365 daily docs once. Both streak calculations reuse the results array.
+
+### 149. doExportAll — parallelised + expanded (PERFORMANCE + FEATURE)
+**Problem**: 365 daily + 52×3 weekly docs fetched serially (~73s total).
+**Fix**: All daily docs in one `Promise.all`. All three weekly collections (weeks, reviews, energy_map) fetched in parallel via nested `Promise.all`. Export now also includes `recipes` and `habits` collections.
+
+### 150. renderCorrelationHints — uses fetchDailyRange (PERFORMANCE)
+**Problem**: Had its own 30-doc serial loop despite `fetchDailyRange` doing the same work with caching.
+**Fix**: Now calls `fetchDailyRange(30)` and filters empty days. Shares the cache with other overview charts on the same render.
+
+### 151. saveSessionFeedback re-render — broken outerHTML swap (FIXED)
+**Problem**: `card.outerHTML = ...` detaches the element from the DOM — the replacement is created but never inserted, so the card never visually updated.
+**Fix**: `renderSessionFeedbackCard` split into wrapper + `renderSessionFeedbackCardInner`. Feedback card gets class `feedback-card`. Re-render targets `.feedback-card` and updates `innerHTML` safely.
+
+### 152. _aiKey cache — not cleared on key save (FIXED)
+**Problem**: `saveAIKey` set `_aiKey = key` directly, but this meant changing the key required a reload. Set `_aiKey = null` so the next request re-reads from Firestore.
+
+### 153. window.addPadel — dead code removed
+**Problem**: `addPadel` function was exported to window but never called — real forms use `addPadelSession` / `addPadelMatch`.
+**Fix**: Export removed. `delPadel` export retained.
+
+### 154. ctxInsights maxTokens — increased to 1200
+**Problem**: Large context (14 days of data + exercises + review scores) could get cut off at 700 tokens.
+**Fix**: `_chats['stats-insights'].maxTokens = 1200` set after init. Per-chat `maxTokens` field used in `aiChatSend`.
+
+### 155. aiChatQuick — loading guard added (FIXED)
+**Problem**: Rapid clicks on quick-send buttons bypassed the `chat.loading` flag, firing multiple concurrent requests. Responses arrived out of order, corrupting history.
+**Fix**: `aiChatQuick` checks `chat?.loading` and returns early if true.
+
+### 156. Voice input — meaningful toast on unsupported browsers
+**Fix**: `startVoiceInput` now shows "Voice input requires Chrome or Edge — not supported in this browser" rather than the generic "Voice not supported" message.
+
+### 157. Weekly review scores added to AI contexts
+**Feature**: `ctxInsights` and `ctxJournal` now fetch `reviews/{weekKey}` and include the current week's Professional/Health/Personal/Relationships/Learning self-scores. Previously the richest self-reflection data in the app was invisible to the AI.
+
+### 158. Padel coach — new AI chat
+**Feature**: `ctxPadel()` + `padel-coach` chat injected into the Padel page below the history card.
+Context includes: overall W/L record, per-opponent breakdown (both opponents in doubles), last 8 matches with results/sets/highlights, recent practice sessions.
+Quick buttons: Match prep, Analyse my form, Technique tips.
+
+### 159. Recipe book + habits — added to exports
+**Feature**: Export dropdown now includes:
+- 📖 Recipe book (CSV) — name, macros, ingredients, steps
+- 🔗 Habits (CSV) — anchor, action, duration, streak, created
+Both also included in the full JSON backup.
+
+---
+
+### 160. editOTJTarget — replaced window.prompt() with inline input (FIXED)
+**Problem**: `editOTJTarget` used `prompt()` — the last remaining native dialog in the app.
+**Fix**: Clicking "⚙ Set Annual Target" now reveals an inline input row (`#otj-target-input-row`) within the Uni page with the current value pre-filled. `saveOTJTarget()` writes and re-renders. `cancelOTJTarget()` hides the row. No page reload needed.
+
+---
+
+## 🧠 Auto Tone Detection (2026-03-30)
+
+### 161. Fully automatic AI tone based on current state
+**Feature**: Every AI chat now automatically adjusts its tone based on your real-time data. No toggle, no decision required.
+
+**How it works**: `getToneDirective()` runs when context is first built for a chat session. It reads today's data plus a 3-day rolling window, evaluates five rules in priority order, and appends a tone directive to the system context. The AI receives this as part of its instructions — it adjusts without you doing anything.
+
+**Five tone states:**
+
+| State | Trigger | What the AI does |
+|---|---|---|
+| DEPLETED | 3-day avg energy < 4 AND mood < 3 | One small thing at a time. Validates difficulty. No lists. Sits with you rather than pushing. |
+| AVOIDANCE | 4+ resistance entries in 3 days, energy is fine | Names the pattern using your data. Asks the question you're not asking yourself. Doesn't let you off the hook. |
+| LOW_ENERGY | Today's energy ≤ 3 | Matches your pace. Suggests smallest viable version. Protects recovery. No stretch goals. |
+| MOMENTUM | 2+ gym days in 3 days, energy ≥ 6 | Energising and direct. Pushes slightly harder than you'd push yourself. This is the overload window. |
+| NEUTRAL | Everything else | Direct and practical. No filler. |
+
+**Token cost**: Zero extra API calls. The tone directive is ~30 tokens appended to an existing context. `fetchDailyRange(3)` is already cached from other chart renders.
+
+**Scope**: Applied to all 6 context builders — workout coach, flexibility, stats insights, journal, habits, padel. Intentionally excluded from meals (cooking assistant doesn't need emotional calibration).
+
+**Cache**: `_toneCache` stores the result per session. Cleared on every page navigation so it re-reads fresh state each time you open a chat.
+
+---
+
+## 🚀 Easy Wins Batch — All Roadmap Zero-Cost Features (2026-03-30)
+
+### 162. Burnout / Deload Indicator
+Amber/red badge at top of Today page. Checks 3-day rolling avg energy + mood from `fetchDailyRange(3)` and this week's exercise RPE. Amber if depleted OR overreaching. Red if both. Dismissible per day via `localStorage`. Zero tokens.
+
+### 163. Sunday Intercept
+On boot, if `isSunday()` and `reviews/{weekKey}` has no scores, shows a full-screen overlay: "Happy Sunday. Time to review the week." with a route button to Review page. Dismissed once per Sunday via `jeos_sunday_seen_{weekKey}` in localStorage.
+
+### 164. Morning Card
+Visible 06:00–10:00 only, not when viewing yesterday. Shows top 3 active priorities and today's habit checkboxes above the mood card. Reads from existing `weeks/{weekKey}` and `user_data/habits` docs in parallel.
+
+### 165. Confetti
+Canvas particle burst on two triggers: all priorities completed (`togglePriority` when list empties) and OTJ annual target reached (`renderUniPage` when `pct >= 100`). One-time per year flag for OTJ prevents repeat fires.
+
+### 166. iOS Install Prompt
+Detects `navigator.userAgent` for iPhone/iPad and `!window.navigator.standalone`. Shows persistent bottom banner: "Tap Share → Add to Home Screen to install JE OS." Dismissible via `jeos_install_dismissed` localStorage key. Auto-hides once installed.
+
+### 167. Swipe Gestures
+`touchstart`/`touchend` listeners added in `initAppUX`. Swipe right from left edge (`startX < 30`, `dx > 80`) opens sidebar. Swipe left (`dx < -80`) closes it. Passive listeners for scroll performance.
+
+### 168. Ctrl+K Command Palette (placeholder)
+`keydown` listener intercepts `Ctrl+K`/`Cmd+K`. Shows toast "AI Omnibar coming soon" until the Omnibar feature is built. Infrastructure is in place — swap the toast for `openOmnibar()` when ready.
+
+### 169. Inertia Tracker
+`user_data/inertia` doc: `{ value, lastDate }`. `updateInertia()` runs on boot — if nothing logged yesterday (checked via `daily/{yesterday}`), decays by 2. Increments via `incrementInertia()` called on priority completion. Sidebar pill shows `🔥 / ⚡ / → / ○` + number.
+
+### 170. Streak Freezes
+`user_data/streak_freezes` doc: `{ count, lastAwardedStreak }`. `checkAndAwardFreeze()` runs after `updateStreaks` — awards 1 freeze per 7-day streak milestone (not per day). `🧊 ×N` pill added to sidebar. Toast notification on award.
+
+### 171. 1RM Estimator (Brzycki)
+PBs table in Stats Gym tab now shows estimated 1RM via Brzycki formula: `weight × (36 / (37 − reps))`. Only shown when reps > 1. Displayed as `~85.2kg 1RM est.` below the actual PB weight. Warm-up sets excluded from PB calculation.
+
+### 172. Warm-up Set Tags
+Checkbox (`W`) added to every set row in the exercise logger. `warmup: bool` stored in Firestore. Warm-up sets excluded from: volume chart (`renderGymVolume`), PB table (`renderGymPBs`), and coach profile (`buildCoachProfile`).
+
+### 173. Padel Weakness Tagging
+Multi-select tag buttons on match log form (red when active): Backhand volley, Forehand volley, Lob, Smash, Net positioning, Court positioning, Serve, Return. Stored as `padel/{id}.weaknesses[]`. Tags cleared after save.
+
+### 174. Padel Drill Focus Card
+New card on Padel Stats tab. Tallies weakness tags from last 10 matches, shows top 3 with frequency count (`3x in last 10`). "Nothing tagged yet" empty state if no weaknesses logged.
+
+### 175. Memory Trigger Cards (Uni Log)
+`renderMemoryTriggers(entries)` checks all Uni Log entries for exact 7-day and 30-day matches to today. Injects a gold "Review these" section above the entry list. Shows module, OTJ time, and learning note truncated to 100 chars.
+
+### 176. Backburner List (Priorities)
+New card on Priorities page. `weeks/{weekKey}.backburner[]` stores `{ text, effort, created }`. Effort levels: ⚡ Quick / 🔧 Medium / 🏋️ Heavy. "↑ This week" promotes item to active priorities (respects 5-item cap). Items persist per week.
+
+### 177. Energy-Matched Task Routing
+On low energy days (≤3), Priorities page hides effort-3 tasks and shows an amber banner. "Show all" button reveals hidden tasks. Items tagged with effort level via priority form. Backburner items also dimmed when effort is high and energy is low.
+
+### 178. Bio-Responsive UI Theming
+`applyBioTheme(energy)` called in `renderTodayData`. When energy ≤ 3: overrides `--gold`, `--gold-dim`, `--gold-bg` CSS variables to cool grey/blue, reducing visual intensity. Restores defaults when energy > 3 or unset. Changes reset on page reload.
+
+### 179. Sunday Executive Summary
+"✨ Generate Summary" button on Weekly Review page. One-shot `askAI` call (300 max tokens) ingesting 7-day mood/energy, gym days/volume, padel W/L, priorities completed, and weekly self-scores. Returns exactly 3 brutally honest bullets. Output rendered inline, saveable via existing `ai_saves` mechanism.
+
+### 180. Jarvis Voice Routing
+`tryJarvisRoute(transcript)` intercepts `webkitSpeechRecognition` transcript before sending to Gemini. Regex matches "go to X", "open X", "navigate to X" etc. against a 25-entry route map. If matched: calls `nav(page)`, optionally speaks confirmation, returns `true` to skip AI call. Zero tokens for navigation commands.
+
+---

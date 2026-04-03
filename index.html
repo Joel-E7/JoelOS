@@ -5063,38 +5063,182 @@ async function renderLifeRadar(days = 30) {
 let _aiKey = null;
 
 async function getAIKey() {
+  // Backward compatibility: check old location first, then new provider-based storage
   if (_aiKey) return _aiKey;
-  const cfg = await fsGet(up('settings/ai'));
-  _aiKey = cfg?.key || null;
+  
+  const oldCfg = await fsGet(up('settings/ai'));
+  if (oldCfg?.key) {
+    _aiKey = oldCfg.key;
+    return _aiKey;
+  }
+  
+  // Read from new provider-based system
+  const provider = await getAIProvider();
+  const keys = await fsGet(up('user_data/provider_keys')) || {};
+  _aiKey = keys[provider] || null;
   return _aiKey;
 }
 
 // Thinking levels: 0=fast (omnibar/parsing), 1=normal (chat), 2=deep (ask/summary)
 const THINK = { FAST: 0, NORMAL: 1, DEEP: 2 };
 
-async function askAI(messages, maxTokens = 800, thinkingLevel = THINK.NORMAL) {
-  const key = await getAIKey();
-  if (!key) {
-    return { error: 'no_key', text: 'Add your Gemini API key in Settings first.' };
-  }
-  try {
-    const contents = messages.map(m => ({
+// ── AI PROVIDER ABSTRACTION LAYER ────────────────────
+// Allows swapping between Google (Gemini), Anthropic (Claude), OpenAI, Kimi, etc. without rewriting caller code.
+// Each provider is a module with: normalizeMessages, selectModel, buildRequest, parseResponse.
+
+const PROVIDERS = {
+  google: {
+    name: 'Google Gemini',
+    endpoint: 'https://generativelanguage.googleapis.com/v1beta/models',
+    models: { fast: 'gemini-2.0-flash-lite', deep: 'gemini-2.0-flash' },
+    normalizeMessages: (msgs) => msgs.map(m => ({
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
-    }));
-    // Model selection by thinking level
-    const model = thinkingLevel === THINK.DEEP
-      ? 'gemini-2.0-flash'           // better reasoning for complex queries
-      : 'gemini-2.0-flash-lite';     // fast + cheap for everything else
-    const temperature = thinkingLevel === THINK.FAST ? 0.2 : 0.7;
-    const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
-      { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature } }) }
-    );
+    })),
+    buildRequest: (messages, maxTokens, thinkingLevel) => {
+      const model = thinkingLevel === THINK.DEEP ? PROVIDERS.google.models.deep : PROVIDERS.google.models.fast;
+      const temperature = thinkingLevel === THINK.FAST ? 0.2 : 0.7;
+      return {
+        model,
+        url: `${PROVIDERS.google.endpoint}/${model}:generateContent`,
+        body: { contents: messages, generationConfig: { maxOutputTokens: maxTokens, temperature } },
+        headers: { 'Content-Type': 'application/json' }
+      };
+    },
+    parseResponse: (data) => {
+      if (data.error) throw new Error(`API error: ${data.error.message}`);
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+    },
+    keyParamName: 'key'
+  },
+
+  anthropic: {
+    name: 'Anthropic Claude',
+    endpoint: 'https://api.anthropic.com/v1/messages',
+    models: { fast: 'claude-opus-4-20250805', deep: 'claude-opus-4-20250805' }, // swap fast to a smaller model when available
+    normalizeMessages: (msgs) => msgs, // Claude uses same format
+    buildRequest: (messages, maxTokens, thinkingLevel) => {
+      const model = thinkingLevel === THINK.DEEP ? PROVIDERS.anthropic.models.deep : PROVIDERS.anthropic.models.fast;
+      return {
+        model,
+        url: PROVIDERS.anthropic.endpoint,
+        body: { model, messages, max_tokens: maxTokens, temperature: thinkingLevel === THINK.FAST ? 0.2 : 0.7 },
+        headers: { 'Content-Type': 'application/json', 'x-api-key': '', 'anthropic-version': '2023-06-01' }
+      };
+    },
+    parseResponse: (data) => {
+      if (data.error) throw new Error(`API error: ${data.error.message}`);
+      return data.content?.[0]?.text || 'No response';
+    },
+    keyParamName: 'x-api-key'
+  },
+
+  openai: {
+    name: 'OpenAI GPT',
+    endpoint: 'https://api.openai.com/v1/chat/completions',
+    models: { fast: 'gpt-4o-mini', deep: 'gpt-4o' },
+    normalizeMessages: (msgs) => msgs.map(m => ({ role: m.role, content: m.content })),
+    buildRequest: (messages, maxTokens, thinkingLevel) => {
+      const model = thinkingLevel === THINK.DEEP ? PROVIDERS.openai.models.deep : PROVIDERS.openai.models.fast;
+      return {
+        model,
+        url: PROVIDERS.openai.endpoint,
+        body: { model, messages, max_tokens: maxTokens, temperature: thinkingLevel === THINK.FAST ? 0.2 : 0.7 },
+        headers: { 'Content-Type': 'application/json', 'Authorization': '' }
+      };
+    },
+    parseResponse: (data) => {
+      if (data.error) throw new Error(`API error: ${data.error.message}`);
+      return data.choices?.[0]?.message?.content || 'No response';
+    },
+    keyParamName: 'Authorization'
+  },
+
+  kimi: {
+    name: 'Kimi (Moonshot)',
+    endpoint: 'https://api.moonshot.cn/v1/chat/completions',
+    models: { fast: 'moonshot-v1-8k', deep: 'moonshot-v1-32k' },
+    normalizeMessages: (msgs) => msgs.map(m => ({ role: m.role, content: m.content })),
+    buildRequest: (messages, maxTokens, thinkingLevel) => {
+      const model = thinkingLevel === THINK.DEEP ? PROVIDERS.kimi.models.deep : PROVIDERS.kimi.models.fast;
+      return {
+        model,
+        url: PROVIDERS.kimi.endpoint,
+        body: { model, messages, max_tokens: maxTokens, temperature: thinkingLevel === THINK.FAST ? 0.2 : 0.7 },
+        headers: { 'Content-Type': 'application/json', 'Authorization': '' }
+      };
+    },
+    parseResponse: (data) => {
+      if (data.error) throw new Error(`API error: ${data.error.message}`);
+      return data.choices?.[0]?.message?.content || 'No response';
+    },
+    keyParamName: 'Authorization'
+  }
+};
+
+// Current active provider (loaded from settings or defaulted)
+let _activeProvider = 'google';
+let _providerKey = null;
+
+async function getAIProvider() {
+  if (!_activeProvider) {
+    const cfg = await fsGet(up('user_data/ai_config')) || { provider: 'google' };
+    _activeProvider = cfg.provider || 'google';
+  }
+  return _activeProvider;
+}
+
+async function getProviderKey() {
+  if (_providerKey === null) {
+    _providerKey = await getAIKey(); // reuse existing getAIKey for backward compat
+    if (!_providerKey) _providerKey = '';
+  }
+  return _providerKey;
+}
+
+function setAIProvider(providerName, apiKey) {
+  if (!PROVIDERS[providerName]) throw new Error(`Unknown provider: ${providerName}`);
+  _activeProvider = providerName;
+  _providerKey = apiKey;
+  fsSet(up('user_data/ai_config'), { provider: providerName }).catch(() => {});
+}
+
+window.setAIProvider = setAIProvider;
+
+async function askAI(messages, maxTokens = 800, thinkingLevel = THINK.NORMAL) {
+  const providerName = await getAIProvider();
+  const provider = PROVIDERS[providerName];
+  if (!provider) return { error: 'config', text: `Unknown AI provider: ${providerName}` };
+
+  const key = await getProviderKey();
+  if (!key) {
+    return { error: 'no_key', text: `Add your ${provider.name} API key in Settings first.` };
+  }
+
+  try {
+    const normalized = provider.normalizeMessages(messages);
+    const req = provider.buildRequest(normalized, maxTokens, thinkingLevel);
+    
+    // Add API key to headers or URL params based on provider
+    if (provider.keyParamName === 'key') {
+      // Google: add to URL
+      req.url += `?key=${key}`;
+    } else if (provider.keyParamName === 'x-api-key') {
+      // Anthropic: add to headers
+      req.headers['x-api-key'] = key;
+    } else if (provider.keyParamName === 'Authorization') {
+      // OpenAI, Kimi: Bearer token in header
+      req.headers['Authorization'] = `Bearer ${key}`;
+    }
+
+    const resp = await fetch(req.url, {
+      method: 'POST',
+      headers: req.headers,
+      body: JSON.stringify(req.body)
+    });
+
     const data = await resp.json();
-    if (data.error) return { error: 'api', text: `API error: ${data.error.message}` };
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || 'No response';
+    const text = provider.parseResponse(data);
     return { text };
   } catch (e) {
     return { error: 'network', text: `Network error: ${e.message}` };
@@ -5876,24 +6020,57 @@ Suggest recipes, discuss ideas, answer follow-ups. For each recipe give: name, ~
 
 // ── PAGE: SETTINGS ────────────────────────
 async function renderSettingsPage() {
-  const cfg = await fsGet(up('settings/ai')) || {};
+  const cfg = await fsGet(up('settings/ai')) || { provider: 'google' };
+  const aiConfig = await fsGet(up('user_data/ai_config')) || { provider: 'google' };
+  const providerKeys = await fsGet(up('user_data/provider_keys')) || {};
   const aiSaves = await fsColGet(up('ai_saves')) || [];
   const savedVoice = localStorage.getItem('jeos_voice_name') || '';
+
+  const activeProvider = aiConfig.provider || 'google';
+  const providerInfo = PROVIDERS[activeProvider] || PROVIDERS.google;
+  const keyGuides = {
+    google: 'Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);">aistudio.google.com</a>',
+    anthropic: 'Get a key at <a href="https://console.anthropic.com/dashboard" target="_blank" style="color:var(--gold);">console.anthropic.com</a>',
+    openai: 'Get a key at <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--gold);">platform.openai.com</a>',
+    kimi: 'Get a key at <a href="https://platform.moonshot.cn/console" target="_blank" style="color:var(--gold);">platform.moonshot.cn</a>'
+  };
 
   let html = `
     <div class="section-group">
       <div class="section-label">Settings</div>
 
       <div class="card">
-        <div class="card-title">AI Configuration</div>
-        <div class="mini-prompt">Gemini Flash Lite — paid tier, data not used for training. Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);">aistudio.google.com</a></div>
-        <label class="lbl" style="margin-top:8px;">Gemini API Key</label>
-        <div style="display:flex;gap:6px;align-items:stretch;">
-          <input type="password" id="ai-key-input" placeholder="${cfg.key ? '••••••••••••••••' : 'Paste your API key here...'}" style="flex:1;margin:0;font-family:monospace;"/>
-          <button class="btn-gold" onclick="saveAIKey()" style="padding:6px 12px;">Save</button>
-          ${cfg.key ? `<button class="btn" onclick="testAIKey()" style="padding:6px 10px;">Test</button>` : ''}
+        <div class="card-title">AI Provider</div>
+        <div class="mini-prompt">Switch providers to use cheaper, faster, or more capable models. All chats will automatically route to your chosen provider.</div>
+        <label class="lbl" style="margin-top:8px;">Active Provider</label>
+        <select id="provider-select" onchange="changeAIProvider()" style="width:100%;padding:8px;margin:8px 0;border:1px solid var(--border2);background:var(--surface2);color:var(--text);border-radius:4px;font-family:var(--font-m);">
+          ${Object.entries(PROVIDERS).map(([key, p]) => `<option value="${key}" ${key === activeProvider ? 'selected' : ''}>${p.name}</option>`).join('')}
+        </select>
+        <div id="provider-info" style="font-size:0.68rem;color:var(--soft);margin-top:6px;padding:8px;background:var(--surface2);border-radius:4px;">
+          <strong>${providerInfo.name}</strong> — Models: <span style="font-family:var(--font-m);">${providerInfo.models.fast}</span> (fast), <span style="font-family:var(--font-m);">${providerInfo.models.deep}</span> (deep reasoning)
         </div>
-        <div id="ai-key-status" style="font-size:0.65rem;margin-top:6px;color:var(--soft);">${cfg.key ? '✓ Key saved' : 'No key saved yet'}</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">API Keys</div>
+        <div class="mini-prompt">Each provider needs its own API key. Your keys are stored locally in Firestore; you can delete them anytime.</div>
+        <div style="margin-top:8px;">
+          ${Object.entries(PROVIDERS).map(([key, provider]) => `
+            <div style="padding:10px;border:1px solid var(--border2);border-radius:4px;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                <span style="font-weight:600;color:var(--text);">${provider.name}</span>
+                <span style="font-size:0.62rem;color:${providerKeys[key] ? 'var(--green)' : 'var(--muted)'};">${providerKeys[key] ? '✓ Set' : '○ Not set'}</span>
+              </div>
+              <div style="display:flex;gap:6px;align-items:stretch;margin-bottom:6px;">
+                <input type="password" id="key-${key}" placeholder="${providerKeys[key] ? '••••••••••••••••' : 'Paste your ' + provider.name + ' API key'}" style="flex:1;margin:0;font-family:monospace;font-size:0.7rem;"/>
+                <button class="btn-gold" onclick="saveProviderKey('${key}')" style="padding:6px 10px;font-size:0.7rem;">Save</button>
+                ${providerKeys[key] ? `<button class="btn" onclick="deleteProviderKey('${key}')" style="padding:6px 10px;font-size:0.7rem;">✕</button>` : ''}
+              </div>
+              <div style="font-size:0.65rem;color:var(--soft);">${keyGuides[key]}</div>
+              ${providerKeys[key] ? `<button style="font-size:0.65rem;margin-top:6px;background:none;border:none;color:var(--blue);cursor:pointer;text-decoration:underline;" onclick="testProviderKey('${key}')">Test connection</button>` : ''}
+            </div>
+          `).join('')}
+        </div>
       </div>
 
       <div class="card">
@@ -5928,11 +6105,79 @@ async function renderSettingsPage() {
   populateVoicePicker(savedVoice);
 }
 
+window.changeAIProvider = async () => {
+  const provider = document.getElementById('provider-select').value;
+  if (!PROVIDERS[provider]) { toast('Unknown provider'); return; }
+  const cfg = await fsGet(up('user_data/ai_config')) || {};
+  cfg.provider = provider;
+  await fsSet(up('user_data/ai_config'), cfg);
+  _activeProvider = provider;
+  _providerKey = null; // clear cache
+  toast(`Switched to ${PROVIDERS[provider].name}`);
+  setTimeout(() => renderSettingsPage(), 500);
+};
+
+window.saveProviderKey = async (provider) => {
+  const key = document.getElementById(`key-${provider}`).value.trim();
+  if (!key) { toast('Paste a key first'); return; }
+  const keys = await fsGet(up('user_data/provider_keys')) || {};
+  keys[provider] = key;
+  await fsSet(up('user_data/provider_keys'), keys);
+  _providerKey = null; // clear cache
+  toast(`${PROVIDERS[provider].name} key saved`);
+  setTimeout(() => renderSettingsPage(), 500);
+};
+
+window.deleteProviderKey = async (provider) => {
+  if (!confirm(`Delete ${PROVIDERS[provider].name} key?`)) return;
+  const keys = await fsGet(up('user_data/provider_keys')) || {};
+  delete keys[provider];
+  await fsSet(up('user_data/provider_keys'), keys);
+  _providerKey = null;
+  toast(`${PROVIDERS[provider].name} key deleted`);
+  setTimeout(() => renderSettingsPage(), 500);
+};
+
+window.testProviderKey = async (provider) => {
+  const btn = event.target;
+  if (!btn) return;
+  const orig = btn.textContent;
+  btn.textContent = '⏳ Testing...';
+  btn.style.opacity = '0.5';
+  
+  // Temporarily use the selected provider to test
+  const prevProvider = _activeProvider;
+  const prevKey = _providerKey;
+  _activeProvider = provider;
+  const keys = await fsGet(up('user_data/provider_keys')) || {};
+  _providerKey = keys[provider];
+  
+  const res = await askAI([{ role: 'user', content: 'Reply with exactly: "JE OS connected"' }], 30);
+  
+  // Restore
+  _activeProvider = prevProvider;
+  _providerKey = prevKey;
+  
+  if (res.error) {
+    btn.textContent = '✗ ' + (res.text || 'Connection failed');
+    btn.style.color = 'var(--red)';
+  } else {
+    btn.textContent = '✓ Connected';
+    btn.style.color = 'var(--green)';
+  }
+  
+  setTimeout(() => {
+    btn.textContent = orig;
+    btn.style.opacity = '1';
+    btn.style.color = 'var(--blue)';
+  }, 2000);
+};
+
 window.saveAIKey = async () => {
   const key = document.getElementById('ai-key-input').value.trim();
   if (!key) { toast('Paste a key first'); return; }
   await fsSet(up('settings/ai'), { key });
-  _aiKey = null; // clear cache so next request re-reads the new key
+  _aiKey = null;
   document.getElementById('ai-key-status').textContent = '✓ Key saved';
   document.getElementById('ai-key-status').style.color = 'var(--green)';
   toast('API key saved');

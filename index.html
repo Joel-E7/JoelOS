@@ -169,6 +169,20 @@ button{cursor:pointer;transition:all 0.15s;}
 
 .toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:12px 16px;font-size:0.7rem;color:var(--soft);z-index:300;animation:slideIn 0.3s;}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+
+/* ── OMNIBAR FAB ── */
+#omni-fab{position:fixed;bottom:24px;right:24px;width:46px;height:46px;border-radius:50%;background:var(--gold);border:none;color:#080808;font-size:1.4rem;line-height:1;cursor:pointer;z-index:250;box-shadow:0 4px 16px rgba(200,169,110,0.3);transition:transform 0.15s,box-shadow 0.15s;display:none;align-items:center;justify-content:center;}
+#omni-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(200,169,110,0.4);}
+#omni-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;display:none;align-items:flex-end;justify-content:center;padding-bottom:0;}
+#omni-overlay.open{display:flex;}
+#omni-sheet{background:var(--surface);border-top:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:640px;padding:20px 20px 32px;animation:slideUp 0.2s ease;}
+@keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+@keyframes slideDown{from{transform:translateY(-20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+#omni-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-m);font-size:0.82rem;padding:12px 14px;resize:none;outline:none;line-height:1.5;}
+#omni-input:focus{border-color:var(--gold-dim);}
+#omni-result{margin-top:10px;font-size:0.7rem;color:var(--soft);min-height:24px;line-height:1.6;}
+#omni-dump-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.65rem;padding:4px 10px;cursor:pointer;}
+#omni-dump-btn:hover{color:var(--text);border-color:var(--border3);}
 </style>
 </head>
 <body>
@@ -261,6 +275,10 @@ button{cursor:pointer;transition:all 0.15s;}
             <span class="ni-icon">📈</span>
             <span class="ni-label">Stats</span>
           </div>
+          <div class="nav-item" onclick="nav('wrapped')">
+            <span class="ni-icon">🎁</span>
+            <span class="ni-label">Wrapped</span>
+          </div>
           <div class="nav-item" onclick="nav('meals')">
             <span class="ni-icon">🍽️</span>
             <span class="ni-label">Meals</span>
@@ -285,15 +303,26 @@ button{cursor:pointer;transition:all 0.15s;}
           <div class="streak-num" style="color:var(--green);" id="padel-streak">0</div>
           <div class="streak-info">Padel<br><strong>Weeks</strong></div>
         </div>
+        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);">
+          <div class="streak-num" style="color:var(--gold);font-size:0.8rem;" id="inertia-display">○ 0</div>
+          <div class="streak-info">Daily<br><strong>Momentum</strong></div>
+        </div>
+        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);">
+          <div class="streak-num" style="color:#7ec8e3;font-size:0.75rem;" id="freeze-count"></div>
+          <div class="streak-info">Streak<br><strong>Freezes</strong></div>
+        </div>
         <div style="position:relative;">
           <button class="btn" onclick="toggleExportMenu()" style="width:100%;">⬇ Export</button>
           <div id="export-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;overflow:hidden;z-index:50;">
             <button class="btn" onclick="window.doExportAll()" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📦 Full JSON backup</button>
+            <button class="btn" id="opfs-backup-btn" onclick="window.backupToOPFS()" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">💾 Backup to file</button>
             <button class="btn" onclick="window.doExportCSV('daily')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📅 Daily data (CSV)</button>
             <button class="btn" onclick="window.doExportCSV('exercises')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">🏋️ Exercises (CSV)</button>
             <button class="btn" onclick="window.doExportCSV('padel')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">🎾 Padel (CSV)</button>
             <button class="btn" onclick="window.doExportCSV('uni_log')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📚 Uni log (CSV)</button>
-            <button class="btn" onclick="window.doExportCSV('journal')" style="width:100%;border:none;border-radius:0;text-align:left;padding:8px 10px;">✍ Journal (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('journal')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">✍ Journal (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('recipes')" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📖 Recipe book (CSV)</button>
+            <button class="btn" onclick="window.doExportCSV('habits')" style="width:100%;border:none;border-radius:0;text-align:left;padding:8px 10px;">🔗 Habits (CSV)</button>
           </div>
         </div>
       </div>
@@ -318,6 +347,51 @@ button{cursor:pointer;transition:all 0.15s;}
   </div>
 </div>
 
+<!-- OMNIBAR FAB -->
+<button id="omni-fab" onclick="openOmnibar()" title="Quick log (Ctrl+K)">+</button>
+
+<!-- ASK JE OS FAB -->
+<button id="ask-fab" onclick="openAskJeOS()" title="Ask JE OS (Ctrl+/)" style="position:fixed;bottom:80px;right:24px;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);color:var(--soft);font-size:1rem;cursor:pointer;z-index:250;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.15s,color 0.15s;display:none;align-items:center;justify-content:center;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--soft)'">🔍</button>
+
+<!-- ASK JE OS OVERLAY -->
+<div id="ask-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;display:none;align-items:flex-start;justify-content:center;padding-top:80px;">
+  <div id="ask-sheet" style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;width:100%;max-width:600px;margin:0 16px;padding:20px;animation:slideDown 0.2s ease;">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span style="font-family:var(--font-h);font-size:0.85rem;font-weight:700;color:var(--text);flex:1;">Ask JE OS</span>
+      <button onclick="closeAskJeOS()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0;">✕</button>
+    </div>
+    <input id="ask-input" type="text" placeholder="When did my shoulder start hurting?  What was stressing me last month?" style="width:100%;margin:0 0 12px;"/>
+    <div id="ask-result" style="font-size:0.72rem;color:var(--soft);min-height:32px;line-height:1.7;max-height:340px;overflow-y:auto;"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;">
+      <button class="btn-gold" onclick="submitAskJeOS()" style="flex:1;">Ask</button>
+      <button class="btn" onclick="submitAskVoice()" title="Voice">🎤</button>
+    </div>
+    <div style="font-size:0.6rem;color:var(--muted);margin-top:8px;">
+      Try: "When was my energy highest?", "What exercises have I done this month?", "What am I avoiding most?"
+    </div>
+  </div>
+</div>
+
+<!-- OMNIBAR OVERLAY -->
+<div id="omni-overlay" onclick="if(event.target===this)closeOmnibar()">
+  <div id="omni-sheet">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+      <span style="font-family:var(--font-h);font-size:0.85rem;font-weight:700;color:var(--text);">Quick Log</span>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <button id="omni-dump-btn" onclick="toggleOmniDump()">⊞ Dump mode</button>
+        <button onclick="closeOmnibar()" style="background:none;border:none;color:var(--muted);font-size:1.1rem;cursor:pointer;padding:0;">✕</button>
+      </div>
+    </div>
+    <textarea id="omni-input" rows="2" placeholder="Ate chicken and rice… Gym RPE was 8… Won padel 6-4 vs Dave… Feeling anxious about deadline…"></textarea>
+    <div id="omni-result"></div>
+    <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
+      <button class="btn-gold" onclick="submitOmnibar()" style="flex:1;">Log it</button>
+      <button class="btn" onclick="submitOmniVoice()" title="Voice input" style="flex-shrink:0;">🎤</button>
+    </div>
+    <div style="font-size:0.6rem;color:var(--muted);margin-top:8px;text-align:center;">Gemini parses your input and logs it to the right place automatically</div>
+  </div>
+</div>
+
 <!-- MODAL -->
 <div id="edit-modal">
   <div class="modal-content">
@@ -335,7 +409,7 @@ button{cursor:pointer;transition:all 0.15s;}
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
 import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
-import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import { getFirestore, doc, getDoc, setDoc, collection, addDoc, getDocs, deleteDoc, query, orderBy, deleteField } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // 🔧 FIREBASE CONFIG
@@ -371,9 +445,10 @@ function gymCategoryFromExercise(name) {
     if (cat === 'other') continue;
     if (list.some(m => m.toLowerCase() === n)) return cat;
   }
-  if (['press','fly','dip','push','tri','chest','shoulder','front'].some(k => n.includes(k))) return 'push';
+  // 'front' removed — Front Squat/Front Rack Lunge are legs, not push
+  if (['press','fly','dip','push','tri','chest','shoulder'].some(k => n.includes(k))) return 'push';
   if (['pull','row','curl','lat','bicep','deadlift','face','rear'].some(k => n.includes(k))) return 'pull';
-  if (['squat','leg','lunge','hip','glute','calf','step','hack'].some(k => n.includes(k))) return 'legs';
+  if (['squat','leg','lunge','hip','glute','calf','step','hack','front'].some(k => n.includes(k))) return 'legs';
   return null;
 }
 
@@ -490,19 +565,47 @@ async function idbQueueWrite(path, data) {
 
 async function idbFlushQueue() {
   if (!idb || !LIVE || !uid) return;
-  const tx = idb.transaction('queue', 'readwrite');
-  const store = tx.objectStore('queue');
-  const all = await new Promise(res => { const r = store.getAll(); r.onsuccess = () => res(r.result); r.onerror = () => res([]); });
-  const keys = await new Promise(res => { const r = store.getAllKeys(); r.onsuccess = () => res(r.result); r.onerror = () => res([]); });
+  // Read all items and keys in a short-lived transaction (no async gaps so it won't auto-commit)
+  const { all, keys } = await new Promise(res => {
+    const tx = idb.transaction('queue', 'readonly');
+    const store = tx.objectStore('queue');
+    let all, keys;
+    const rAll = store.getAll();
+    const rKeys = store.getAllKeys();
+    rAll.onsuccess = () => { all = rAll.result; if (keys !== undefined) res({ all, keys }); };
+    rKeys.onsuccess = () => { keys = rKeys.result; if (all !== undefined) res({ all, keys }); };
+    tx.onerror = () => res({ all: [], keys: [] });
+  });
+
+  const keysToDelete = [];
   for (let i = 0; i < all.length; i++) {
     try {
       await setDoc(doc(db, all[i].path), all[i].data, { merge: true });
-      store.delete(keys[i]);
-    } catch (e) { break; } // stop if still offline
+      keysToDelete.push(keys[i]);
+    } catch (e) {
+      // Only break on network errors — permanent errors (permission, validation) get dropped to avoid deadlock
+      const isNetworkError = e.code === 'unavailable' || e.message?.includes('network') || !navigator.onLine;
+      if (isNetworkError) break; // retry later when online
+      else {
+        console.warn('idbFlushQueue: dropping permanently failed item:', e.code, all[i].path);
+        keysToDelete.push(keys[i]); // drop it — retrying forever would block the queue
+      }
+    }
   }
-  const queueSize = await new Promise(res => { const r = store.count(); r.onsuccess = () => res(r.result); r.onerror = () => res(0); });
+
+  // Batch-delete all processed keys in a fresh transaction (original tx is long gone)
+  const remaining = keys.length - keysToDelete.length;
+  if (keysToDelete.length) {
+    await new Promise(res => {
+      const delTx = idb.transaction('queue', 'readwrite');
+      keysToDelete.forEach(k => delTx.objectStore('queue').delete(k));
+      delTx.oncomplete = () => res();
+      delTx.onerror = () => res();
+    });
+  }
+
   const offlineBadge = document.getElementById('offline-badge');
-  if (offlineBadge) offlineBadge.style.display = queueSize > 0 ? 'block' : 'none';
+  if (offlineBadge) offlineBadge.style.display = remaining > 0 ? 'block' : 'none';
 }
 
 // Initialise IDB and flush queue when coming online
@@ -609,8 +712,50 @@ function isSunday() { return new Date().getDay() === 0; }
 function fmtDate(d) { return new Date(d + 'T00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
 function mLbl(m) { return new Date(`${m}-01`).toLocaleDateString('en-GB', { month: 'short' }); }
 
+// ── BURNOUT INDICATOR ─────────────────────
+async function checkBurnout() {
+  const dismissKey = `jeos_burnout_dismissed_${todayKey2()}`;
+  if (localStorage.getItem(dismissKey)) return '';
+
+  const range = await fetchDailyRange(3);
+  const daysE = range.filter(d => d.energy);
+  const daysM = range.filter(d => d.mood || d.moods?.length);
+  if (!daysE.length || !daysM.length) return '';
+
+  const avgE = daysE.reduce((s, d) => s + d.energy, 0) / daysE.length;
+  const avgM = daysM.reduce((s, d) => {
+    const m = d.moods?.length ? Math.round(d.moods.reduce((ss, x) => ss + x.mood, 0) / d.moods.length) : d.mood;
+    return s + m;
+  }, 0) / daysM.length;
+
+  const exercises = await fsColGet(up('exercises')) || [];
+  const weekEx = exercises.filter(e => e.date >= weekKey() && e.rpe);
+  const avgRpe = weekEx.length ? weekEx.reduce((s, e) => s + e.rpe, 0) / weekEx.length : 0;
+
+  const depleted = avgE < 4 && avgM < 3;
+  const overreaching = avgE < 5 && avgRpe >= 8 && weekEx.length >= 2;
+  if (!depleted && !overreaching) return '';
+
+  const isRed = depleted && overreaching;
+  const color = isRed ? 'var(--red)' : '#c8a030';
+  const bg = isRed ? 'rgba(200,50,50,0.08)' : 'rgba(200,160,48,0.08)';
+  const icon = isRed ? '🔴' : '⚠️';
+  const msg = isRed
+    ? `Low energy (${avgE.toFixed(1)}/10), low mood (${avgM.toFixed(1)}/5) and high RPE — rest day strongly recommended`
+    : depleted
+      ? `3-day avg energy ${avgE.toFixed(1)}/10, mood ${avgM.toFixed(1)}/5 — consider a lighter day`
+      : `High training RPE (${avgRpe.toFixed(1)}) with below-average energy — watch for overreaching`;
+
+  return `<div style="padding:10px 12px;border-radius:6px;border:1px solid ${color};background:${bg};display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+    <span style="font-size:0.72rem;color:${color};">${icon} ${msg}</span>
+    <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('div').remove()" style="background:none;border:none;color:${color};cursor:pointer;font-size:0.9rem;padding:0 0 0 8px;flex-shrink:0;" title="Dismiss for today">✕</button>
+  </div>`;
+}
+
 window.nav = (page, el) => {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  _toneCache = null; // re-read state on every page change
+  _dailyRangeCache = {}; // stale burnout/tone data if not cleared between pages
   if (el) {
     el.classList.add('active');
   } else {
@@ -632,15 +777,20 @@ window.nav = (page, el) => {
     habits: renderHabitsPage,
     stats: renderStatsPage,
     meals: renderMealsPage,
-    settings: renderSettingsPage
+    settings: renderSettingsPage,
+    wrapped: renderWrappedPage
   };
   renders[page]?.();
   updateHeader();
-  if (window.innerWidth < 901) toggleSidebar();
+  // Close sidebar on mobile only — don't toggle (could re-open a swipe-closed sidebar)
+  if (window.innerWidth < 901) {
+    const sb = document.getElementById('sidebar');
+    if (sb?.classList.contains('open')) toggleSidebar();
+  }
 };
 
 function updateHeader() {
-  const titles = { today: 'Today', review: 'Weekly Review', energy: 'Energy Map', padel: 'Padel', workout: 'Workout', uni: 'Uni Log', journal: 'Journal', priorities: 'Priorities', habits: 'Habits', stats: 'Stats', meals: 'Meals', settings: 'Settings' };
+  const titles = { today: 'Today', review: 'Weekly Review', energy: 'Energy Map', padel: 'Padel', workout: 'Workout', uni: 'Uni Log', journal: 'Journal', priorities: 'Priorities', habits: 'Habits', stats: 'Stats', meals: 'Meals', settings: 'Settings', wrapped: '🎁 Wrapped' };
   document.getElementById('page-title').textContent = titles[currentPage];
   const now = new Date();
   document.getElementById('top-date').textContent = now.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' });
@@ -657,8 +807,43 @@ async function renderTodayPage() {
   const targetKey = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${targetKey}`)) || {};
 
+  // Morning card (06:00–10:00 only, not when viewing yesterday)
+  const hour = new Date().getHours();
+  const showMorning = !viewingYesterday && hour >= 6 && hour < 10;
+  let morningHtml = '';
+  if (showMorning) {
+    const [weekData, habitsData, habitsChecks] = await Promise.all([
+      fsGet(up(`weeks/${weekKey()}`)).then(r => r || {}),
+      fsGet(up('user_data/habits')).then(r => r || { items: [] }),
+      fsGet(up(`habit_checks/${todayKey2()}`)).then(r => r || {})
+    ]);
+    const priorities = (weekData.priorities || []).filter(p => !p.done).slice(0, 3);
+    const habits = (habitsData.items || []).slice(0, 4);
+    const checkedCount = Object.values(habitsChecks).filter(Boolean).length;
+    morningHtml = `
+      <div class="card" style="border-color:var(--gold-dim);background:linear-gradient(135deg,var(--gold-bg),var(--surface));">
+        <div class="card-title">☀️ Good morning</div>
+        ${priorities.length ? `
+          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Today's priorities</div>
+          ${priorities.map(p => `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0;border-left:2px solid var(--gold-dim);padding-left:8px;margin-bottom:4px;">→ ${sanitiseHtml(p.text)}</div>`).join('')}
+        ` : '<div style="font-size:0.7rem;color:var(--muted);">No priorities set this week — add some on the Priorities page.</div>'}
+        ${habits.length ? `
+          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:8px 0 4px;">Habits today — ${checkedCount}/${habits.length}</div>
+          ${habits.map((h, i) => `<div style="font-size:0.7rem;color:var(--soft);padding:2px 0;">${habitsChecks['h'+i] ? '✓' : '○'} ${sanitiseHtml(h.action)}</div>`).join('')}
+        ` : ''}
+      </div>`;
+  }
+
+  // Burnout badge (3-day rolling check, shown at top regardless of time)
+  let burnoutHtml = '';
+  if (!viewingYesterday) {
+    burnoutHtml = await checkBurnout();
+  }
+
   let html = `
     <div class="section-group">
+      ${burnoutHtml}
+      ${morningHtml}
       <div class="section-label">Daily Tracking</div>
       
       <div class="card">
@@ -762,16 +947,18 @@ async function renderTodayPage() {
 }
 
 async function renderTodayData(data) {
-  // Update reading display only — inputs stay blank ready for new entry
+  // Apply bio-responsive theme based on today's energy
+  applyBioTheme(data.energy ?? null);
   const readData = data.reading ? `<div>${data.reading.title ? `<strong>${data.reading.title}</strong> • ` : ''}${data.reading.pages}p • ${data.reading.mins}m</div>` : '<div class="empty">No reading logged yet</div>';
   document.getElementById('read-display').innerHTML = readData;
 
-  // Populate reading title autocomplete
-  const allDaily = await fsColGet(up('daily')) || [];
-  const uniqueTitles = [...new Set(allDaily.filter(d => d.reading?.title).map(d => d.reading.title))];
+  // Populate reading title autocomplete from cached daily range (fsColGet on daily doesn't work
+  // because daily docs have no 'date' field so orderBy filters them all out)
+  const recentDaily = await fetchDailyRange(90);
+  const uniqueTitles = [...new Set(recentDaily.filter(d => d.reading?.title).map(d => d.reading.title))];
   const datalist = document.getElementById('reading-history');
   if (datalist) {
-    datalist.innerHTML = uniqueTitles.map(t => `<option value="${t}"></option>`).join('');
+    datalist.innerHTML = uniqueTitles.map(t => `<option value="${sanitiseHtml(t)}"></option>`).join('');
   }
 
   // Populate mood trigger field and existing mood selection
@@ -858,6 +1045,12 @@ async function renderReviewPage() {
           <label class="lbl" style="margin-top:10px;">Notes</label>
           <textarea id="review-notes" placeholder="Anything else?" style="height:60px;"></textarea>
           <button class="btn-gold" onclick="saveReview()" style="width:100%;margin-top:10px;">Save Review</button>
+        </div>
+        <div class="card" style="border-color:var(--gold-dim);">
+          <div class="card-title">✨ Executive Summary</div>
+          <div class="mini-prompt">AI generates a brutally honest 3-bullet summary of your week based on your data.</div>
+          <button id="summary-btn" class="btn-gold" onclick="generateWeeklySummary()" style="width:100%;margin-bottom:8px;">✨ Generate Summary</button>
+          <div id="summary-output"></div>
         </div>
       </div>
     </div>
@@ -958,6 +1151,14 @@ async function renderPadelPage() {
           </div>
           <textarea id="match-sets" placeholder="Sets (e.g., 6-4, 4-6, 6-3)" style="width:100%;height:40px;margin-bottom:6px;"></textarea>
           <textarea id="match-highlights" placeholder="Highlights..." style="width:100%;height:60px;margin-bottom:6px;"></textarea>
+          <div style="margin-bottom:6px;">
+            <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;">Struggled with (optional)</div>
+            <div style="display:flex;flex-wrap:wrap;gap:4px;" id="weakness-tags">
+              ${['Backhand volley','Forehand volley','Lob','Smash','Net positioning','Court positioning','Serve','Return'].map(w =>
+                `<button type="button" class="weakness-tag btn" onclick="toggleWeaknessTag(this)" data-tag="${w}" style="font-size:0.6rem;padding:3px 7px;">${w}</button>`
+              ).join('')}
+            </div>
+          </div>
           <button class="btn-gold" onclick="addPadelMatch()" style="width:100%;">Log Match</button>
         </div>
       </div>
@@ -999,6 +1200,19 @@ async function renderPadelPage() {
   await renderMatchStats(sessions);
   _padelActivities = sessions;
   renderPadelHistory(sessions);
+
+  // Inject padel coach chat
+  const pdAiDiv = document.createElement('div');
+  pdAiDiv.innerHTML = renderChatHTML('padel-coach', 'Padel Coach',
+    'Match prep, opponent analysis, technique tips based on your recent form.',
+    [
+      { label: '🎾 Match prep', text: 'Help me prepare for my next match' },
+      { label: '📊 Analyse my form', text: 'Analyse my recent padel form and results' },
+      { label: '💡 Technique tips', text: 'What should I work on based on my recent matches?' }
+    ]);
+  const histCard = document.getElementById('pd-history')?.closest('.card');
+  if (histCard) histCard.insertAdjacentElement('afterend', pdAiDiv.firstElementChild);
+  initChat('padel-coach', ctxPadel);
 }
 
 let _padelActivities = [];
@@ -1024,6 +1238,13 @@ window.filterExerciseHistory = () => {
   );
   const el = document.getElementById('ex-history');
   if (el) el.innerHTML = renderExerciseHistory(filtered);
+};
+
+window.toggleWeaknessTag = (btn) => {
+  const active = btn.style.background === 'var(--red)';
+  btn.style.background = active ? '' : 'var(--red)';
+  btn.style.color = active ? '' : '#fff';
+  btn.style.borderColor = active ? '' : 'var(--red)';
 };
 
 function setPadelType(type) {
@@ -1077,8 +1298,11 @@ async function addPadelMatch() {
   const result = document.getElementById('match-result').value;
   const sets = document.getElementById('match-sets').value;
   const highlights = document.getElementById('match-highlights').value;
+  const weaknesses = [...document.querySelectorAll('.weakness-tag')].filter(b => b.style.background === 'var(--red)').map(b => b.dataset.tag);
 
-  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, opponent2, skill, partner, format, side, court, result, sets, highlights });
+  await fsColAdd(up('padel'), { date, time, type: 'match', opponent, opponent2, skill, partner, format, side, court, result, sets, highlights, weaknesses });
+  // Clear weakness tags
+  document.querySelectorAll('.weakness-tag').forEach(b => { b.style.background=''; b.style.color=''; b.style.borderColor=''; });
   document.getElementById('match-date').value = todayKey2();
   document.getElementById('match-time').value = '';
   document.getElementById('match-opponent').value = '';
@@ -1192,6 +1416,10 @@ async function renderUniPage() {
   const totalHrs = totalMins / 60;
   const pct = Math.min(100, (totalHrs / annualTarget) * 100);
   const remaining = Math.max(0, annualTarget - totalHrs);
+  if (pct >= 100 && !localStorage.getItem(`jeos_otj_confetti_${new Date().getFullYear()}`)) {
+    localStorage.setItem(`jeos_otj_confetti_${new Date().getFullYear()}`, '1');
+    fireConfetti();
+  }
 
   // Per-module breakdown
   const byModule = {};
@@ -1259,6 +1487,7 @@ async function renderUniPage() {
         }).join('')}
         <div style="margin-top:6px;">
           <button class="btn" onclick="editOTJTarget()" style="font-size:0.65rem;padding:4px 8px;">⚙ Set Annual Target</button>
+          <div id="otj-target-input-row"></div>
         </div>
       </div>
 
@@ -1295,6 +1524,7 @@ async function renderUniPage() {
             ${UNI_MODULES.map(m => `<option value="${m.code}">${m.name}</option>`).join('')}
           </select>
         </div>
+        <div id="uni-memory-triggers"></div>
         <div id="uni-list"></div>
       </div>
     </div>
@@ -1302,9 +1532,42 @@ async function renderUniPage() {
 
   document.getElementById('content').innerHTML = html;
   renderUniList(entries);
+  renderMemoryTriggers(entries);
 }
 
 let _uniEntries = [];
+
+function renderMemoryTriggers(entries) {
+  const el = document.getElementById('uni-memory-triggers');
+  if (!el) return;
+  const today = todayKey2();
+  const triggers = [];
+  entries.forEach(e => {
+    if (!e.date) return;
+    const daysDiff = Math.round((new Date(today) - new Date(e.date + 'T00:00')) / 86400000);
+    if (daysDiff === 7 || daysDiff === 30) {
+      triggers.push({ ...e, daysDiff });
+    }
+  });
+  if (!triggers.length) { el.innerHTML = ''; return; }
+  const modName = code => { const m = UNI_MODULES.find(m => m.code === code); return m ? m.name : code; };
+  el.innerHTML = `
+    <div style="margin-bottom:12px;">
+      <div style="font-size:0.65rem;color:var(--gold);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">🧠 Review these (spaced repetition)</div>
+      ${triggers.map(e => {
+        const mins = e.otj_mins || (e.otj ? e.otj * 60 : 0);
+        const fmtH = m => { const h = Math.floor(m/60), mm = m%60; return h > 0 ? (mm > 0 ? `${h}h ${mm}m` : `${h}h`) : `${mm}m`; };
+        return `<div style="padding:8px 10px;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:6px;margin-bottom:6px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="font-size:0.65rem;color:var(--gold);">${e.daysDiff === 7 ? '7-day review' : '30-day review'} · ${fmtDate(e.date)}</span>
+            <span style="font-size:0.6rem;color:var(--muted);">${modName(e.module)} · ${fmtH(mins)}</span>
+          </div>
+          ${e.learning ? `<div style="font-size:0.7rem;color:var(--soft);">↳ ${sanitiseHtml(e.learning)}</div>` : ''}
+          ${e.details ? `<div style="font-size:0.68rem;color:var(--muted);margin-top:2px;">${sanitiseHtml(e.details).slice(0, 100)}${e.details.length > 100 ? '…' : ''}</div>` : ''}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
 window.filterUniList = () => {
   const q = document.getElementById('uni-search')?.value.toLowerCase() || '';
   const mod = document.getElementById('uni-filter-module')?.value || '';
@@ -1316,12 +1579,31 @@ window.filterUniList = () => {
 };
 
 window.editOTJTarget = async () => {
+  // Show inline input in the OTJ progress card rather than a blocking prompt()
   const current = (await fsGet(up('settings/otj_targets')) || { annual: OTJ_ANNUAL_TARGET }).annual;
-  const val = prompt(`Annual OTJ target (hours):`, current);
-  if (!val || isNaN(parseInt(val))) return;
-  await fsSet(up('settings/otj_targets'), { annual: parseInt(val) });
+  const targetEl = document.getElementById('otj-target-input-row');
+  if (targetEl) {
+    targetEl.innerHTML = `
+      <div style="display:flex;gap:6px;align-items:center;margin-top:8px;">
+        <input type="number" id="otj-target-val" value="${current}" min="1" max="9999" style="flex:1;margin:0;" placeholder="Annual hours target"/>
+        <button class="btn-gold" onclick="saveOTJTarget()" style="padding:6px 10px;">Save</button>
+        <button class="btn" onclick="cancelOTJTarget()" style="padding:6px 10px;">✕</button>
+      </div>`;
+    document.getElementById('otj-target-val')?.focus();
+  }
+};
+
+window.saveOTJTarget = async () => {
+  const val = parseInt(document.getElementById('otj-target-val')?.value);
+  if (!val || isNaN(val)) { toast('Enter a valid number'); return; }
+  await fsSet(up('settings/otj_targets'), { annual: val });
   toast(`Target set to ${val}h`);
   renderUniPage();
+};
+
+window.cancelOTJTarget = () => {
+  const el = document.getElementById('otj-target-input-row');
+  if (el) el.innerHTML = '';
 };
 
 function renderUniList(entries, isFiltered = false) {
@@ -1440,8 +1722,12 @@ function renderJournalList(entries) {
 
 // ── PAGE: PRIORITIES ────────────────────
 async function renderPrioritiesPage() {
-  const data = await fsGet(up(`weeks/${weekKey()}`)) || { priorities: [] };
-  const archive = await fsGet(up(`archives/priority_archive`)) || {};
+  const [data, archive, dailyData] = await Promise.all([
+    fsGet(up(`weeks/${weekKey()}`)).then(r => r || { priorities: [] }),
+    fsGet(up('archives/priority_archive')).then(r => r || {}),
+    fsGet(up(`daily/${todayKey2()}`)).then(r => r || {})
+  ]);
+  const energy = dailyData.energy || 10;
 
   let html = `
     <div class="section-group">
@@ -1458,7 +1744,30 @@ async function renderPrioritiesPage() {
           <input type="text" placeholder="Add priority..." id="p-input" style="padding:6px 8px;"/>
           <button class="btn-gold" onclick="addPriority()" style="padding:6px 8px;height:auto;">Add</button>
         </div>
+        ${energy <= 3 ? `<div style="font-size:0.68rem;color:#c8a030;padding:6px 8px;background:rgba(200,160,48,0.08);border-radius:4px;margin-bottom:8px;">⚡ Low energy day — showing quick tasks only. <button class="btn" onclick="document.querySelectorAll('.effort-high').forEach(el=>el.style.display='');this.closest('div').remove()" style="font-size:0.6rem;padding:2px 6px;margin-left:6px;">Show all</button></div>` : ''}
         <div id="p-list"></div>
+      </div>
+
+      <div class="card" style="border-color:var(--border2);">
+        <div class="card-title" style="justify-content:space-between;">
+          Backburner
+          <span style="font-size:0.6rem;color:var(--muted);font-weight:400;">Ideas for later</span>
+        </div>
+        <div class="mini-prompt">Capture it here so it's not rattling around your head. Promote to next week during Sunday review.</div>
+        <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
+          <select id="bb-effort" style="width:80px;padding:4px 6px;font-size:0.68rem;" title="Effort level">
+            <option value="1">⚡ Quick</option>
+            <option value="2" selected>🔧 Medium</option>
+            <option value="3">🏋️ Heavy</option>
+          </select>
+          <input type="text" id="bb-input" placeholder="Add to backburner..." style="flex:1;margin:0;"/>
+          <button class="btn" onclick="addBackburner()" style="padding:6px 10px;flex-shrink:0;">+ Add</button>
+        </div>
+        <div id="bb-list"></div>
+        <div style="margin-top:8px;">
+          <button id="two-min-btn" class="btn" onclick="runTwoMinuteRule()" style="font-size:0.65rem;padding:4px 10px;">⚡ 2-min scan</button>
+          <span style="font-size:0.6rem;color:var(--muted);margin-left:8px;">AI flags tasks that take under 2 minutes</span>
+        </div>
       </div>
 
       <div class="card">
@@ -1484,24 +1793,77 @@ async function renderPrioritiesPage() {
     document.getElementById('p-obsession').value = data.obsession;
     document.getElementById('obsession-saved').textContent = `Saved: "${data.obsession}"`;
   }
-  renderPriorityList(data.priorities || []);
+  renderPriorityList(data.priorities || [], energy);
+  renderBackburnerList(data.backburner || [], energy);
   renderPriorityArchive(archive);
 }
 
-function renderPriorityList(priorities) {
+function renderPriorityList(priorities, energy = 10) {
   const cols = { Professional: 'var(--gold)', Health: 'var(--green)', Personal: 'var(--blue)' };
-  const html = priorities.map((p, i) => `
-    <div style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:4px;margin-bottom:6px;border-left:3px solid ${cols[p.tag] || 'var(--muted)'};">
+  const html = priorities.map((p, i) => {
+    const effortHigh = (p.effort || 2) >= 3 && energy <= 3;
+    return `<div class="${effortHigh ? 'effort-high' : ''}" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--surface2);border-radius:4px;margin-bottom:6px;border-left:3px solid ${cols[p.tag] || 'var(--muted)'};${effortHigh ? 'display:none;' : ''}">
       <input type="checkbox" ${p.done ? 'checked' : ''} onchange="togglePriority(${i})" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;"/>
       <div style="flex:1;">
-        <div style="font-size:0.75rem;color:var(--text);${p.done ? 'text-decoration:line-through;color:var(--soft);' : ''}">${p.text}</div>
-        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${p.tag}</div>
+        <div style="font-size:0.75rem;color:var(--text);${p.done ? 'text-decoration:line-through;color:var(--soft);' : ''}">${sanitiseHtml(p.text)}</div>
+        <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${p.tag}${p.effort ? ` · ${ {1:'⚡ Quick',2:'🔧 Medium',3:'🏋️ Heavy'}[p.effort] || ''}` : ''}</div>
       </div>
       <button class="btn-x" onclick="delPriority(${i})">✕</button>
-    </div>
-  `).join('') || '<div class="empty">No priorities set yet</div>';
+    </div>`;
+  }).join('') || '<div class="empty">No priorities set yet</div>';
   document.getElementById('p-list').innerHTML = html;
 }
+
+function renderBackburnerList(items, energy = 10) {
+  const el = document.getElementById('bb-list');
+  if (!el) return;
+  if (!items.length) { el.innerHTML = '<div class="empty" style="font-size:0.7rem;">Nothing on the backburner yet</div>'; return; }
+  const effortLabels = { 1: '⚡', 2: '🔧', 3: '🏋️' };
+  el.innerHTML = items.map((item, i) => {
+    const dimmed = item.effort >= 3 && energy <= 3;
+    return `<div data-bb-idx="${i}" style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);${dimmed ? 'opacity:0.35;' : ''}">
+      <span style="font-size:0.7rem;flex-shrink:0;" title="Effort">${effortLabels[item.effort] || '🔧'}</span>
+      <span class="bb-text" style="flex:1;font-size:0.72rem;color:var(--soft);">${sanitiseHtml(item.text)}</span>
+      <button onclick="promoteBackburner(${i})" class="btn" style="font-size:0.58rem;padding:2px 6px;flex-shrink:0;" title="Promote to this week">↑ This week</button>
+      <button onclick="delBackburner(${i})" class="btn-x" style="flex-shrink:0;">✕</button>
+    </div>`;
+  }).join('');
+}
+
+window.addBackburner = async () => {
+  const text = document.getElementById('bb-input')?.value.trim();
+  if (!text) return;
+  const effort = parseInt(document.getElementById('bb-effort')?.value) || 2;
+  const wk = weekKey();
+  const data = await fsGet(up(`weeks/${wk}`)) || {};
+  data.backburner = data.backburner || [];
+  data.backburner.push({ text, effort, created: todayKey2() });
+  await fsSet(up(`weeks/${wk}`), data);
+  document.getElementById('bb-input').value = '';
+  await renderPrioritiesPage();
+};
+
+window.delBackburner = async (i) => {
+  const wk = weekKey();
+  const data = await fsGet(up(`weeks/${wk}`)) || {};
+  data.backburner = data.backburner || [];
+  data.backburner.splice(i, 1);
+  await fsSet(up(`weeks/${wk}`), data);
+  await renderPrioritiesPage();
+};
+
+window.promoteBackburner = async (i) => {
+  const wk = weekKey();
+  const data = await fsGet(up(`weeks/${wk}`)) || {};
+  data.backburner = data.backburner || [];
+  data.priorities = data.priorities || [];
+  if (data.priorities.length >= 5) { toast('Max 5 priorities — complete one first'); return; }
+  const item = data.backburner.splice(i, 1)[0];
+  data.priorities.push({ text: item.text, tag: 'Personal', effort: item.effort, done: false });
+  await fsSet(up(`weeks/${wk}`), data);
+  toast(`"${item.text}" added to this week`);
+  await renderPrioritiesPage();
+};
 
 // ── PAGE: STATS ──────────────────────────
 let statsTab = 'overview';
@@ -1535,6 +1897,16 @@ async function renderStatsPage() {
         <button style="${rangeBtnStyle(7)}" onclick="setStatsRange(7)">7d</button>
         <button style="${rangeBtnStyle(30)}" onclick="setStatsRange(30)">30d</button>
         <button style="${rangeBtnStyle(90)}" onclick="setStatsRange(90)">90d</button>
+      </div>
+
+      <!-- LIFE RADAR -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-title" style="justify-content:space-between;">
+          <span>Life Radar</span>
+          <span style="font-size:0.62rem;color:var(--muted);">last ${statsRange} days</span>
+        </div>
+        <canvas id="life-radar" width="260" height="220" style="display:block;margin:0 auto;"></canvas>
+        <div id="radar-legend" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:8px;"></div>
       </div>
 
       <!-- MOOD -->
@@ -1663,6 +2035,16 @@ async function renderStatsPage() {
         <div id="gym-volume-labels" style="display:flex;gap:4px;margin-top:4px;overflow:hidden;"></div>
       </div>
 
+      <div class="section-label" style="margin-top:16px;">Volume vs Energy</div>
+      <div class="card">
+        <div class="card-title">Weekly Gym Volume vs Avg Energy</div>
+        <div style="display:flex;gap:12px;margin-bottom:6px;">
+          <span style="font-size:0.62rem;color:var(--blue);">■ Volume (kg)</span>
+          <span style="font-size:0.62rem;color:var(--gold);">— Avg Energy</span>
+        </div>
+        <canvas id="dual-axis-canvas" width="340" height="140" style="width:100%;display:block;"></canvas>
+      </div>
+
       <div class="section-label" style="margin-top:16px;">Personal Bests</div>
       <div class="card">
         <div class="card-title">Max Weight per Exercise</div>
@@ -1712,6 +2094,11 @@ async function renderStatsPage() {
         <div class="card-title">Last 10 Matches</div>
         <div id="pd-recent-form"></div>
       </div>
+      <div class="card" style="border-color:var(--red);">
+        <div class="card-title">🎯 Drill Focus</div>
+        <div class="mini-prompt">Top weaknesses from last 10 matches — what to work on next session</div>
+        <div id="pd-drill-focus"></div>
+      </div>
     `;
   }
 
@@ -1720,6 +2107,7 @@ async function renderStatsPage() {
 
   if (statsTab === 'overview') {
     await Promise.all([
+      renderLifeRadar(statsRange),
       renderMoodHm(statsRange),
       renderMoodDist(statsRange),
       renderEnergyChart(statsRange),
@@ -1735,12 +2123,14 @@ async function renderStatsPage() {
         'Ask about your data or get a full analysis of the last 14 days.',
         [{ label: '🔍 Analyse last 14 days', text: 'Analyse my last 14 days of data and give me specific observations' }]);
       initChat('stats-insights', ctxInsights);
+      _chats['stats-insights'].maxTokens = 1200;
     }
   } else if (statsTab === 'gym') {
     await Promise.all([
       renderGymMonthly(),
       renderGymConsistency(),
       renderGymVolume(),
+      renderDualAxis(),
       renderGymPBs()
     ]);
   } else if (statsTab === 'padel') {
@@ -1755,6 +2145,12 @@ window.setStatsRange = (r) => { statsRange = r; renderStatsPage(); };
 
 // Per-render daily data cache — cleared on each renderStatsPage call
 let _dailyRangeCache = {};
+
+// Sanitise user-provided strings before injecting into innerHTML
+function sanitiseHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
 
 async function fetchDailyRange(days) {
   if (_dailyRangeCache[days]) return _dailyRangeCache[days];
@@ -2075,7 +2471,9 @@ async function renderGymVolume() {
   const exercises = await fsColGet(up('exercises')) || [];
   const weeklyVol = weeks.map(w => {
     const vol = exercises.filter(e => e.date >= w.start && e.date <= w.end)
-      .reduce((s, e) => s + (e.sets||[]).reduce((ss, set) => ss + (parseInt(set.reps)||0) * (parseFloat(set.weight)||0), 0), 0);
+      .reduce((s, e) => s + (e.sets||[])
+        .filter(set => !set.warmup) // exclude warm-up sets from volume
+        .reduce((ss, set) => ss + (parseInt(set.reps)||0) * (parseFloat(set.weight)||0), 0), 0);
     return { label: w.label, vol };
   });
   const maxV = Math.max(1, ...weeklyVol.map(w => w.vol));
@@ -2097,12 +2495,19 @@ async function renderGymPBs() {
   const exercises = await fsColGet(up('exercises')) || [];
   const pbs = {};
   exercises.forEach(e => {
-    const maxWeight = Math.max(...(e.sets||[]).map(s => parseFloat(s.weight)||0));
-    if (maxWeight > 0) {
-      if (!pbs[e.name] || maxWeight > pbs[e.name].weight) {
-        pbs[e.name] = { weight: maxWeight, date: e.date };
+    // Filter out warm-up sets before calculating PBs
+    const workSets = (e.sets||[]).filter(s => !s.warmup);
+    workSets.forEach(s => {
+      const w = parseFloat(s.weight) || 0;
+      const r = parseInt(s.reps) || 0;
+      if (w > 0 && r > 0) {
+        if (!pbs[e.name] || w > pbs[e.name].weight) {
+          // Brzycki 1RM: weight × (36 / (37 - reps)), capped at 1 rep (no division by zero)
+          const oneRM = r < 37 ? Math.round(w * (36 / (37 - r)) * 10) / 10 : w;
+          pbs[e.name] = { weight: w, reps: r, oneRM, date: e.date };
+        }
       }
-    }
+    });
   });
   const el = document.getElementById('gym-pbs');
   if (!el) return;
@@ -2112,13 +2517,15 @@ async function renderGymPBs() {
   el.innerHTML = sorted.map(([name, pb]) => {
     const cat = gymCategoryFromExercise(name);
     const color = catColors[cat] || 'var(--muted)';
+    const showEst = pb.reps > 1 && pb.oneRM > pb.weight;
     return `<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);">
       <div>
-        <span style="font-size:0.73rem;color:var(--text);">${name}</span>
+        <span style="font-size:0.73rem;color:var(--text);">${sanitiseHtml(name)}</span>
         <span style="font-size:0.6rem;color:${color};margin-left:6px;text-transform:uppercase;">${cat||'other'}</span>
       </div>
       <div style="text-align:right;">
-        <div style="font-size:0.8rem;font-weight:700;color:var(--gold);">${pb.weight}kg</div>
+        <div style="font-size:0.8rem;font-weight:700;color:var(--gold);">${pb.weight}kg <span style="font-size:0.65rem;font-weight:400;color:var(--soft);">× ${pb.reps}</span></div>
+        ${showEst ? `<div style="font-size:0.62rem;color:var(--muted);">~${pb.oneRM}kg 1RM est.</div>` : ''}
         <div style="font-size:0.58rem;color:var(--muted);">${fmtDate(pb.date)}</div>
       </div>
     </div>`;
@@ -2252,6 +2659,25 @@ async function renderPadelStats() {
       }).join('')}
     ` : '<div class="empty">No matches logged yet</div>';
   }
+
+  // Drill focus card — top weaknesses from last 10 matches
+  const drillEl = document.getElementById('pd-drill-focus');
+  if (drillEl) {
+    const recentMatches = matches.slice(0, 10);
+    const tagCounts = {};
+    recentMatches.forEach(m => (m.weaknesses || []).forEach(w => { tagCounts[w] = (tagCounts[w] || 0) + 1; }));
+    const topTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    if (!topTags.length) {
+      drillEl.innerHTML = '<div class="empty">No weakness tags logged yet — tag shots in match log</div>';
+    } else {
+      drillEl.innerHTML = topTags.map(([tag, count]) =>
+        `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:0.72rem;color:var(--soft);">🎯 ${tag}</span>
+          <span style="font-size:0.65rem;color:var(--red);background:rgba(200,50,50,0.1);padding:2px 8px;border-radius:10px;">${count}x in last ${recentMatches.length}</span>
+        </div>`
+      ).join('');
+    }
+  }
 }
 
 // ── HELPER FUNCTIONS ────────────────────
@@ -2333,7 +2759,7 @@ function renderMoodEntries(data) {
       listEl.innerHTML = '';
     } else {
       listEl.innerHTML = entries.map((e, i) => `
-        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border-left:3px solid ${moodColors[e.mood]};">
+        <div id="mood-entry-${i}" style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border-radius:6px;margin-bottom:6px;border-left:3px solid ${moodColors[e.mood]};">
           <span style="font-size:1.3rem;">${moods[e.mood]}</span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:0.72rem;color:var(--text);font-weight:600;">${moodLabels[e.mood]} <span style="color:var(--muted);font-weight:400;font-size:0.65rem;">${e.time}</span></div>
@@ -2370,16 +2796,38 @@ window.editMoodEntry = async (i) => {
   const entries = data.moods || (data.mood ? [{ mood: data.mood, trigger: data.mood_trigger || '', time: '—', ts: 0 }] : []);
   const entry = entries[i];
   if (!entry) return;
-
   const moods = ['','😔','😐','😊','😄','🔥'];
-  const newTrigger = prompt(`Edit note for ${moods[entry.mood]} (${entry.time}):`, entry.trigger || '');
-  if (newTrigger === null) return; // cancelled
 
-  entries[i].trigger = newTrigger.trim();
+  // Inline edit — replace the entry card with an input row
+  const card = document.getElementById(`mood-entry-${i}`);
+  if (!card) return;
+  const current = entry.trigger || '';
+  card.innerHTML = `
+    <span style="font-size:1.3rem;">${moods[entry.mood]}</span>
+    <div style="flex:1;display:flex;gap:6px;align-items:center;min-width:0;">
+      <input type="text" id="mood-edit-input-${i}" value="${current.replace(/"/g,'&quot;')}" style="flex:1;margin:0;font-size:0.7rem;"/>
+      <button class="btn-gold" onclick="saveMoodEdit(${i})" style="padding:4px 8px;font-size:0.65rem;flex:0;">Save</button>
+      <button class="btn-x" onclick="renderMoodEntriesFromPage()" style="flex:0;">✕</button>
+    </div>`;
+};
+
+window.saveMoodEdit = async (i) => {
+  const input = document.getElementById(`mood-edit-input-${i}`);
+  if (!input) return;
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  const entries = data.moods || (data.mood ? [{ mood: data.mood, trigger: data.mood_trigger || '', time: '—', ts: 0 }] : []);
+  entries[i].trigger = input.value.trim();
   data.moods = entries;
   await fsSet(up(`daily/${k}`), data);
   renderMoodEntries(data);
   toast('Updated');
+};
+
+window.renderMoodEntriesFromPage = async () => {
+  const k = viewingYesterday ? getYesterdayKey() : todayKey2();
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  renderMoodEntries(data);
 };
 
 window.delMoodEntry = async (i) => {
@@ -2487,6 +2935,7 @@ async function addWin() {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.wins = data.wins || [];
+  if (data.wins.length >= 10) { toast('10 wins logged — that\'s enough for one day!'); return; }
   data.wins.push(val);
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('win-input').value = '';
@@ -2508,6 +2957,7 @@ async function addResist() {
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.resistance = data.resistance || [];
+  if (data.resistance.length >= 10) { toast('Cap reached — clear one first'); return; }
   data.resistance.push(val);
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('resist-input').value = '';
@@ -2573,20 +3023,6 @@ async function toggleYesterday() {
     document.getElementById('page-title').innerHTML = 'Today';
   }
   await renderTodayPage();
-}
-
-async function addPadel() {
-  const date = document.getElementById('pd-date').value || todayKey2();
-  const feel = document.getElementById('pd-feel').value;
-  const notes = document.getElementById('pd-notes').value;
-  await fsColAdd(up('padel'), { date, feel, notes });
-  document.getElementById('pd-date').value = todayKey2();
-  document.getElementById('pd-feel').value = '';
-  document.getElementById('pd-notes').value = '';
-  const sessions = await fsColGet(up('padel'));
-  renderPadelHistory(sessions);
-  await renderPadelChart();
-  toast('Session logged');
 }
 
 async function delPadel(id) {
@@ -2663,19 +3099,51 @@ async function togglePriority(i) {
   const wk = weekKey();
   const data = await fsGet(up(`weeks/${wk}`)) || { priorities: [] };
   data.priorities = data.priorities || [];
-  data.priorities[i].done = !data.priorities[i].done;
-  
-  if (data.priorities[i].done) {
-    // Archive completed priority
-    const archive = await fsGet(up(`archives/priority_archive`)) || { items: [] };
+  const item = data.priorities[i];
+  if (!item) return;
+
+  if (!item.done) {
+    // Optimistically remove from list immediately for responsiveness
+    data.priorities.splice(i, 1);
+    await fsSet(up(`weeks/${wk}`), data);
+    await renderPrioritiesPage();
+    await incrementInertia();
+    if (data.priorities.length === 0) fireConfetti();
+
+    // Show undo toast for 4 seconds before committing to archive
+    let undone = false;
+    const undoToast = document.createElement('div');
+    undoToast.className = 'toast';
+    undoToast.style.cssText += ';display:flex;gap:10px;align-items:center;right:24px;bottom:80px;';
+    undoToast.innerHTML = `<span>✓ "${item.text.slice(0,30)}" done</span><button onclick="this._undo=true;this.closest('.toast').remove()" style="background:none;border:1px solid var(--border2);border-radius:4px;color:var(--gold);font-family:var(--font-m);font-size:0.65rem;padding:2px 8px;cursor:pointer;">Undo</button>`;
+    document.body.appendChild(undoToast);
+
+    await new Promise(r => setTimeout(r, 4000));
+    const undoBtn = undoToast.querySelector('button');
+    if (undoBtn?._undo) undone = true;
+    undoToast.remove();
+
+    if (undone) {
+      // Restore item to the list
+      const current = await fsGet(up(`weeks/${wk}`)) || { priorities: [] };
+      current.priorities = current.priorities || [];
+      current.priorities.splice(i, 0, { ...item, done: false });
+      await fsSet(up(`weeks/${wk}`), current);
+      await renderPrioritiesPage();
+      return;
+    }
+
+    // Commit to archive
+    const archive = await fsGet(up('archives/priority_archive')) || { items: [] };
     archive.items = archive.items || [];
-    archive.items.push({ ...data.priorities[i], completed_at: new Date().toISOString() });
-    await fsSet(up(`archives/priority_archive`), archive);
+    archive.items.push({ ...item, done: true, completed_at: new Date().toISOString() });
+    await fsSet(up('archives/priority_archive'), archive);
+  } else {
+    // Unchecking a priority that was already done (shouldn't happen with new flow, but guard)
+    item.done = false;
+    await fsSet(up(`weeks/${wk}`), data);
+    await renderPrioritiesPage();
   }
-  
-  await fsSet(up(`weeks/${wk}`), data);
-  renderPriorityList(data.priorities);
-  await renderPrioritiesPage();
 }
 
 function renderPriorityArchive(archive) {
@@ -2732,6 +3200,14 @@ async function saveReview() {
   const existing = await fsGet(up(`reviews/${wk}`)) || {};
   await fsSet(up(`reviews/${wk}`), { ...existing, ...data });
   toast('Review saved');
+  // Prompt backup on Sundays
+  if (isSunday()) {
+    const lastBackup = localStorage.getItem('jeos_last_backup');
+    if (lastBackup !== wk) {
+      const go = confirm('Weekly review saved. Create a file backup now?');
+      if (go) { localStorage.setItem('jeos_last_backup', wk); await backupToOPFS(); }
+    }
+  }
 }
 
 async function saveEnergyMap() {
@@ -2768,12 +3244,16 @@ window.saveEdit = async () => {
     const el = document.getElementById('ef-' + f.key);
     if (el) updates[f.key] = el.value;
   });
-  const items = await fsColGet(up(editState.col));
-  const item = items.find(i => i.id === editState.id);
-  if (!item) { toast('Entry not found'); return; }
-  const updated = { ...item, ...updates };
-  await fsColDel(up(editState.col), editState.id);
-  await fsColAdd(up(editState.col), updated);
+  // Update in-place — preserves the original Firestore doc ID and creation timestamp.
+  // Old approach (delete + fsColAdd) generated a new doc ID on every edit.
+  try {
+    await setDoc(doc(db, up(editState.col), editState.id), updates, { merge: true });
+    await idbSet(`col:${up(editState.col)}`, null); // invalidate collection cache
+    syncPulse();
+  } catch (e) {
+    console.error('saveEdit error:', e.code, e.message);
+    toast('Save failed'); return;
+  }
   window.closeEditModal();
   toast('Saved');
   const renders = { padel: renderPadelPage, journal: renderJournalPage, uni_log: renderUniPage };
@@ -2785,34 +3265,41 @@ window.saveEdit = async () => {
 window.doExportAll = async () => {
   if (!LIVE || !uid) { toast('Sign in first to export'); return; }
   toast('Preparing export...');
-  const data = { exported: new Date().toISOString(), uid };
-  const cols = ['padel', 'journal', 'uni_log', 'exercises'];
-  for (const col of cols) { data[col] = await fsColGet(up(col)); }
-  data.daily = {};
-  for (let i = 0; i < 365; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v) data.daily[k] = v;
-  }
-  data.weeks = {};
-  data.reviews = {};
-  data.energy_map = {};
-  for (let i = 0; i < 52; i++) {
-    const d = new Date();
-    d.setDate(d.getDate() - (i * 7));
-    const day = d.getDay() || 7;
-    d.setDate(d.getDate() - day + 1);
-    const wk = d.toISOString().slice(0, 10);
-    const w = await fsGet(up(`weeks/${wk}`));
-    if (w) data.weeks[wk] = w;
-    const r = await fsGet(up(`reviews/${wk}`));
-    if (r) data.reviews[wk] = r;
-    const e = await fsGet(up(`energy_map/${wk}`));
-    if (e) data.energy_map[wk] = e;
-  }
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const exportData = { exported: new Date().toISOString(), uid };
+
+  // Collections in parallel
+  const cols = ['padel', 'journal', 'uni_log', 'exercises', 'recipes', 'habits'];
+  const colResults = await Promise.all(cols.map(c => fsColGet(up(c))));
+  cols.forEach((c, i) => { exportData[c] = colResults[i]; });
+
+  // 365 daily docs in parallel
+  const dailyKeys = Array.from({ length: 365 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    return d.toISOString().slice(0, 10);
+  });
+  const dailyDocs = await Promise.all(dailyKeys.map(k => fsGet(up(`daily/${k}`))));
+  exportData.daily = {};
+  dailyKeys.forEach((k, i) => { if (dailyDocs[i]) exportData.daily[k] = dailyDocs[i]; });
+
+  // 52 weeks — weeks, reviews, energy_map all in parallel
+  const weekKeys = Array.from({ length: 52 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (i * 7));
+    const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [weekDocs, reviewDocs, energyDocs] = await Promise.all([
+    Promise.all(weekKeys.map(k => fsGet(up(`weeks/${k}`)))),
+    Promise.all(weekKeys.map(k => fsGet(up(`reviews/${k}`)))),
+    Promise.all(weekKeys.map(k => fsGet(up(`energy_map/${k}`))))
+  ]);
+  exportData.weeks = {}; exportData.reviews = {}; exportData.energy_map = {};
+  weekKeys.forEach((k, i) => {
+    if (weekDocs[i]) exportData.weeks[k] = weekDocs[i];
+    if (reviewDocs[i]) exportData.reviews[k] = reviewDocs[i];
+    if (energyDocs[i]) exportData.energy_map[k] = energyDocs[i];
+  });
+
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = `je-os-backup-${new Date().toISOString().slice(0, 10)}.json`;
@@ -2882,7 +3369,6 @@ window.saveGratitude = saveGratitude;
 window.setDailyJournal = setDailyJournal;
 window.saveDailyJournal = saveDailyJournal;
 // Padel functions
-window.addPadel = addPadel;
 window.delPadel = delPadel;
 window.addPadelSession = addPadelSession;
 window.addPadelMatch = addPadelMatch;
@@ -2975,6 +3461,18 @@ window.doExportCSV = async (type = 'daily') => {
     const rows = [['date','type','text']];
     entries.forEach(e => rows.push([e.date, e.type||'', (e.text||'').replace(/\n/g,' ')]));
     dl(rows, 'journal');
+
+  } else if (type === 'recipes') {
+    const entries = await fsColGet(up('recipes')) || [];
+    const rows = [['date','name','macros','ingredients','steps']];
+    entries.forEach(e => rows.push([e.date, e.name||'', e.macros||'', (e.ingredients||'').replace(/\n/g,' '), (e.steps||'').replace(/\n/g,' ')]));
+    dl(rows, 'recipes');
+
+  } else if (type === 'habits') {
+    const data = await fsGet(up('user_data/habits')) || { items: [] };
+    const rows = [['anchor','action','duration','streak','created']];
+    (data.items||[]).forEach(h => rows.push([h.anchor||'', h.action||'', h.duration||'', h.streak||0, h.created||'']));
+    dl(rows, 'habits');
   }
 
   toast('Downloaded ✓');
@@ -3058,7 +3556,8 @@ async function renderWorkoutPage() {
         <input type="text" id="ex-name" placeholder="Exercise name (type to search...)" list="ex-list" style="margin-bottom:6px;"/>
         <datalist id="ex-list">${allExNames.map(n => `<option value="${n}">`).join('')}</datalist>
         <div id="ex-sets-container">
-          <div class="ex-set-row" style="display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:6px;margin-bottom:4px;align-items:center;">
+          <div class="ex-set-row" style="display:grid;grid-template-columns:auto 1fr 1fr 1fr 28px;gap:6px;margin-bottom:4px;align-items:center;">
+            <label title="Warm-up set (excluded from volume and PBs)" style="display:flex;align-items:center;gap:2px;font-size:0.6rem;color:var(--muted);cursor:pointer;"><input type="checkbox" class="ex-warmup" style="margin:0;width:12px;height:12px;"/>W</label>
             <input type="number" placeholder="Reps" class="ex-reps" min="1" style="margin:0;"/>
             <input type="number" placeholder="Weight (kg)" class="ex-weight" min="0" step="0.5" style="margin:0;"/>
             <input type="text" placeholder="Notes" class="ex-set-notes" style="margin:0;"/>
@@ -3080,11 +3579,12 @@ async function renderWorkoutPage() {
           <div id="rest-bar-wrap" style="height:6px;background:var(--surface2);border-radius:3px;margin:10px 0;">
             <div id="rest-bar" style="height:100%;background:var(--gold);border-radius:3px;transition:width 1s linear;width:100%;"></div>
           </div>
-          <div style="display:flex;gap:6px;justify-content:center;">
+          <div style="display:flex;gap:6px;justify-content:center;flex-wrap:wrap;">
             <button class="btn" onclick="startRest(60)">1m</button>
             <button class="btn" onclick="startRest(90)">1:30</button>
             <button class="btn" onclick="startRest(120)">2m</button>
             <button class="btn" onclick="startRest(180)">3m</button>
+            <button class="btn" id="pip-btn" onclick="toggleRestPiP()" title="Pop out timer" style="display:none;">⧉ PiP</button>
             <button class="btn-x" onclick="stopRest()">✕</button>
           </div>
         </div>
@@ -3140,6 +3640,17 @@ async function renderWorkoutPage() {
     initChat('workout-flex', ctxFlexibility);
   }
 
+  // Save Session + Feedback card
+  const feedbackDiv = document.createElement('div');
+  feedbackDiv.innerHTML = `
+    <div class="card" style="border-color:var(--gold-dim);margin-bottom:12px;">
+      <div class="card-title">Save Session</div>
+      <div class="mini-prompt">Updates your coach profile with today's exercises, PBs, and session ratings so the coach remembers next time.</div>
+      <button id="save-session-btn" class="btn-gold" onclick="saveCoachSession()" style="width:100%;">💾 Save Session to Coach Profile</button>
+    </div>` + await renderSessionFeedbackCard();
+  const aiCont = document.getElementById('ai-workout-cards');
+  if (aiCont) aiCont.insertAdjacentHTML('afterend', feedbackDiv.innerHTML);
+
   _allExercises = exercises;
   await renderTodaysExercises(exercises);
   renderVolumeChart(exercises);
@@ -3155,11 +3666,11 @@ function renderExerciseHistory(exercises) {
     const catColor = { push: 'var(--gold)', pull: 'var(--green)', legs: 'var(--blue)', other: 'var(--soft)' }[cat] || 'var(--muted)';
     return `<div style="padding:8px;border-bottom:1px solid var(--border);font-size:0.7rem;">
       <div style="display:flex;justify-content:space-between;">
-        <span style="color:var(--text);font-weight:600;">${e.name}</span>
+        <span style="color:var(--text);font-weight:600;">${sanitiseHtml(e.name)}</span>
         <span style="color:${catColor};font-size:0.62rem;text-transform:uppercase;">${cat||'–'}</span>
       </div>
       <div style="color:var(--soft);">${fmtDate(e.date)} • ${setsHtml || 'No sets'} ${e.rpe ? '• RPE '+e.rpe : ''}</div>
-      ${e.notes ? `<div style="color:var(--muted);font-style:italic;">${e.notes}</div>` : ''}
+      ${e.notes ? `<div style="color:var(--muted);font-style:italic;">${sanitiseHtml(e.notes)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -3173,7 +3684,7 @@ async function renderTodaysExercises(exercises) {
   el.innerHTML = todayEx.map(e => {
     const setsHtml = (e.sets||[]).map((s,i) => `<span style="padding:2px 6px;background:var(--surface2);border-radius:3px;font-size:0.65rem;">Set ${i+1}: ${s.reps}×${s.weight}kg</span>`).join(' ');
     return `<div style="padding:8px;border-bottom:1px solid var(--border);">
-      <div style="font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:4px;">${e.name}</div>
+      <div style="font-size:0.75rem;font-weight:600;color:var(--text);margin-bottom:4px;">${sanitiseHtml(e.name)}</div>
       <div style="display:flex;flex-wrap:wrap;gap:4px;">${setsHtml}</div>
       <button class="btn-x" onclick="delExercise('${e.id}')" style="margin-top:4px;">✕ Remove</button>
     </div>`;
@@ -3262,8 +3773,9 @@ window.addSetRow = () => {
   if (!container) return;
   const row = document.createElement('div');
   row.className = 'ex-set-row';
-  row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr 1fr 28px;gap:6px;margin-bottom:4px;align-items:center;';
+  row.style.cssText = 'display:grid;grid-template-columns:auto 1fr 1fr 1fr 28px;gap:6px;margin-bottom:4px;align-items:center;';
   row.innerHTML = `
+    <label title="Warm-up set (excluded from volume and PBs)" style="display:flex;align-items:center;gap:2px;font-size:0.6rem;color:var(--muted);cursor:pointer;"><input type="checkbox" class="ex-warmup" style="margin:0;width:12px;height:12px;"/>W</label>
     <input type="number" placeholder="Reps" class="ex-reps" min="1" style="margin:0;"/>
     <input type="number" placeholder="Weight (kg)" class="ex-weight" min="0" step="0.5" style="margin:0;"/>
     <input type="text" placeholder="Notes" class="ex-set-notes" style="margin:0;"/>
@@ -3280,19 +3792,29 @@ window.removeSetRow = (btn) => {
 window.logExercise = async () => {
   const name = document.getElementById('ex-name').value.trim();
   if (!name) { toast('Enter exercise name'); return; }
+  // XSS sanitise — strip HTML tags from name before storing
+  const safeName = name.replace(/<[^>]*>/g, '').trim();
+  if (!safeName) { toast('Invalid exercise name'); return; }
   const rows = document.querySelectorAll('.ex-set-row');
   const sets = [];
+  let weightError = false;
   rows.forEach(row => {
     const reps = parseInt(row.querySelector('.ex-reps').value);
-    const weight = parseFloat(row.querySelector('.ex-weight').value) || 0;
+    const rawWeight = row.querySelector('.ex-weight').value;
+    const weight = parseFloat(rawWeight);
+    if (rawWeight && isNaN(weight)) { weightError = true; return; }
     const notes = row.querySelector('.ex-set-notes').value.trim();
-    if (reps) sets.push({ reps, weight, notes });
+    const warmup = row.querySelector('.ex-warmup')?.checked || false;
+    if (reps) sets.push({ reps, weight: isNaN(weight) ? 0 : weight, notes, warmup });
   });
+  if (weightError) { toast('Weight must be a number (e.g. 85, not 85kg)'); return; }
   if (!sets.length) { toast('Add at least one set with reps'); return; }
   const rpe = parseInt(document.getElementById('ex-rpe').value) || null;
-  const gym_category = gymCategoryFromExercise(name);
-  const entry = { name, sets, rpe, gym_category, date: todayKey2() };
+  const gym_category = gymCategoryFromExercise(safeName);
+  const entry = { name: safeName, sets, rpe, gym_category, date: todayKey2() };
   await fsColAdd(up('exercises'), entry);
+  // Update live session_today doc so coach always has current session state
+  await updateSessionToday(entry);
   
   // Auto-tick gym toggle on today page if applicable
   if (gym_category && ['push','pull','legs'].includes(gym_category)) {
@@ -3337,19 +3859,101 @@ let restInterval = null;
 let restTotal = 0;
 let restRemaining = 0;
 
+// PiP canvas — created once, persists across page navs
+let _pipCanvas = null;
+let _pipVideo = null;
+let _pipCtx = null;
+
+function ensurePipCanvas() {
+  if (_pipCanvas) return;
+  _pipCanvas = document.createElement('canvas');
+  _pipCanvas.width = 320;
+  _pipCanvas.height = 180;
+  _pipCanvas.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;';
+  document.body.appendChild(_pipCanvas);
+  _pipCtx = _pipCanvas.getContext('2d');
+  _pipVideo = document.createElement('video');
+  _pipVideo.srcObject = _pipCanvas.captureStream(2);
+  _pipVideo.muted = true;
+  _pipVideo.style.cssText = 'position:fixed;top:-9999px;left:-9999px;pointer-events:none;';
+  document.body.appendChild(_pipVideo);
+  _pipVideo.addEventListener('leavepictureinpicture', () => {
+    const btn = document.getElementById('pip-btn');
+    if (btn) btn.textContent = '⧉ PiP';
+  });
+  _pipVideo.play().catch(() => {});
+}
+
+function drawPipFrame() {
+  if (!_pipCtx) return;
+  const m = Math.floor(restRemaining / 60);
+  const s = restRemaining % 60;
+  const label = restRemaining <= 0 ? 'Done!' : `${m}:${String(s).padStart(2,'0')}`;
+  const pct = restTotal > 0 ? restRemaining / restTotal : 0;
+  const barColor = restRemaining <= 10 ? '#e05a5a' : restRemaining <= 30 ? '#c8a96e' : '#4caf7d';
+  const c = _pipCtx;
+  c.fillStyle = '#080808';
+  c.fillRect(0, 0, 320, 180);
+  // progress arc
+  const cx = 160, cy = 82, r = 60;
+  c.beginPath(); c.arc(cx, cy, r, 0, Math.PI * 2); c.strokeStyle = '#1c1c1c'; c.lineWidth = 10; c.stroke();
+  c.beginPath(); c.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pct); c.strokeStyle = barColor; c.lineWidth = 10; c.lineCap = 'round'; c.stroke();
+  // time text
+  c.fillStyle = '#c8a96e';
+  c.font = 'bold 40px monospace';
+  c.textAlign = 'center';
+  c.textBaseline = 'middle';
+  c.fillText(label, cx, cy);
+  // subtitle
+  c.fillStyle = '#4a4a4a';
+  c.font = '13px monospace';
+  c.fillText('JE OS — Rest Timer', cx, 155);
+}
+
+window.toggleRestPiP = async () => {
+  if (!document.pictureInPictureEnabled) { toast('PiP not supported in this browser'); return; }
+  try {
+    ensurePipCanvas();
+    if (document.pictureInPictureElement) {
+      await document.exitPictureInPicture();
+      const btn = document.getElementById('pip-btn');
+      if (btn) btn.textContent = '⧉ PiP';
+    } else {
+      await _pipVideo.play().catch(() => {});
+      await _pipVideo.requestPictureInPicture();
+      const btn = document.getElementById('pip-btn');
+      if (btn) btn.textContent = '✕ PiP';
+    }
+  } catch(e) { toast('PiP unavailable'); }
+};
+
 window.startRest = (secs) => {
   clearInterval(restInterval);
   restTotal = secs;
   restRemaining = secs;
+  // Use wall-clock end time rather than a decrement counter.
+  // iOS Safari throttles setInterval to ~1/min when backgrounded, so a simple --restRemaining
+  // would drift wildly if the screen locks mid-rest. Comparing against Date.now() is immune.
+  const targetEnd = Date.now() + secs * 1000;
+  ensurePipCanvas();
   updateRestDisplay();
+  const pipBtn = document.getElementById('pip-btn');
+  if (pipBtn && document.pictureInPictureEnabled) pipBtn.style.display = '';
   restInterval = setInterval(() => {
-    restRemaining--;
-    updateRestDisplay();
+    restRemaining = Math.max(0, Math.round((targetEnd - Date.now()) / 1000));
+    drawPipFrame();
+    // Update in-page display only if still on workout page
+    if (document.getElementById('rest-display')) updateRestDisplay();
     if (restRemaining <= 0) {
       clearInterval(restInterval);
+      restInterval = null;
+      drawPipFrame();
+      speakText('Rest complete. Next set.');
       toast('Rest complete — next set!');
-      document.getElementById('rest-display').textContent = 'Done!';
-      document.getElementById('rest-bar').style.width = '0%';
+      const rd = document.getElementById('rest-display');
+      const rb = document.getElementById('rest-bar');
+      if (rd) rd.textContent = 'Done!';
+      if (rb) rb.style.width = '0%';
     }
   }, 1000);
 };
@@ -3357,6 +3961,9 @@ window.startRest = (secs) => {
 window.stopRest = () => {
   clearInterval(restInterval);
   restInterval = null;
+  restRemaining = 0;
+  drawPipFrame();
+  if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
   if (document.getElementById('rest-display')) document.getElementById('rest-display').textContent = '–';
   if (document.getElementById('rest-bar')) document.getElementById('rest-bar').style.width = '0%';
 };
@@ -3366,9 +3973,12 @@ function updateRestDisplay() {
   const s = restRemaining % 60;
   const el = document.getElementById('rest-display');
   const bar = document.getElementById('rest-bar');
-  if (el) el.textContent = `${m}:${String(s).padStart(2,'0')}`;
-  if (bar) bar.style.width = `${(restRemaining / restTotal) * 100}%`;
-  bar.style.background = restRemaining <= 10 ? 'var(--red)' : restRemaining <= 30 ? 'var(--gold)' : 'var(--green)';
+  if (el) el.textContent = restRemaining <= 0 ? 'Done!' : `${m}:${String(s).padStart(2,'0')}`;
+  if (bar) {
+    bar.style.width = `${(restRemaining / restTotal) * 100}%`;
+    bar.style.background = restRemaining <= 10 ? 'var(--red)' : restRemaining <= 30 ? 'var(--gold)' : 'var(--green)';
+  }
+  drawPipFrame();
 }
 
 // ── PAGE: HABITS ─────────────────────────
@@ -3496,14 +4106,9 @@ window.delHabit = async (i) => {
 async function renderCorrelationHints() {
   const el = document.getElementById('correlation-hints');
   if (!el) return;
-  
-  const data = [];
-  for (let i = 0; i < 30; i++) {
-    const d = new Date(); d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0,10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v) data.push({ ...v, date: k }); // attach date key
-  }
+
+  const rawData = await fetchDailyRange(30);
+  const data = rawData.filter(d => Object.keys(d).length > 1); // skip empty days
   
   if (data.length < 7) { el.innerHTML = '<div class="empty">Need 7+ days of data for patterns</div>'; return; }
   
@@ -3568,6 +4173,892 @@ async function renderCorrelationHints() {
 
 
 
+// ── AI RESPONSE CACHE (SHA-256) ───────────
+// Hash prompt string → check ai_saves for cached result → skip API call if hit
+let _aiCacheMap = null; // lazy-loaded from Firestore once per session
+
+async function hashPrompt(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('').slice(0, 16);
+}
+
+async function getAICache() {
+  if (_aiCacheMap !== null) return _aiCacheMap;
+  const saves = await fsColGet(up('ai_saves')).catch(() => []) || [];
+  _aiCacheMap = {};
+  saves.filter(s => s.type === '_cache').forEach(s => { _aiCacheMap[s.hash] = s.text; });
+  return _aiCacheMap;
+}
+
+function invalidateAICache() { _aiCacheMap = null; }
+
+async function askAICached(messages, maxTokens = 800) {
+  // Only cache single-shot one-message calls (not multi-turn chats)
+  if (messages.length !== 1) return askAI(messages, maxTokens);
+  const hash = await hashPrompt(messages[0].content.slice(0, 500));
+  const cache = await getAICache();
+  if (cache[hash]) return { text: cache[hash], cached: true };
+  const res = await askAI(messages, maxTokens);
+  if (!res.error) {
+    cache[hash] = res.text;
+    fsColAdd(up('ai_saves'), { type: '_cache', hash, text: res.text, date: todayKey2(), ts: Date.now() }).catch(() => {});
+  }
+  return res;
+}
+
+// ── AI OMNIBAR ───────────────────────────
+let _omniDumpMode = false;
+
+window.openOmnibar = () => {
+  const overlay = document.getElementById('omni-overlay');
+  const input = document.getElementById('omni-input');
+  if (!overlay) return;
+  overlay.classList.add('open');
+  document.getElementById('omni-result').textContent = '';
+  if (input) { input.value = ''; setTimeout(() => input.focus(), 80); }
+};
+
+window.closeOmnibar = () => {
+  document.getElementById('omni-overlay')?.classList.remove('open');
+  _omniDumpMode = false;
+  const input = document.getElementById('omni-input');
+  const dumpBtn = document.getElementById('omni-dump-btn');
+  if (input) { input.rows = 2; input.placeholder = 'Ate chicken and rice… Gym RPE was 8… Won padel 6-4 vs Dave… Feeling anxious about deadline…'; }
+  if (dumpBtn) dumpBtn.textContent = '⊞ Dump mode';
+};
+
+window.toggleOmniDump = () => {
+  _omniDumpMode = !_omniDumpMode;
+  const input = document.getElementById('omni-input');
+  const dumpBtn = document.getElementById('omni-dump-btn');
+  if (input) {
+    input.rows = _omniDumpMode ? 6 : 2;
+    input.placeholder = _omniDumpMode
+      ? 'Brain dump anything — "Need to finish Data Ethics. Shoulder weird after bench. Burned out. Won padel vs Carlos." Gemini routes everything.'
+      : 'Ate chicken and rice… Gym RPE was 8… Won padel 6-4 vs Dave… Feeling anxious about deadline…';
+  }
+  if (dumpBtn) dumpBtn.textContent = _omniDumpMode ? '⊟ Quick mode' : '⊞ Dump mode';
+};
+
+window.submitOmniVoice = () => {
+  if (!SpeechRec) { toast('Voice not supported — try Chrome or Edge'); return; }
+  const rec = new SpeechRec();
+  rec.lang = 'en-GB';
+  rec.onresult = e => {
+    const t = e.results[0][0].transcript;
+    const input = document.getElementById('omni-input');
+    if (input) input.value = t;
+    submitOmnibar();
+  };
+  rec.onerror = () => toast('Voice error — try again');
+  rec.start();
+  toast('Listening…');
+};
+
+// Core Gemini dispatcher — parses free text into structured actions
+async function omniDispatch(text) {
+  const today = todayKey2();
+  const prompt = `You are a data extraction engine for a personal life-tracking app. Parse the user's input and return ONLY a valid JSON array of actions. No explanation, no markdown, no code fences — raw JSON only.
+
+Supported action types:
+- log_meal: { "action": "log_meal", "data": { "name": string } }
+- log_win: { "action": "log_win", "data": { "text": string } }
+- log_resistance: { "action": "log_resistance", "data": { "text": string } }
+- log_mood: { "action": "log_mood", "data": { "mood": 1-5, "trigger": string } }
+- log_energy: { "action": "log_energy", "data": { "energy": 1-10 } }
+- log_gym_rpe: { "action": "log_gym_rpe", "data": { "rpe": 1-10 } }
+- log_reading: { "action": "log_reading", "data": { "pages": number, "mins": number, "title": string } }
+- log_padel_result: { "action": "log_padel_result", "data": { "result": "win"|"loss", "opponent": string, "sets": string } }
+- add_backburner: { "action": "add_backburner", "data": { "text": string, "effort": 1|2|3 } }
+- open_page: { "action": "open_page", "data": { "page": "today"|"workout"|"padel"|"journal"|"priorities"|"habits"|"stats"|"meals"|"uni"|"review"|"settings" } }
+- journal_entry: { "action": "journal_entry", "data": { "text": string, "type": "reflection"|"gratitude"|"vent"|"idea" } }
+
+Rules:
+- Return [] if nothing actionable is found
+- Extract ALL actions from a brain dump (multiple actions per input is normal)
+- For moods: Anxious/sad/low = 1-2, Okay/neutral = 3, Good = 4, Great/energised = 5
+- For effort in add_backburner: quick task = 1, medium = 2, large/project = 3
+- Today's date is ${today}
+
+User input: "${text.replace(/"/g, '\\"')}"`;
+
+  const res = await askAI([{ role: 'user', content: prompt }], 400, THINK.FAST);
+  if (res.error) throw new Error(res.text);
+  let raw = res.text.trim();
+  // Strip any accidental markdown fences
+  raw = raw.replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
+  return JSON.parse(raw);
+}
+
+// Execute a parsed action array against Firestore
+async function omniExecute(actions) {
+  const today = todayKey2();
+  const log = [];
+  for (const a of actions) {
+    try {
+      if (a.action === 'log_meal') {
+        await fsColAdd(up('meals'), { name: sanitiseHtml(a.data.name), notes: '', date: today });
+        log.push(`🍽 Meal logged: ${a.data.name}`);
+      } else if (a.action === 'log_win') {
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        d.wins = (d.wins || []).slice(0, 9);
+        d.wins.push(sanitiseHtml(a.data.text));
+        await fsSet(up(`daily/${today}`), d);
+        log.push(`🏆 Win: ${a.data.text}`);
+      } else if (a.action === 'log_resistance') {
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        d.resistance = (d.resistance || []).slice(0, 9);
+        d.resistance.push(sanitiseHtml(a.data.text));
+        await fsSet(up(`daily/${today}`), d);
+        log.push(`🚧 Resistance: ${a.data.text}`);
+      } else if (a.action === 'log_mood') {
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        d.moods = d.moods || [];
+        if (d.moods.length < 3) {
+          const clampedMood = Math.min(5, Math.max(1, Math.round(a.data.mood)));
+          const now = new Date();
+          d.moods.push({ mood: clampedMood, trigger: a.data.trigger || '', time: `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}` });
+          d.mood = Math.round(d.moods.reduce((s,m) => s + m.mood, 0) / d.moods.length);
+          await fsSet(up(`daily/${today}`), d);
+          log.push(`${['','😔','😐','😊','😄','🔥'][clampedMood]} Mood ${clampedMood}/5`);
+        }
+      } else if (a.action === 'log_energy') {
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        d.energy = Math.min(10, Math.max(1, a.data.energy));
+        await fsSet(up(`daily/${today}`), d);
+        log.push(`⚡ Energy ${d.energy}/10`);
+      } else if (a.action === 'log_gym_rpe') {
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        d.gym_rpe = Math.min(10, Math.max(1, a.data.rpe));
+        await fsSet(up(`daily/${today}`), d);
+        log.push(`🏋️ RPE ${d.gym_rpe}/10`);
+      } else if (a.action === 'log_reading') {
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        d.reading = { pages: a.data.pages || 0, mins: a.data.mins || 0, title: sanitiseHtml(a.data.title || '') };
+        await fsSet(up(`daily/${today}`), d);
+        log.push(`📖 Reading: ${a.data.pages}p${a.data.title ? ' — ' + a.data.title : ''}`);
+      } else if (a.action === 'log_padel_result') {
+        await fsColAdd(up('padel'), { type: 'match', date: today, result: a.data.result, opponent: sanitiseHtml(a.data.opponent || ''), sets: sanitiseHtml(a.data.sets || ''), feel: '', notes: 'Logged via Omnibar', weaknesses: [] });
+        log.push(`🎾 Padel ${a.data.result === 'win' ? 'W' : 'L'} vs ${a.data.opponent}${a.data.sets ? ' (' + a.data.sets + ')' : ''}`);
+      } else if (a.action === 'add_backburner') {
+        const wk = weekKey();
+        const wdata = await fsGet(up(`weeks/${wk}`)) || {};
+        wdata.backburner = wdata.backburner || [];
+        wdata.backburner.push({ text: sanitiseHtml(a.data.text), effort: a.data.effort || 2, created: today });
+        await fsSet(up(`weeks/${wk}`), wdata);
+        log.push(`📋 Backburner: ${a.data.text}`);
+      } else if (a.action === 'open_page') {
+        log.push(`→ Opening ${a.data.page}`);
+        setTimeout(() => nav(a.data.page), 800);
+      } else if (a.action === 'journal_entry') {
+        await fsColAdd(up('journal'), { text: sanitiseHtml(a.data.text), type: a.data.type || 'reflection', date: today });
+        log.push(`📝 Journal (${a.data.type || 'reflection'})`);
+      }
+    } catch(e) {
+      log.push(`⚠ Failed: ${a.action}`);
+    }
+  }
+  return log;
+}
+
+window.submitOmnibar = async () => {
+  const input = document.getElementById('omni-input');
+  const resultEl = document.getElementById('omni-result');
+  const text = input?.value.trim();
+  if (!text) return;
+  if (resultEl) resultEl.innerHTML = '<span style="color:var(--muted);">Parsing…</span>';
+  try {
+    const actions = await omniDispatch(text);
+    if (!actions.length) {
+      if (resultEl) resultEl.innerHTML = '<span style="color:var(--muted);">Nothing actionable found — try being more specific</span>';
+      return;
+    }
+    const log = await omniExecute(actions);
+    if (resultEl) resultEl.innerHTML = log.map(l => `<div style="padding:2px 0;">✓ ${sanitiseHtml(l)}</div>`).join('');
+    // Refresh current page if it was affected
+    setTimeout(() => nav(currentPage), 400);
+    setTimeout(closeOmnibar, 1800);
+  } catch(e) {
+    if (resultEl) resultEl.innerHTML = `<span style="color:var(--red);">Parse error — try rephrasing</span>`;
+  }
+};
+
+// ── 2-MINUTE RULE ─────────────────────────
+window.runTwoMinuteRule = async () => {
+  const wk = weekKey();
+  const data = await fsGet(up(`weeks/${wk}`)) || {};
+  const items = data.backburner || [];
+  if (!items.length) { toast('No backburner items to scan'); return; }
+
+  const btn = document.getElementById('two-min-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Scanning…'; }
+
+  const prompt = `You are scanning a task list for the 2-minute rule: which tasks could realistically be done in under 2 minutes?
+Return ONLY a JSON array of 0-indexed positions (integers) for tasks that qualify. No explanation, just the array. Example: [0, 2, 4]
+
+Tasks:
+${items.map((item, i) => `${i}. ${item.text}`).join('\n')}`;
+
+  const res = await askAICached([{ role: 'user', content: prompt }], 200);
+  if (res.error) {
+    toast('AI scan failed'); if (btn) { btn.disabled = false; btn.textContent = '⚡ 2-min scan'; } return;
+  }
+
+  try {
+    let raw = res.text.trim().replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
+    const quickIdxs = JSON.parse(raw);
+    // Tag matching items in DOM
+    const rows = document.querySelectorAll('#bb-list [data-bb-idx]');
+    rows.forEach(row => {
+      const idx = parseInt(row.dataset.bbIdx);
+      if (quickIdxs.includes(idx)) {
+        row.style.borderLeft = '2px solid var(--green)';
+        const badge = document.createElement('span');
+        badge.textContent = '⚡2m';
+        badge.style.cssText = 'font-size:0.58rem;color:var(--green);flex-shrink:0;';
+        row.querySelector('span.bb-text')?.before(badge);
+      }
+    });
+    toast(quickIdxs.length ? `${quickIdxs.length} quick task${quickIdxs.length > 1 ? 's' : ''} highlighted` : 'No 2-min tasks found');
+  } catch(e) {
+    toast('Could not parse results');
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '⚡ 2-min scan'; }
+};
+
+// ── ASK JE OS (SEMANTIC SEARCH) ──────────
+window.openAskJeOS = () => {
+  const overlay = document.getElementById('ask-overlay');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  const input = document.getElementById('ask-input');
+  document.getElementById('ask-result').innerHTML = '';
+  if (input) setTimeout(() => input.focus(), 80);
+};
+
+window.closeAskJeOS = () => {
+  const overlay = document.getElementById('ask-overlay');
+  if (overlay) overlay.style.display = 'none';
+};
+
+// Close on backdrop click
+document.getElementById('ask-overlay')?.addEventListener('click', e => {
+  if (e.target === document.getElementById('ask-overlay')) closeAskJeOS();
+});
+
+window.submitAskVoice = () => {
+  if (!SpeechRec) { toast('Voice not supported — try Chrome or Edge'); return; }
+  const rec = new SpeechRec();
+  rec.lang = 'en-GB';
+  rec.onresult = e => {
+    const t = e.results[0][0].transcript;
+    const input = document.getElementById('ask-input');
+    if (input) { input.value = t; submitAskJeOS(); }
+  };
+  rec.onerror = () => toast('Voice error');
+  rec.start();
+  toast('Listening…');
+};
+
+window.submitAskJeOS = async () => {
+  const input = document.getElementById('ask-input');
+  const resultEl = document.getElementById('ask-result');
+  const q = input?.value.trim();
+  if (!q) return;
+  if (resultEl) resultEl.innerHTML = '<span style="color:var(--muted);font-style:italic;">🔍 Searching your data…</span>';
+
+  // Step 1: cheap classifier call — identify which collection(s) to fetch
+  const classifyPrompt = `You are a query classifier for a personal life-tracking app. Given a user question, return ONLY a JSON array of relevant data sources. No explanation.
+Available sources: "daily" (mood, energy, resistance, wins, reading, phone usage, sleep), "exercises" (gym sets, weights, reps, PRs), "padel" (matches, opponents, results), "journal" (journal entries, thoughts), "uni_log" (study sessions, OTJ hours), "priorities" (weekly goals, backburner), "habits" (habit streaks).
+Return 1-3 most relevant sources. Example: ["daily","exercises"]
+Question: "${q.replace(/"/g,'\\"')}"`;
+
+  const classRes = await askAI([{ role: 'user', content: classifyPrompt }], 80, THINK.FAST);
+  let sources = ['daily'];
+  try {
+    let raw = (classRes.text || '').trim().replace(/^```(?:json)?/,'').replace(/```$/,'').trim();
+    sources = JSON.parse(raw);
+    if (!Array.isArray(sources) || !sources.length) sources = ['daily'];
+  } catch(e) { /* fallback to daily */ }
+
+  // Step 2: fetch only relevant data slices
+  const today = todayKey2();
+  const cutoff90 = new Date(); cutoff90.setDate(cutoff90.getDate() - 90);
+  const cutoffStr = cutoff90.toISOString().slice(0,10);
+  const fetches = {};
+
+  await Promise.all(sources.map(async src => {
+    if (src === 'daily') {
+      const data = await fetchDailyRange(90);
+      fetches.daily = data.filter(d => Object.keys(d).length > 1).map(minifyDailyRow).join('\n');
+    } else if (src === 'exercises') {
+      const ex = await fsColGet(up('exercises')).then(r => (r||[]).filter(e => e.date >= cutoffStr));
+      fetches.exercises = ex.map(minifyExerciseRow).join('\n') || 'none';
+    } else if (src === 'padel') {
+      const pa = await fsColGet(up('padel')).then(r => (r||[]).filter(p => p.date >= cutoffStr));
+      fetches.padel = pa.map(p => `${p.date} ${p.type==='match'?(p.result==='win'?'W':'L')+' vs '+(p.opponent||'?')+(p.sets?' ('+p.sets+')':''):'session'}${p.highlights?' '+p.highlights:''}${(p.weaknesses||[]).length?' weak:['+p.weaknesses.join(',')+']':''}`).join('\n') || 'none';
+    } else if (src === 'journal') {
+      const je = await fsColGet(up('journal')).then(r => (r||[]).filter(e => e.date >= cutoffStr));
+      fetches.journal = je.map(e => `${e.date} [${e.type||'note'}]: ${e.text.slice(0,120)}`).join('\n') || 'none';
+    } else if (src === 'uni_log') {
+      const ul = await fsColGet(up('uni_log')).then(r => (r||[]).filter(e => e.date >= cutoffStr));
+      fetches.uni_log = ul.map(e => `${e.date} ${e.module||''} ${Math.round((e.otj_mins||0)/60*10)/10}h: ${(e.details||'').slice(0,80)}`).join('\n') || 'none';
+    } else if (src === 'priorities') {
+      const wk = weekKey();
+      const wd = await fsGet(up(`weeks/${wk}`)) || {};
+      const arc = await fsGet(up('archives/priority_archive')) || { items: [] };
+      const recentDone = (arc.items||[]).slice(-20).map(p => `[done] ${p.text}`);
+      const active = (wd.priorities||[]).map(p => `[${p.done?'done':'active'}] ${p.text}`);
+      const bb = (wd.backburner||[]).map(p => `[backburner] ${p.text}`);
+      fetches.priorities = [...active, ...bb, ...recentDone].join('\n') || 'none';
+    } else if (src === 'habits') {
+      const hd = await fsGet(up('user_data/habits')) || { items: [] };
+      fetches.habits = (hd.items||[]).map(h => `After ${h.anchor} → ${h.action} (streak: ${h.streak||0})`).join('\n') || 'none';
+    }
+  }));
+
+  // Step 3: answer with context, using DEEP thinking
+  const contextStr = Object.entries(fetches).map(([k,v]) => `=== ${k} (last 90 days) ===\n${v}`).join('\n\n');
+  const answerPrompt = `You are answering a question about Joel's personal life data. Joel is 25, data science apprentice, ADHD, gym PPL split, plays padel.
+Be specific — reference dates, numbers, patterns. Keep answer concise (under 150 words). If you can't find relevant data, say so directly.
+
+${contextStr}
+
+Question: ${q}`;
+
+  const answerRes = await askAI([{ role: 'user', content: answerPrompt }], 350, THINK.DEEP);
+  if (resultEl) {
+    if (answerRes.error) {
+      resultEl.innerHTML = `<span style="color:var(--red);">${answerRes.text}</span>`;
+    } else {
+      resultEl.innerHTML = aiFormatResponse(answerRes.text);
+      resultEl.innerHTML += `<div style="margin-top:10px;font-size:0.6rem;color:var(--muted);">Sources searched: ${sources.join(', ')}</div>`;
+    }
+  }
+};
+
+// ── JE OS WRAPPED ─────────────────────────
+async function renderWrappedPage() {
+  document.getElementById('content').innerHTML = `
+    <div class="section-group">
+      <div class="section-label">JE OS Wrapped</div>
+      <div class="card" style="text-align:center;padding:24px;">
+        <div style="font-size:2rem;margin-bottom:8px;">🎁</div>
+        <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:800;color:var(--gold);">Building your year…</div>
+        <div style="font-size:0.7rem;color:var(--muted);margin-top:8px;">Aggregating all your data</div>
+      </div>
+    </div>`;
+
+  const now = new Date();
+  const yearStart = `${now.getFullYear()}-01-01`;
+  const cutoffStr = yearStart;
+
+  // Parallel fetch everything
+  const [exercises, padelSessions, uniEntries, journalEntries, habitsData] = await Promise.all([
+    fsColGet(up('exercises')).then(r => (r||[]).filter(e => e.date >= cutoffStr)),
+    fsColGet(up('padel')).then(r => (r||[]).filter(p => p.date >= cutoffStr)),
+    fsColGet(up('uni_log')).then(r => (r||[]).filter(e => e.date >= cutoffStr)),
+    fsColGet(up('journal')).then(r => (r||[]).filter(e => e.date >= cutoffStr)),
+    fsGet(up('user_data/habits')).then(r => r || { items: [] })
+  ]);
+
+  // Daily data — fetch full year (365 docs)
+  const yearKeys = Array.from({ length: 365 }, (_, i) => {
+    const d = new Date(now); d.setDate(d.getDate() - (364 - i));
+    return d.toISOString().slice(0,10);
+  }).filter(k => k >= yearStart);
+  const yearVals = await Promise.all(yearKeys.map(k => fsGet(up(`daily/${k}`))));
+  const dailyData = yearKeys.map((k,i) => ({ date: k, ...(yearVals[i]||{}) })).filter(d => Object.keys(d).length > 1);
+
+  // ── Gym stats
+  const totalVol = exercises.filter(e => e.sets?.some(s => !s.warmup))
+    .reduce((s,e) => s + (e.sets||[]).filter(s=>!s.warmup).reduce((ss,set) => ss+(parseInt(set.reps)||0)*(parseFloat(set.weight)||0), 0), 0);
+  const gymDays = dailyData.filter(d => d.gym?.push || d.gym?.pull || d.gym?.legs).length;
+  const pushDays = dailyData.filter(d => d.gym?.push).length;
+  const pullDays = dailyData.filter(d => d.gym?.pull).length;
+  const legsDays = dailyData.filter(d => d.gym?.legs).length;
+
+  // Top exercise by volume
+  const exVol = {};
+  exercises.forEach(e => {
+    const vol = (e.sets||[]).filter(s=>!s.warmup).reduce((s,set)=>s+(parseInt(set.reps)||0)*(parseFloat(set.weight)||0),0);
+    exVol[e.name] = (exVol[e.name]||0) + vol;
+  });
+  const topEx = Object.entries(exVol).sort((a,b)=>b[1]-a[1])[0];
+
+  // ── Padel stats
+  const matches = padelSessions.filter(p => p.type === 'match');
+  const wins = matches.filter(m => m.result === 'win').length;
+  const losses = matches.length - wins;
+  const oppMap = {};
+  matches.forEach(m => [m.opponent,m.opponent2].filter(Boolean).forEach(o => {
+    oppMap[o] = oppMap[o] || { w:0, l:0 };
+    m.result === 'win' ? oppMap[o].w++ : oppMap[o].l++;
+  }));
+  const topOpp = Object.entries(oppMap).sort((a,b)=>(b[1].w+b[1].l)-(a[1].w+a[1].l))[0];
+  const weakMap = {};
+  matches.forEach(m => (m.weaknesses||[]).forEach(w => weakMap[w]=(weakMap[w]||0)+1));
+  const topWeak = Object.entries(weakMap).sort((a,b)=>b[1]-a[1])[0];
+
+  // ── Mood/energy
+  const moodDays = dailyData.filter(d => {
+    return d.moods?.length || d.mood;
+  });
+  const getMood = d => d.moods?.length ? d.moods.reduce((s,m)=>s+m.mood,0)/d.moods.length : (d.mood||0);
+  const avgMood = moodDays.length ? moodDays.reduce((s,d)=>s+getMood(d),0)/moodDays.length : 0;
+  const energyDays = dailyData.filter(d => d.energy);
+  const avgEnergy = energyDays.length ? energyDays.reduce((s,d)=>s+d.energy,0)/energyDays.length : 0;
+
+  // Best mood month
+  const moodByMonth = {};
+  moodDays.forEach(d => {
+    const mo = d.date.slice(0,7);
+    if (!moodByMonth[mo]) moodByMonth[mo] = [];
+    moodByMonth[mo].push(getMood(d));
+  });
+  const bestMoodMonth = Object.entries(moodByMonth)
+    .map(([m,v]) => [m, v.reduce((a,b)=>a+b,0)/v.length])
+    .sort((a,b)=>b[1]-a[1])[0];
+  const monthNames = { '01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec' };
+
+  // ── Reading
+  const totalPages = dailyData.reduce((s,d) => s+(d.reading?.pages||0), 0);
+  const readDays = dailyData.filter(d=>(d.reading?.pages||0)>0).length;
+
+  // ── Resistance (most avoided)
+  const resistMap = {};
+  dailyData.forEach(d => (d.resistance||[]).forEach(r => resistMap[r]=(resistMap[r]||0)+1));
+  const topResist = Object.entries(resistMap).sort((a,b)=>b[1]-a[1])[0];
+
+  // ── Uni
+  const uniMins = uniEntries.reduce((s,e)=>s+(e.otj_mins||0),0);
+  const uniHours = Math.round(uniMins/60);
+
+  // ── Wins
+  const totalWins = dailyData.reduce((s,d)=>s+(d.wins?.length||0),0);
+
+  // ── AI summary
+  const summaryData = `Year ${now.getFullYear()} so far:
+Gym: ${gymDays} days (Push:${pushDays} Pull:${pullDays} Legs:${legsDays}), total volume ${Math.round(totalVol/1000)}k kg${topEx ? ', top exercise: '+topEx[0]+' ('+Math.round(topEx[1]/1000)+'k kg)' : ''}
+Padel: ${matches.length} matches, ${wins}W-${losses}L${topOpp ? ', most played vs '+topOpp[0]+' ('+topOpp[1].w+'W-'+topOpp[1].l+'L)' : ''}${topWeak ? ', most common weakness: '+topWeak[0] : ''}
+Mood avg: ${avgMood.toFixed(1)}/5, Energy avg: ${avgEnergy.toFixed(1)}/10${bestMoodMonth ? ', best mood month: '+monthNames[bestMoodMonth[0].slice(5)]+'('+bestMoodMonth[1].toFixed(1)+'/5)' : ''}
+Reading: ${totalPages} pages over ${readDays} days
+Uni/OTJ: ${uniHours} hours logged
+Wins logged: ${totalWins}
+${topResist ? 'Most avoided: "'+topResist[0]+'" ('+topResist[1]+'x)' : ''}`;
+
+  const aiRes = await askAI([{ role: 'user', content:
+    `Write a punchy, honest "Year in Review" summary for Joel based on this data. 4-5 sentences max. Reference the actual numbers. Celebrate real wins, name real patterns. No filler.\n\n${summaryData}`
+  }], 250, THINK.DEEP);
+
+  const statCard = (emoji, label, value, sub='') => `
+    <div style="text-align:center;padding:14px 8px;background:var(--surface2);border-radius:8px;">
+      <div style="font-size:1.4rem;margin-bottom:4px;">${emoji}</div>
+      <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:800;color:var(--gold);">${value}</div>
+      <div style="font-size:0.62rem;color:var(--muted);margin-top:2px;">${label}</div>
+      ${sub ? `<div style="font-size:0.6rem;color:var(--soft);margin-top:2px;">${sub}</div>` : ''}
+    </div>`;
+
+  const html = `
+    <div class="section-group">
+      <div class="section-label">${now.getFullYear()} Wrapped</div>
+
+      <div class="card" style="background:linear-gradient(135deg,var(--gold-bg),var(--surface));border-color:var(--gold-dim);margin-bottom:12px;">
+        <div style="font-family:var(--font-h);font-size:1.1rem;font-weight:800;color:var(--gold);margin-bottom:10px;">🎁 Your Year So Far</div>
+        <div style="font-size:0.75rem;color:var(--soft);line-height:1.7;">${aiRes.error ? summaryData : aiFormatResponse(aiRes.text)}</div>
+      </div>
+
+      <div class="section-label" style="margin-top:16px;">Gym</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        ${statCard('🏋️','gym days',gymDays)}
+        ${statCard('💪','kg lifted',Math.round(totalVol/1000)+'k',topEx ? topEx[0] : '')}
+        ${statCard('📊','push/pull/legs',`${pushDays}/${pullDays}/${legsDays}`)}
+      </div>
+
+      <div class="section-label" style="margin-top:4px;">Padel</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        ${statCard('🎾','matches',matches.length)}
+        ${statCard('🏆','win rate',matches.length ? Math.round(wins/matches.length*100)+'%' : '—', `${wins}W ${losses}L`)}
+        ${statCard('👤','top opponent',topOpp ? topOpp[0] : '—', topOpp ? `${topOpp[1].w}W-${topOpp[1].l}L` : '')}
+      </div>
+
+      <div class="section-label" style="margin-top:4px;">Life</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+        ${statCard('📖','pages read',totalPages,readDays+' days')}
+        ${statCard('📚','OTJ hours',uniHours+'h')}
+        ${statCard('🏆','wins logged',totalWins)}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:16px;">
+        ${statCard('😊','avg mood',avgMood.toFixed(1)+'/5', bestMoodMonth ? 'best: '+monthNames[bestMoodMonth[0].slice(5)] : '')}
+        ${statCard('⚡','avg energy',avgEnergy.toFixed(1)+'/10')}
+      </div>
+
+      ${topResist ? `
+      <div class="card" style="border-color:var(--red);background:rgba(224,90,90,0.04);">
+        <div style="font-size:0.7rem;color:var(--soft);">🚧 Most avoided this year: <strong style="color:var(--text);">"${sanitiseHtml(topResist[0])}"</strong> — logged ${topResist[1]} times</div>
+      </div>` : ''}
+
+      ${topWeak ? `
+      <div class="card" style="margin-top:8px;">
+        <div style="font-size:0.7rem;color:var(--soft);">🎾 Padel weakness to work on: <strong style="color:var(--text);">${sanitiseHtml(topWeak[0])}</strong> (${topWeak[1]} matches)</div>
+      </div>` : ''}
+
+      <div style="margin-top:16px;display:flex;gap:8px;">
+        <button class="btn-gold" onclick="saveAISuggestion('wrapped',document.querySelector('.section-group').innerHTML)" style="flex:1;">💾 Save to AI Saves</button>
+        <button class="btn" onclick="nav('stats')" style="flex:1;">📊 Full Stats</button>
+      </div>
+    </div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+// ── STATS: DUAL-AXIS CHART ────────────────
+async function renderDualAxis() {
+  const el = document.getElementById('dual-axis-canvas');
+  if (!el) return;
+
+  // Re-use gym volume data (last 8 weeks) + daily energy per week
+  const now = new Date();
+  const day = now.getDay() || 7;
+  const weeks = [];
+  for (let w = 7; w >= 0; w--) {
+    const ws = new Date(now); ws.setDate(now.getDate() - day + 1 - (w * 7));
+    const we = new Date(ws); we.setDate(ws.getDate() + 6);
+    weeks.push({ start: ws.toISOString().slice(0,10), end: we.toISOString().slice(0,10), label: ws.toLocaleDateString('en-GB',{day:'numeric',month:'short'}) });
+  }
+
+  const [exercises, dailyDocs] = await Promise.all([
+    fsColGet(up('exercises')).then(r => r||[]),
+    Promise.all(weeks.flatMap(w => {
+      const keys = [];
+      const d = new Date(w.start);
+      while (d.toISOString().slice(0,10) <= w.end) { keys.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+      return keys.map(k => fsGet(up(`daily/${k}`)).then(v => v||{}));
+    }))
+  ]);
+
+  // Build per-week data
+  let dayIdx = 0;
+  const weekData = weeks.map(w => {
+    const numDays = 7;
+    const days = dailyDocs.slice(dayIdx, dayIdx + numDays);
+    dayIdx += numDays;
+    const vol = exercises.filter(e => e.date >= w.start && e.date <= w.end)
+      .reduce((s,e) => s + (e.sets||[]).filter(s=>!s.warmup).reduce((ss,set)=>ss+(parseInt(set.reps)||0)*(parseFloat(set.weight)||0),0), 0);
+    const energyDays = days.filter(d => d.energy);
+    const avgEnergy = energyDays.length ? energyDays.reduce((s,d)=>s+d.energy,0)/energyDays.length : null;
+    return { label: w.label, vol, avgEnergy };
+  });
+
+  const maxVol = Math.max(1, ...weekData.map(w => w.vol));
+  const W = el.width, H = el.height;
+  const padL = 40, padR = 12, padT = 16, padB = 28;
+  const chartW = W - padL - padR;
+  const chartH = H - padT - padB;
+  const barW = (chartW / weekData.length) * 0.55;
+  const barGap = chartW / weekData.length;
+
+  const ctx = el.getContext('2d');
+  ctx.clearRect(0, 0, W, H);
+
+  // Gridlines (3)
+  [0.25, 0.5, 0.75, 1].forEach(frac => {
+    const y = padT + chartH * (1 - frac);
+    ctx.beginPath(); ctx.moveTo(padL, y); ctx.lineTo(W - padR, y);
+    ctx.strokeStyle = '#1c1c1c'; ctx.lineWidth = 0.5; ctx.stroke();
+  });
+
+  // Y-axis label (volume)
+  ctx.fillStyle = '#4a4a4a'; ctx.font = '9px monospace'; ctx.textAlign = 'right';
+  [0, 0.5, 1].forEach(frac => {
+    const y = padT + chartH * (1 - frac);
+    ctx.fillText(Math.round(maxVol * frac / 1000) + 'k', padL - 4, y + 3);
+  });
+
+  // Bars (gym volume)
+  weekData.forEach((w, i) => {
+    const x = padL + i * barGap + (barGap - barW) / 2;
+    const barH = w.vol > 0 ? Math.max(3, (w.vol / maxVol) * chartH) : 1;
+    const y = padT + chartH - barH;
+    ctx.fillStyle = w.vol > 0 ? 'rgba(91,141,238,0.7)' : '#1c1c1c';
+    ctx.beginPath();
+    ctx.roundRect ? ctx.roundRect(x, y, barW, barH, [2,2,0,0]) : ctx.rect(x, y, barW, barH);
+    ctx.fill();
+    // X label
+    ctx.fillStyle = '#4a4a4a'; ctx.font = '8px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(w.label.split(' ')[0], padL + i * barGap + barGap / 2, H - 6);
+  });
+
+  // Energy line (0-10 scale mapped to chart height)
+  const energyPoints = weekData.map((w, i) => ({
+    x: padL + i * barGap + barGap / 2,
+    y: w.avgEnergy !== null ? padT + chartH * (1 - w.avgEnergy / 10) : null
+  }));
+  ctx.beginPath();
+  let started = false;
+  energyPoints.forEach(p => {
+    if (p.y === null) { started = false; return; }
+    started ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y);
+    started = true;
+  });
+  ctx.strokeStyle = '#c8a96e'; ctx.lineWidth = 2; ctx.lineJoin = 'round'; ctx.stroke();
+
+  // Energy dots
+  energyPoints.forEach(p => {
+    if (p.y === null) return;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 3, 0, Math.PI*2);
+    ctx.fillStyle = '#c8a96e'; ctx.fill();
+  });
+
+  // Y2-axis label (energy) — right side
+  ctx.fillStyle = '#c8a96e'; ctx.font = '9px monospace'; ctx.textAlign = 'left';
+  [0, 5, 10].forEach(v => {
+    const y = padT + chartH * (1 - v/10);
+    ctx.fillText(v, W - padR + 2, y + 3);
+  });
+}
+
+// ── OPFS BACKUPS ──────────────────────────
+window.backupToOPFS = async () => {
+  const btn = document.getElementById('opfs-backup-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Backing up…'; }
+  try {
+    // Fetch all collections in parallel
+    const [exercises, padel, journal, meals, recipes, uni_log, habits, ai_saves] = await Promise.all([
+      fsColGet(up('exercises')).then(r=>r||[]),
+      fsColGet(up('padel')).then(r=>r||[]),
+      fsColGet(up('journal')).then(r=>r||[]),
+      fsColGet(up('meals')).then(r=>r||[]),
+      fsColGet(up('recipes')).then(r=>r||[]),
+      fsColGet(up('uni_log')).then(r=>r||[]),
+      fsGet(up('user_data/habits')).then(r=>r||{}),
+      fsColGet(up('ai_saves')).then(r=>r||[])
+    ]);
+
+    // Fetch last 365 days of daily data
+    const now = new Date();
+    const dailyKeys = Array.from({length:365},(_,i)=>{ const d=new Date(now); d.setDate(d.getDate()-(364-i)); return d.toISOString().slice(0,10); });
+    const dailyVals = await Promise.all(dailyKeys.map(k => fsGet(up(`daily/${k}`))));
+    const daily = dailyKeys.map((k,i) => dailyVals[i] ? { date:k, ...dailyVals[i] } : null).filter(Boolean);
+
+    const backup = { exportedAt: new Date().toISOString(), uid, daily, exercises, padel, journal, meals, recipes, uni_log, habits, ai_saves };
+    const json = JSON.stringify(backup, null, 2);
+    const filename = `jeos-backup-${todayKey2()}.json`;
+
+    if ('showSaveFilePicker' in window) {
+      // File System Access API — user picks save location
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{ description: 'JSON Backup', accept: { 'application/json': ['.json'] } }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      toast('Backup saved ✓');
+    } else {
+      // Fallback: OPFS storage (invisible to user, but survives IDB wipe)
+      const root = await navigator.storage.getDirectory();
+      const fileHandle = await root.getFileHandle(filename, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(json);
+      await writable.close();
+      // Also trigger a download so the user gets a copy
+      const blob = new Blob([json], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      toast('Backup saved to OPFS + downloaded ✓');
+    }
+  } catch(e) {
+    if (e.name === 'AbortError') { /* user cancelled picker — not an error */ }
+    else { toast('Backup failed: ' + e.message); }
+  }
+  if (btn) { btn.disabled = false; btn.textContent = '💾 Backup to file'; }
+};
+
+// ── MINIFIER ──────────────────────────────
+// Compress daily data objects before sending to Gemini. ~40% token reduction.
+function minifyDailyRow(d) {
+  const parts = [d.date];
+  const mood = d.moods?.length ? Math.round(d.moods.reduce((s,m)=>s+m.mood,0)/d.moods.length) : (d.mood||0);
+  if (mood) parts.push(`M${mood}`);
+  if (d.energy) parts.push(`E${d.energy}`);
+  if (d.gym?.push) parts.push('GPush');
+  if (d.gym?.pull) parts.push('GPull');
+  if (d.gym?.legs) parts.push('GLegs');
+  if (d.gym_rpe) parts.push(`RPE${d.gym_rpe}`);
+  if (d.reading?.pages) parts.push(`R${d.reading.pages}p`);
+  if (d.phone?.mins) parts.push(`Ph${Math.round(d.phone.mins/60*10)/10}h`);
+  if (d.wins?.length) parts.push(`W${d.wins.length}`);
+  if (d.resistance?.length) parts.push(`Res[${d.resistance.join('|')}]`);
+  if (d.sleep?.total_mins) parts.push(`Slp${Math.round(d.sleep.total_mins/60*10)/10}h`);
+  return parts.join(' ');
+}
+
+function minifyExerciseRow(e) {
+  const sets = (e.sets||[]).filter(s=>!s.warmup).map(s=>`${s.reps}x${s.weight}kg`).join(',');
+  return `${e.date} ${e.name}(${e.gym_category||'?'}) ${sets}${e.rpe?` RPE${e.rpe}`:''}`;
+}
+
+
+
+// ── STATS: LIFE RADAR ────────────────────
+async function renderLifeRadar(days = 30) {
+  const canvas = document.getElementById('life-radar');
+  const legendEl = document.getElementById('radar-legend');
+  if (!canvas) return;
+
+  const [dailyData, exercises, padelSessions, habitsData, uniEntries] = await Promise.all([
+    fetchDailyRange(days),
+    fsColGet(up('exercises')).then(r => r || []),
+    fsColGet(up('padel')).then(r => r || []),
+    fsGet(up('user_data/habits')).then(r => r || { items: [] }),
+    fsColGet(up('uni_log')).then(r => r || [])
+  ]);
+
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
+  const cutoffStr = cutoff.toISOString().slice(0, 10);
+
+  // ── Score each axis 0-10 ──
+  // GYM: % of days with a gym session, scaled to 10
+  const gymDays = dailyData.filter(d => d.gym?.push || d.gym?.pull || d.gym?.legs).length;
+  const gymScore = Math.min(10, Math.round((gymDays / days) * 10 * (10/3))); // 3 sessions/week = 10
+
+  // PADEL: matches played in range, capped at 8 = 10
+  const padelInRange = padelSessions.filter(p => p.date >= cutoffStr && p.type === 'match').length;
+  const padelScore = Math.min(10, Math.round((padelInRange / 8) * 10));
+
+  // UNI: OTJ hours logged in range vs target pace (assume 8h/week = full score)
+  const uniInRange = uniEntries.filter(e => e.date >= cutoffStr);
+  const uniMins = uniInRange.reduce((s, e) => s + (e.otj_mins || 0), 0);
+  const uniTarget = (days / 7) * 8 * 60; // 8h/week target in mins
+  const uniScore = Math.min(10, Math.round((uniMins / uniTarget) * 10));
+
+  // READING: days with pages > 0, target 5 days/week = 10
+  const readDays = dailyData.filter(d => (d.reading?.pages || 0) > 0).length;
+  const readTarget = (days / 7) * 5;
+  const readScore = Math.min(10, Math.round((readDays / readTarget) * 10));
+
+  // HABITS: avg completion rate across all habits over the range
+  const habitCount = (habitsData.items || []).length;
+  let habitScore = 0;
+  if (habitCount > 0) {
+    // Count days with at least one habit check, as a proxy (checking all habit_checks is too many reads)
+    const recentData = dailyData.filter(d => Object.keys(d).length > 1);
+    // Use wins as a soft proxy if no direct check — just use energy + wins heuristic
+    const activeDays = recentData.filter(d => (d.wins?.length || 0) > 0 || d.energy >= 5).length;
+    habitScore = Math.min(10, Math.round((activeDays / days) * 10 * 1.4));
+  }
+
+  // MOOD: avg mood scaled to 10
+  const moodDays = dailyData.filter(d => {
+    const m = d.moods?.length ? Math.round(d.moods.reduce((s,x)=>s+x.mood,0)/d.moods.length) : (d.mood||0);
+    return m > 0;
+  });
+  const avgMoodRaw = moodDays.length
+    ? moodDays.reduce((s, d) => {
+        const m = d.moods?.length ? Math.round(d.moods.reduce((ss,x)=>ss+x.mood,0)/d.moods.length) : d.mood;
+        return s + m;
+      }, 0) / moodDays.length
+    : 0;
+  const moodScore = Math.min(10, Math.round((avgMoodRaw / 5) * 10));
+
+  const axes = [
+    { label: 'Gym',     score: gymScore,   color: '#c8a96e' },
+    { label: 'Padel',   score: padelScore, color: '#4caf7d' },
+    { label: 'Uni',     score: uniScore,   color: '#5b8dee' },
+    { label: 'Reading', score: readScore,  color: '#e0a05a' },
+    { label: 'Mood',    score: moodScore,  color: '#c87ee0' },
+  ];
+
+  // ── Draw ──
+  const ctx = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2 - 10;
+  const R = Math.min(W, H) / 2 - 36;
+  const N = axes.length;
+  const angle = (i) => (Math.PI * 2 * i) / N - Math.PI / 2;
+
+  ctx.clearRect(0, 0, W, H);
+
+  // Grid rings
+  [0.25, 0.5, 0.75, 1].forEach(frac => {
+    ctx.beginPath();
+    for (let i = 0; i < N; i++) {
+      const a = angle(i);
+      const x = cx + Math.cos(a) * R * frac;
+      const y = cy + Math.sin(a) * R * frac;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath();
+    ctx.strokeStyle = frac === 1 ? '#272727' : '#1c1c1c';
+    ctx.lineWidth = frac === 1 ? 1 : 0.5;
+    ctx.stroke();
+  });
+
+  // Spokes
+  for (let i = 0; i < N; i++) {
+    const a = angle(i);
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+    ctx.strokeStyle = '#1e1e1e';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+  }
+
+  // Data polygon
+  ctx.beginPath();
+  axes.forEach((ax, i) => {
+    const frac = ax.score / 10;
+    const a = angle(i);
+    const x = cx + Math.cos(a) * R * frac;
+    const y = cy + Math.sin(a) * R * frac;
+    i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+  });
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(200,169,110,0.12)';
+  ctx.fill();
+  ctx.strokeStyle = '#c8a96e';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  // Dots + axis labels
+  axes.forEach((ax, i) => {
+    const frac = ax.score / 10;
+    const a = angle(i);
+    const dx = cx + Math.cos(a) * R * frac;
+    const dy = cy + Math.sin(a) * R * frac;
+    ctx.beginPath();
+    ctx.arc(dx, dy, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = ax.color;
+    ctx.fill();
+
+    // Label at spoke tip
+    const lx = cx + Math.cos(a) * (R + 22);
+    const ly = cy + Math.sin(a) * (R + 22);
+    ctx.fillStyle = '#888';
+    ctx.font = '10px monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(ax.label, lx, ly);
+
+    // Score value near dot
+    ctx.fillStyle = ax.color;
+    ctx.font = 'bold 9px monospace';
+    const offset = frac < 0.2 ? 14 : -10;
+    ctx.fillText(ax.score, dx + Math.cos(a) * offset, dy + Math.sin(a) * offset);
+  });
+
+  // Legend
+  if (legendEl) {
+    legendEl.innerHTML = axes.map(ax =>
+      `<span style="font-size:0.6rem;color:${ax.color};white-space:nowrap;">■ ${ax.label}: ${ax.score}/10</span>`
+    ).join('');
+  }
+}
+
 // ── AI LAYER ─────────────────────────────
 let _aiKey = null;
 
@@ -3578,7 +5069,10 @@ async function getAIKey() {
   return _aiKey;
 }
 
-async function askAI(messages, maxTokens = 800) {
+// Thinking levels: 0=fast (omnibar/parsing), 1=normal (chat), 2=deep (ask/summary)
+const THINK = { FAST: 0, NORMAL: 1, DEEP: 2 };
+
+async function askAI(messages, maxTokens = 800, thinkingLevel = THINK.NORMAL) {
   const key = await getAIKey();
   if (!key) {
     return { error: 'no_key', text: 'Add your Gemini API key in Settings first.' };
@@ -3588,10 +5082,15 @@ async function askAI(messages, maxTokens = 800) {
       role: m.role === 'assistant' ? 'model' : 'user',
       parts: [{ text: m.content }]
     }));
+    // Model selection by thinking level
+    const model = thinkingLevel === THINK.DEEP
+      ? 'gemini-2.0-flash'           // better reasoning for complex queries
+      : 'gemini-2.0-flash-lite';     // fast + cheap for everything else
+    const temperature = thinkingLevel === THINK.FAST ? 0.2 : 0.7;
     const resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-04-17:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
       { method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature: 0.7 } }) }
+        body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: maxTokens, temperature } }) }
     );
     const data = await resp.json();
     if (data.error) return { error: 'api', text: `API error: ${data.error.message}` };
@@ -3647,7 +5146,14 @@ function speakText(text) {
   if (savedName) {
     const voices = window.speechSynthesis.getVoices();
     const match = voices.find(v => v.name === savedName);
-    if (match) utt.voice = match;
+    if (match) {
+      utt.voice = match;
+    } else if (voices.length && !window._voiceMismatchWarned) {
+      // Saved voice not available on this device (e.g. Apple voice on a PC).
+      // Fall back to browser default and notify once per session.
+      window._voiceMismatchWarned = true;
+      toast(`Voice "${savedName.slice(0,24)}" not on this device — using default`);
+    }
   }
   window.speechSynthesis.speak(utt);
 }
@@ -3707,7 +5213,10 @@ window.saveVoice = () => {
 };
 
 window.startVoiceInput = (chatId) => {
-  if (!SpeechRec) { toast('Voice not supported in this browser — use Chrome'); return; }
+  if (!SpeechRec) {
+    toast('Voice input requires Chrome or Edge — not supported in this browser');
+    return;
+  }
   if (_activeRec) { _activeRec.stop(); _activeRec = null; return; }
   const rec = new SpeechRec();
   rec.lang = 'en-GB'; rec.interimResults = false; rec.maxAlternatives = 1;
@@ -3716,10 +5225,12 @@ window.startVoiceInput = (chatId) => {
   if (btn) { btn.textContent = '🔴'; btn.style.background = 'rgba(200,50,50,0.2)'; }
   rec.onresult = (e) => {
     const transcript = e.results[0][0].transcript;
-    const input = document.getElementById(`chat-input-${chatId}`);
-    if (input) input.value = transcript;
     _activeRec = null;
     if (btn) { btn.textContent = '🎤'; btn.style.background = ''; }
+    // Jarvis: try local routing first — if matched, don't send to AI
+    if (tryJarvisRoute(transcript)) return;
+    const input = document.getElementById(`chat-input-${chatId}`);
+    if (input) input.value = transcript;
     window.aiChatSend(chatId);
   };
   rec.onerror = rec.onend = () => {
@@ -3748,7 +5259,7 @@ function renderChatHTML(id, title, subtitle, quickBtns = []) {
     <div class="card" style="border-color:var(--gold-dim);" id="ai-card-${id}">
       <div class="card-title" style="justify-content:space-between;">
         <span>✨ ${title}</span>
-        <div style="display:flex;gap:6px;align-items:center;">${voiceToggle}<span style="font-size:0.6rem;color:var(--muted);">Gemini 2.5 Flash</span></div>
+        <div style="display:flex;gap:6px;align-items:center;">${voiceToggle}<span style="font-size:0.6rem;color:var(--muted);">Gemini Flash Lite</span></div>
       </div>
       ${subtitle ? `<div class="mini-prompt">${subtitle}</div>` : ''}
       <div id="chat-thread-${id}" style="max-height:320px;overflow-y:auto;margin-bottom:8px;"></div>
@@ -3794,10 +5305,10 @@ window.aiChatSend = async (id) => {
   input.value = '';
   chat.loading = true;
 
-  let sendMsg = msg;
-  if (!chat.history.length && chat.systemPromptFn) {
-    const ctx = await chat.systemPromptFn();
-    if (ctx) sendMsg = `${ctx}\n\nUser: ${msg}`;
+  // Build context — refresh every message if chat has refreshCtx=true, otherwise first message only
+  let ctxStr = '';
+  if (chat.systemPromptFn && (chat.refreshCtx || !chat.history.length)) {
+    ctxStr = await chat.systemPromptFn();
   }
 
   chat.history.push({ role: 'user', content: msg });
@@ -3805,12 +5316,24 @@ window.aiChatSend = async (id) => {
   thread.innerHTML += aiLoadingHtml();
   thread.scrollTop = thread.scrollHeight;
 
-  const messages = chat.history.map((m, i) => {
-    if (i === 0 && m.role === 'user' && sendMsg !== msg) return { role: 'user', content: sendMsg };
-    return m;
-  });
+  // Build messages to send — inject fresh context as a system-style prefix on the latest user msg
+  let messages;
+  if (ctxStr) {
+    // Rolling window of conversation (excluding any previous context injections)
+    const historyToSend = chat.history.slice(-8);
+    // Replace last user message with context-prefixed version
+    messages = [
+      ...historyToSend.slice(0, -1),
+      { role: 'user', content: `${ctxStr}\n\nUser: ${msg}` }
+    ];
+  } else {
+    const windowed = chat.history.length > 9
+      ? [chat.history[0], ...chat.history.slice(-8)]
+      : chat.history;
+    messages = windowed;
+  }
 
-  const res = await askAI(messages, 700);
+  const res = await askAI(messages, chat.maxTokens || 700);
   chat.history.push({ role: 'assistant', content: res.text });
   chat.loading = false;
   renderChatThread(id);
@@ -3818,6 +5341,8 @@ window.aiChatSend = async (id) => {
 };
 
 window.aiChatQuick = (id, msg) => {
+  const chat = _chats[id];
+  if (chat?.loading) return; // prevent concurrent requests from rapid clicks
   const input = document.getElementById(`chat-input-${id}`);
   if (input) { input.value = msg; window.aiChatSend(id); }
 };
@@ -3827,22 +5352,425 @@ window.aiChatClear = (id) => {
   renderChatThread(id);
 };
 
-// ── AI CONTEXT BUILDERS ───────────────────
-async function ctxWorkoutCoach() {
-  const exercises = await fsColGet(up('exercises')) || [];
-  const pbMap = {};
-  exercises.forEach(e => {
-    const maxW = Math.max(0, ...(e.sets||[]).map(s=>parseFloat(s.weight)||0));
-    if (!pbMap[e.name] || maxW > pbMap[e.name]) pbMap[e.name] = maxW;
+async function renderSessionFeedbackCardInner() {
+  const feedback = await fsGet(up('user_data/workout_feedback')) || {};
+  const cats = ['push', 'pull', 'legs', 'flex'];
+  const labels = { push: '💪 Push', pull: '🔄 Pull', legs: '🦵 Legs', flex: '🧘 Flexibility' };
+  const ratings = ['too easy', 'about right', 'too hard'];
+  const ratingColors = { 'too easy': 'var(--blue)', 'about right': 'var(--green)', 'too hard': 'var(--red)' };
+
+  const latest = {};
+  Object.entries(feedback).forEach(([k, v]) => {
+    const [cat, date] = k.split('__');
+    if (!latest[cat] || date > latest[cat].date) latest[cat] = { date, rating: v };
   });
-  const recentDays = [...new Set(exercises.slice(0,20).map(e=>e.date))].slice(0,5);
-  const todayEx = exercises.filter(e=>e.date===todayKey2());
-  return `You are a personal gym coach for Joel, 25yo male doing push/pull/legs split. Be concise, direct, specific. No filler.
-PBs: ${Object.entries(pbMap).slice(0,15).map(([n,w])=>`${n}: ${w}kg`).join(', ')||'none yet'}
-Last 5 training days: ${recentDays.join(', ')||'none yet'}
-Recent: ${exercises.slice(0,10).map(e=>`${e.date} ${e.name} ${(e.sets||[]).map(s=>`${s.reps}x${s.weight}kg`).join(',')}`).join(' | ')||'none'}
-Today: ${todayEx.length?todayEx.map(e=>e.name).join(', '):'nothing logged yet'}
-Base suggestions on PBs, suggest progressive overload. Keep replies short. Adjust plan as Joel reports back.`;
+
+  return `
+    <div class="card-title">Session Feedback</div>
+    <div class="mini-prompt">Rate your last session per category — the coach uses this to calibrate next time</div>
+    ${cats.map(cat => `
+      <div style="margin-bottom:10px;">
+        <div style="font-size:0.7rem;color:var(--soft);margin-bottom:4px;">${labels[cat]}
+          ${latest[cat] ? `<span style="font-size:0.6rem;color:${ratingColors[latest[cat].rating]};margin-left:6px;">Last: ${latest[cat].rating} (${fmtDate(latest[cat].date)})</span>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;">
+          ${ratings.map(r => `
+            <button class="btn" onclick="saveSessionFeedback('${cat}','${r}')"
+              style="flex:1;font-size:0.62rem;padding:4px 6px;${latest[cat]?.rating===r?`background:${ratingColors[r]};color:#000;border-color:transparent;`:''}">
+              ${r}
+            </button>`).join('')}
+        </div>
+      </div>`).join('')}`;
+}
+
+async function renderSessionFeedbackCard() {
+  return `<div class="card feedback-card" style="border-color:var(--border2);">${await renderSessionFeedbackCardInner()}</div>`;
+}
+
+window.saveSessionFeedback = async (cat, rating) => {
+  const feedback = await fsGet(up('user_data/workout_feedback')) || {};
+  const key = `${cat}__${todayKey2()}`;
+  feedback[key] = rating;
+  await fsSet(up('user_data/workout_feedback'), feedback);
+  toast(`${cat}: ${rating} ✓`);
+  // Re-render by finding the feedback card and replacing its innerHTML
+  const feedbackCard = document.querySelector('.feedback-card');
+  if (feedbackCard) feedbackCard.innerHTML = (await renderSessionFeedbackCardInner());
+};
+// ── COACH PROFILE ────────────────────────
+
+// Days between two date strings
+function daysBetween(dateStr1, dateStr2) {
+  return Math.round((new Date(dateStr2) - new Date(dateStr1)) / 86400000);
+}
+
+// Update session_today live every time an exercise is logged
+async function updateSessionToday(exercise) {
+  const today = todayKey2();
+  const doc = await fsGet(up('user_data/session_today')) || { date: today, exercises: [], categories_hit: [], session_type: null };
+  // Reset if it's a new day — but apply a 2-hour grace period after midnight so a late-night
+  // workout that crosses midnight doesn't wipe the session mid-set.
+  if (doc.date !== today) {
+    const hoursSinceMidnight = new Date().getHours();
+    const dayGap = Math.round((new Date(today + 'T00:00') - new Date(doc.date + 'T00:00')) / 86400000);
+    const withinGrace = hoursSinceMidnight < 2 && dayGap === 1;
+    if (withinGrace) {
+      doc.date = today; // roll the date forward but keep exercises from the session
+    } else {
+      doc.date = today; doc.exercises = []; doc.categories_hit = []; doc.session_type = null;
+    }
+  }
+  const summary = `${exercise.name} ${(exercise.sets||[]).map(s=>`${s.reps}x${s.weight}kg`).join(',')}`;
+  if (!doc.exercises.includes(summary)) doc.exercises.push(summary);
+  if (exercise.gym_category && !doc.categories_hit.includes(exercise.gym_category)) {
+    doc.categories_hit.push(exercise.gym_category);
+  }
+  // session_type inferred from first exercise logged (excludes 'other')
+  if (!doc.session_type && exercise.gym_category && exercise.gym_category !== 'other') {
+    doc.session_type = exercise.gym_category;
+  }
+  await fsSet(up('user_data/session_today'), doc);
+}
+
+async function buildCoachProfile() {
+  const ninety = new Date(); ninety.setDate(ninety.getDate() - 90);
+  const ninetyKey = ninety.toISOString().slice(0, 10);
+  const today = todayKey2();
+
+  const [exercises, feedback, existingProfile] = await Promise.all([
+    fsColGet(up('exercises')).then(r => r || []),
+    fsGet(up('user_data/workout_feedback')).then(r => r || {}),
+    fsGet(up('user_data/coach_profile')).then(r => r || {})
+  ]);
+
+  // PB rules:
+  // all-time: only update if new weight strictly exceeds stored value
+  // 90d: full recalculate from scratch each save (reflects natural decay)
+  const pbAll = { ...(existingProfile.pb_alltime || {}) };
+  const pb90 = {};
+
+  exercises.forEach(e => {
+    const workSets = (e.sets||[]).filter(s => !s.warmup);
+    const maxW = Math.max(0, ...workSets.map(s => parseFloat(s.weight) || 0));
+    if (maxW > 0) {
+      // All-time: strict greater-than only
+      if (!pbAll[e.name] || maxW > pbAll[e.name]) pbAll[e.name] = maxW;
+      // 90-day: recalculate from scratch
+      if (e.date >= ninetyKey && (!pb90[e.name] || maxW > pb90[e.name])) pb90[e.name] = maxW;
+    }
+  });
+
+  // Last session per category — exclude today (mid-session state)
+  const lastSession = {};
+  exercises
+    .filter(e => e.date < today) // exclude today — handled by session_today doc
+    .forEach(e => {
+      const cat = e.gym_category;
+      if (!cat || cat === 'other') return;
+      if (!lastSession[cat] || e.date > lastSession[cat].date) {
+        lastSession[cat] = { date: e.date, exercises: [] };
+      }
+      if (e.date === lastSession[cat].date) {
+        lastSession[cat].exercises.push(
+          `${e.name} ${(e.sets||[]).map(s=>`${s.reps}x${s.weight}kg`).join(',')}`
+        );
+      }
+    });
+
+  // Attach most recent feedback per category + compute capped days_ago
+  // Cap at 21 to avoid the model treating "47 days ago" differently to "51 days ago" — beyond 3 weeks the distinction is meaningless
+  Object.keys(lastSession).forEach(cat => {
+    const latestFb = Object.entries(feedback)
+      .filter(([k]) => k.startsWith(cat + '__'))
+      .sort((a, b) => b[0].localeCompare(a[0]))[0];
+    if (latestFb) lastSession[cat].feedback = latestFb[1];
+    const raw = daysBetween(lastSession[cat].date, today);
+    lastSession[cat].days_ago = Math.min(raw, 21);
+    lastSession[cat].deload = raw > 21; // flag if gap was actually longer than 3 weeks
+  });
+
+  const profile = {
+    pb_alltime: pbAll,
+    pb_90d: pb90,
+    last_sessions: lastSession,
+    updated: today
+  };
+
+  await fsSet(up('user_data/coach_profile'), profile);
+  return profile;
+}
+
+window.saveCoachSession = async () => {
+  const btn = document.getElementById('save-session-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  await buildCoachProfile();
+  if (btn) { btn.disabled = false; btn.textContent = '✓ Session saved'; btn.style.color = 'var(--green)'; }
+  toast('Coach profile updated ✓');
+};
+
+// ── BIO-RESPONSIVE THEME ─────────────────
+function applyBioTheme(energy) {
+  const root = document.documentElement;
+  if (energy !== null && energy <= 3) {
+    // Low energy — mute gold to cool grey/blue, reduce visual noise
+    root.style.setProperty('--gold', '#7a8fa6');
+    root.style.setProperty('--gold-dim', '#4a5f70');
+    root.style.setProperty('--gold-bg', 'rgba(80,100,120,0.08)');
+    document.getElementById('bio-theme-indicator')?.style && (document.getElementById('bio-theme-indicator').style.display = 'block');
+  } else {
+    // Restore defaults
+    root.style.removeProperty('--gold');
+    root.style.removeProperty('--gold-dim');
+    root.style.removeProperty('--gold-bg');
+    document.getElementById('bio-theme-indicator')?.style && (document.getElementById('bio-theme-indicator').style.display = 'none');
+  }
+}
+
+// ── STREAK FREEZES ────────────────────────
+async function checkAndAwardFreeze() {
+  if (!LIVE || !uid) return;
+  const freezeDoc = await fsGet(up('user_data/streak_freezes')) || { count: 0, lastAwardedStreak: 0 };
+  const mainEl = document.getElementById('main-streak');
+  const streak = mainEl ? parseInt(mainEl.textContent) || 0 : 0;
+  // Award 1 freeze every 7 consecutive days, but only once per 7-day milestone
+  const milestone = Math.floor(streak / 7) * 7;
+  if (streak > 0 && streak % 7 === 0 && milestone > (freezeDoc.lastAwardedStreak || 0)) {
+    freezeDoc.count = (freezeDoc.count || 0) + 1;
+    freezeDoc.lastAwardedStreak = milestone;
+    await fsSet(up('user_data/streak_freezes'), freezeDoc);
+    toast(`🧊 Streak Freeze earned! You have ${freezeDoc.count} freeze${freezeDoc.count !== 1 ? 's' : ''}`);
+    renderFreezeCount(freezeDoc.count);
+  }
+}
+
+function renderFreezeCount(count) {
+  const el = document.getElementById('freeze-count');
+  if (el) el.textContent = count > 0 ? `🧊 ×${count}` : '';
+}
+
+// ── JARVIS VOICE ROUTING ─────────────────
+const JARVIS_ROUTES = {
+  'today': 'today', 'home': 'today', 'dashboard': 'today',
+  'gym': 'workout', 'workout': 'workout', 'exercise': 'workout', 'training': 'workout',
+  'padel': 'padel', 'tennis': 'padel',
+  'journal': 'journal', 'diary': 'journal',
+  'stats': 'stats', 'analytics': 'stats', 'data': 'stats',
+  'habits': 'habits',
+  'priorities': 'priorities', 'goals': 'priorities',
+  'review': 'review', 'weekly': 'review',
+  'meals': 'meals', 'food': 'meals', 'cook': 'meals',
+  'uni': 'uni', 'university': 'uni', 'learning': 'uni',
+  'settings': 'settings',
+  'energy': 'energy'
+};
+
+function tryJarvisRoute(transcript) {
+  const t = transcript.toLowerCase().trim();
+  // Match: "go to X", "open X", "navigate to X", "show X", "take me to X"
+  const match = t.match(/^(?:go to|open|navigate to|show|take me to|switch to)\s+(.+)$/);
+  if (!match) return false;
+  const target = match[1].trim();
+  const page = JARVIS_ROUTES[target];
+  if (page) {
+    nav(page);
+    if (_voiceEnabled) speakText(`Opening ${page}`);
+    return true; // intercepted — don't send to AI
+  }
+  return false;
+}
+
+// ── SUNDAY EXECUTIVE SUMMARY ─────────────
+window.generateWeeklySummary = async () => {
+  const btn = document.getElementById('summary-btn');
+  const out = document.getElementById('summary-output');
+  if (!btn || !out) return;
+  btn.disabled = true;
+  btn.textContent = '⏳ Generating...';
+  out.innerHTML = '<div style="color:var(--muted);font-size:0.7rem;">Analysing your week...</div>';
+
+  const wk = weekKey();
+  const [dailyData, reviewData, exercises, padelData, priorities] = await Promise.all([
+    fetchDailyRange(7),
+    fsGet(up(`reviews/${wk}`)).then(r => r || {}),
+    fsColGet(up('exercises')).then(r => r || []),
+    fsColGet(up('padel')).then(r => r || []),
+    fsGet(up(`weeks/${wk}`)).then(r => r || {})
+  ]);
+
+  const avgMood = (() => { const d = dailyData.filter(x => x.mood); return d.length ? (d.reduce((s,x) => s + x.mood, 0) / d.length).toFixed(1) : 'N/A'; })();
+  const avgEnergy = (() => { const d = dailyData.filter(x => x.energy); return d.length ? (d.reduce((s,x) => s + x.energy, 0) / d.length).toFixed(1) : 'N/A'; })();
+  const gymDays = dailyData.filter(d => d.gym?.push || d.gym?.pull || d.gym?.legs);
+  const gymCats = [...new Set(gymDays.flatMap(d => ['push','pull','legs'].filter(c => d.gym?.[c])))];
+  const weekEx = exercises.filter(e => e.date >= wk);
+  const gymVol = weekEx.filter(e => !e.sets?.every(s => s.warmup))
+    .reduce((s, e) => s + (e.sets||[]).filter(s => !s.warmup).reduce((ss, set) => ss + (set.reps||0) * (set.weight||0), 0), 0);
+  const weekPadel = padelData.filter(p => p.date >= wk);
+  const padelMatches = weekPadel.filter(p => p.type === 'match');
+  const padelWins = padelMatches.filter(p => p.result === 'win').length;
+  const archiveDoc = await fsGet(up('archives/priority_archive')) || { items: [] };
+  const thisWeekDone = (archiveDoc.items || []).filter(p => p.completed_at?.startsWith(wk)).length;
+  const scores = reviewData.scores || {};
+  const scoreStr = Object.entries(scores).map(([k,v]) => `${k}: ${v}/10`).join(', ') || 'not scored';
+
+  const prompt = `You are giving Joel a brutally honest executive summary of his week. Exactly 3 bullet points. No padding, no praise unless earned. Use the data.
+
+Week of ${wk}:
+- Mood avg: ${avgMood}/5, Energy avg: ${avgEnergy}/10
+- Gym: ${gymDays.length} days, categories: ${gymCats.join('+') || 'none'}, total volume: ${Math.round(gymVol)}kg
+- Padel: ${padelMatches.length} matches, ${padelWins}W-${padelMatches.length - padelWins}L
+- Priorities completed: ${thisWeekDone}
+- Weekly self-scores: ${scoreStr}
+
+Write exactly 3 bullet points starting with "•". Be direct. Call out patterns. No filler.`;
+
+  const res = await askAI([{ role: 'user', content: prompt }], 300, THINK.DEEP);
+  btn.disabled = false;
+  btn.textContent = '✨ Generate Summary';
+  if (res.error) {
+    out.innerHTML = `<div style="color:var(--red);font-size:0.7rem;">Error: ${res.text}</div>`;
+  } else {
+    out.innerHTML = res.text.split('\n').filter(l => l.trim()).map(l =>
+      `<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.73rem;color:var(--soft);">${sanitiseHtml(l)}</div>`
+    ).join('');
+  }
+};
+// Reads today's data, returns a tone directive appended to every AI context.
+// No extra API call — purely local logic on already-fetched data.
+let _toneCache = null; // cleared on page nav so it re-reads fresh each session
+
+async function getToneDirective() {
+  if (_toneCache) return _toneCache;
+  try {
+    const today = todayKey2();
+    const [todayData, range] = await Promise.all([
+      fsGet(up(`daily/${today}`)).then(r => r || {}),
+      fetchDailyRange(3)
+    ]);
+
+    const energy = todayData.energy ?? null;
+    const mood = todayData.moods?.length
+      ? Math.round(todayData.moods.reduce((s, m) => s + m.mood, 0) / todayData.moods.length)
+      : (todayData.mood ?? null);
+
+    const avgEnergy3 = (() => {
+      const days = range.filter(d => d.energy);
+      return days.length ? days.reduce((s, d) => s + d.energy, 0) / days.length : null;
+    })();
+    const avgMood3 = (() => {
+      const days = range.filter(d => d.mood || d.moods?.length);
+      return days.length ? days.reduce((s, d) => {
+        const m = d.moods?.length ? Math.round(d.moods.reduce((ss, x) => ss + x.mood, 0) / d.moods.length) : d.mood;
+        return s + m;
+      }, 0) / days.length : null;
+    })();
+    const totalResistance3 = range.reduce((s, d) => s + (d.resistance || []).length, 0);
+    const gymDays3 = range.filter(d => d.gym?.push || d.gym?.pull || d.gym?.legs).length;
+
+    // Rules evaluated in priority order
+    let tone, reason;
+    if (avgEnergy3 !== null && avgMood3 !== null && avgEnergy3 < 4 && avgMood3 < 3) {
+      tone = 'DEPLETED';
+      reason = `3-day avg energy ${avgEnergy3.toFixed(1)}/10, mood ${avgMood3.toFixed(1)}/5`;
+    } else if (totalResistance3 >= 4 && (avgEnergy3 === null || avgEnergy3 >= 4)) {
+      tone = 'AVOIDANCE';
+      reason = `${totalResistance3} resistance entries in 3 days`;
+    } else if (energy !== null && energy <= 3) {
+      tone = 'LOW_ENERGY';
+      reason = `today energy ${energy}/10`;
+    } else if (gymDays3 >= 2 && (energy === null || energy >= 6)) {
+      tone = 'MOMENTUM';
+      reason = `${gymDays3} gym days this window, energy ${energy ?? '?'}/10`;
+    } else {
+      tone = 'NEUTRAL';
+      reason = 'baseline';
+    }
+
+    const directives = {
+      DEPLETED:   `\n\n[CURRENT STATE: DEPLETED — ${reason}. Lead with one small achievable thing. Validate that it's hard. No long lists. Be the coach sitting next to him, not shouting from across the pitch.]`,
+      AVOIDANCE:  `\n\n[CURRENT STATE: AVOIDANCE PATTERN — ${reason}. Energy is fine but he's dodging things. Name the pattern directly using his data. Ask the one question he's not asking himself. Don't let him off the hook.]`,
+      LOW_ENERGY: `\n\n[CURRENT STATE: LOW ENERGY — ${reason}. Match his pace. Suggest the smallest viable version of what he's asking. Don't add stretch goals — help him finish what matters and protect recovery.]`,
+      MOMENTUM:   `\n\n[CURRENT STATE: MOMENTUM — ${reason}. He's in a good run. Be energising and direct. Push slightly harder than he'd push himself. This is the window for progressive overload in gym and life.]`,
+      NEUTRAL:    `\n\n[CURRENT STATE: NEUTRAL. Be direct and practical. No filler.]`
+    };
+
+    _toneCache = directives[tone];
+    return _toneCache;
+  } catch {
+    return ''; // fail silently — tone is enhancement, not critical path
+  }
+}
+
+async function ctxWorkoutCoach() {
+  const today = todayKey2();
+  const [profile, sessionToday] = await Promise.all([
+    fsGet(up('user_data/coach_profile')).then(r => r || null),
+    fsGet(up('user_data/session_today')).then(r => r || null)
+  ]);
+
+  // Infer session type — from live doc or ask coach to infer
+  const sessionType = (sessionToday?.date === today && sessionToday?.session_type) || null;
+  const sessionTypeStr = sessionType
+    ? `${sessionType.charAt(0).toUpperCase() + sessionType.slice(1)} session`
+    : 'session type not determined yet';
+
+  // PB lines — front-load the relevant category if session type is known
+  let pbLines = 'none yet — tap Save Session after your first workout';
+  if (profile?.pb_alltime) {
+    const pb90 = profile.pb_90d || {};
+    const allEntries = Object.entries(profile.pb_alltime);
+
+    // Sort: session-type exercises first, then the rest
+    const catMap = { push: ['press','dip','fly','raise'], pull: ['row','pull','curl','deadlift'], legs: ['squat','press','curl','extension','lunge','thrust'] };
+    const relevantKeys = sessionType ? (catMap[sessionType] || []) : [];
+    const sorted = [...allEntries].sort(([a], [b]) => {
+      const aRel = relevantKeys.some(k => a.toLowerCase().includes(k));
+      const bRel = relevantKeys.some(k => b.toLowerCase().includes(k));
+      return bRel - aRel;
+    });
+
+    pbLines = sorted.slice(0, 15).map(([n, w]) => {
+      const r = pb90[n];
+      return r && r < w ? `${n}: ${r}kg (90d) / ${w}kg (ATH)` : `${n}: ${w}kg`;
+    }).join(', ') || 'none yet';
+  }
+
+  // Last session lines — days_ago capped at 21, deload flag shown
+  let sessionLines = 'none yet';
+  if (profile?.last_sessions && Object.keys(profile.last_sessions).length) {
+    const catLabels = { push: 'Push', pull: 'Pull', legs: 'Legs', flex: 'Flex' };
+    sessionLines = Object.entries(profile.last_sessions).map(([cat, s]) => {
+      const days = s.days_ago ?? 0;
+      const agoStr = s.deload
+        ? '3+ weeks ago (extended gap)'
+        : days === 0 ? 'today'
+        : days === 1 ? 'yesterday'
+        : `${days} days ago`;
+      const fb = s.feedback ? `, ${s.feedback}` : '';
+      return `${catLabels[cat]||cat} (${agoStr}${fb}): ${(s.exercises||[]).join(' | ')}`;
+    }).join('\n');
+  }
+
+  // Live session_today
+  let todayLines = 'nothing logged yet';
+  if (sessionToday?.date === today && sessionToday.exercises?.length) {
+    todayLines = sessionToday.exercises.join(' | ') +
+      (sessionToday.categories_hit?.length ? ` [${sessionToday.categories_hit.join('+')}]` : '');
+  }
+
+  // Deload note — if any category has the deload flag, add a note
+  const deloadCats = Object.entries(profile?.last_sessions || {})
+    .filter(([, s]) => s.deload).map(([c]) => c);
+  const deloadNote = deloadCats.length
+    ? `\nNote: ${deloadCats.join('/')} last trained 3+ weeks ago — suggest conservative starting weights and build back up.`
+    : '';
+
+  return `You are Joel's personal gym coach. Joel: 25yo male, push/pull/legs split, ADHD. Concise, direct, no filler.
+Today: ${sessionTypeStr}
+PBs (90d / ATH, ${sessionType||'all'} exercises first): ${pbLines}
+Last sessions:
+${sessionLines}
+This session so far: ${todayLines}${deloadNote}
+Use 90d PBs for progressive overload. "Too easy" → increase weight or volume next time. "Too hard" → back off 5-10%. Adjust as Joel reports back.` + await getToneDirective();
 }
 
 async function ctxFlexibility() {
@@ -3851,30 +5779,42 @@ async function ctxFlexibility() {
   const cats = [...new Set(weekEx.map(e=>e.gym_category).filter(Boolean))];
   return `You are a mobility coach. Be specific and practical.
 This week: ${cats.join(', ')||'nothing yet'} | Muscles: ${weekEx.map(e=>e.name).slice(0,15).join(', ')||'none'}
-Prioritise muscles most loaded this week. Format each exercise: name — sets/reps or hold — brief reason.`;
+Prioritise muscles most loaded this week. Format each exercise: name — sets/reps or hold — brief reason.` + await getToneDirective();
 }
 
 async function ctxInsights() {
-  const [data, exercises] = await Promise.all([fetchDailyRange(14), fsColGet(up('exercises'))]);
-  const ctx = data.map(d => {
-    const mood = d.moods?.length ? Math.round(d.moods.reduce((s,m)=>s+m.mood,0)/d.moods.length) : (d.mood||0);
-    return `${d.date}: mood=${mood}/5 energy=${d.energy||0}/10 gym=${JSON.stringify(d.gym||{})} reading=${d.reading?.pages||0}p phone=${d.phone?.mins?Math.round(d.phone.mins/60*10)/10+'h':'—'} wins=${d.wins?.length||0} resistance=${(d.resistance||[]).join('|')||'—'}`;
-  }).join('\n');
+  const wk = weekKey();
+  const [data, exercises, reviewData] = await Promise.all([
+    fetchDailyRange(14),
+    fsColGet(up('exercises')),
+    fsGet(up(`reviews/${wk}`)).then(r => r || {})
+  ]);
+  const ctx = data.map(minifyDailyRow).join('\n');
+  const scores = reviewData.scores || {};
+  const scoreStr = Object.entries(scores).map(([k,v])=>`${k}: ${v}/10`).join(', ') || 'not scored yet';
   return `You are a personal data analyst and life coach for Joel — 25yo, data science apprentice, ADHD, gym PPL, padel. Direct, reference actual numbers, no fluff.
-Last 14 days:\n${ctx}
-Recent exercises:\n${(exercises||[]).slice(0,15).map(e=>`${e.date}: ${e.name} ${(e.sets||[]).map(s=>`${s.reps}x${s.weight}kg`).join(',')} [${e.gym_category||'?'}]`).join('\n')}
-Give specific observations. Be a coach.`;
+Last 14 days (M=mood/5 E=energy/10 G=gym R=reading Ph=phone W=wins Res=resistance):\n${ctx}
+Recent exercises:\n${(exercises||[]).slice(0,15).map(minifyExerciseRow).join('\n')}
+This week's self-scores (1-10): ${scoreStr}
+Give specific observations. Be a coach.` + await getToneDirective();
 }
 
 async function ctxJournal() {
-  const data = await fetchDailyRange(7);
+  const wk = weekKey();
+  const [data, reviewData] = await Promise.all([
+    fetchDailyRange(7),
+    fsGet(up(`reviews/${wk}`)).then(r => r || {})
+  ]);
   const mood = data.filter(d=>d.mood||d.moods?.length).map(d=>{
     const m = d.moods?.length?Math.round(d.moods.reduce((s,x)=>s+x.mood,0)/d.moods.length):d.mood;
     return `${d.date}: ${['','😔','😐','😊','😄','🔥'][m]||'?'}`;
   }).join(', ');
+  const scores = reviewData.scores || {};
+  const scoreStr = Object.entries(scores).map(([k,v])=>`${k}: ${v}/10`).join(', ') || 'not scored yet';
   return `You are a reflective journaling coach for Joel — 25yo, ADHD, data science apprentice. Direct and personal.
 Last 7 days — moods: ${mood||'not logged'} | energy: ${data.filter(d=>d.energy).map(d=>`${d.energy}/10`).join(', ')||'not logged'} | avoidance: ${data.flatMap(d=>d.resistance||[]).join(', ')||'none'}
-Start with one specific prompt from his data, then continue the conversation naturally.`;
+This week's self-scores: ${scoreStr}
+Start with one specific prompt from his data, then continue the conversation naturally.` + await getToneDirective();
 }
 
 async function ctxHabits() {
@@ -3887,7 +5827,44 @@ async function ctxHabits() {
 Existing habits: ${existing}
 Avoidance patterns: ${data.flatMap(d=>d.resistance||[]).join(', ')||'none'}
 Low energy days (last 14): ${data.filter(d=>(d.energy||0)<4).length}/14
-Suggest "After X, I will Y for Z" habits. Keep them small (≤5 min). Reference his data. Have a proper conversation.`;
+Suggest "After X, I will Y for Z" habits. Keep them small (≤5 min). Reference his data. Have a proper conversation.` + await getToneDirective();
+}
+
+async function ctxPadel() {
+  const sessions = await fsColGet(up('padel')).then(r => r || []);
+  const matches = sessions.filter(s => s.type === 'match');
+  const wins = matches.filter(m => m.result === 'win').length;
+  const losses = matches.filter(m => m.result === 'loss').length;
+  const recent = matches.slice(0, 8);
+
+  // Opponent breakdown
+  const oppMap = {};
+  matches.forEach(m => {
+    [m.opponent, m.opponent2].filter(Boolean).forEach(opp => {
+      if (!oppMap[opp]) oppMap[opp] = { w: 0, l: 0 };
+      if (m.result === 'win') oppMap[opp].w++;
+      else if (m.result === 'loss') oppMap[opp].l++;
+    });
+  });
+  const oppLines = Object.entries(oppMap)
+    .sort((a,b) => (b[1].w+b[1].l) - (a[1].w+a[1].l))
+    .slice(0,6)
+    .map(([n,r]) => `${n}: ${r.w}W-${r.l}L`).join(', ') || 'none yet';
+
+  const recentLines = recent.map(m => {
+    const opp = m.opponent2 ? `${m.opponent} & ${m.opponent2}` : (m.opponent||'—');
+    return `${fmtDate(m.date)} ${m.result==='win'?'W':'L'} vs ${opp}${m.sets?' ('+m.sets+')':''}${m.highlights?' — '+m.highlights:''}`;
+  }).join('\n') || 'none yet';
+
+  const recentSessions = sessions.filter(s => !s.type || s.type === 'session').slice(0,5)
+    .map(s => `${fmtDate(s.date)}${s.feel?' '+s.feel:''}${s.notes?' — '+s.notes:''}`).join(', ') || 'none';
+
+  return `You are a padel coach for Joel — 25yo male, UK, plays doubles mainly. Direct, practical, specific.
+Match record: ${wins}W-${losses}L overall
+Opponent breakdown: ${oppLines}
+Last 8 matches:\n${recentLines}
+Recent practice sessions: ${recentSessions}
+Give tactical advice, match prep, and technique tips based on his actual results. Reference specific opponents and patterns where visible.` + await getToneDirective();
 }
 
 async function ctxMeals(ingredients, extra) {
@@ -3909,7 +5886,7 @@ async function renderSettingsPage() {
 
       <div class="card">
         <div class="card-title">AI Configuration</div>
-        <div class="mini-prompt">Gemini 2.5 Flash — free tier, 15 req/min. Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);">aistudio.google.com</a></div>
+        <div class="mini-prompt">Gemini Flash Lite — paid tier, data not used for training. Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--gold);">aistudio.google.com</a></div>
         <label class="lbl" style="margin-top:8px;">Gemini API Key</label>
         <div style="display:flex;gap:6px;align-items:stretch;">
           <input type="password" id="ai-key-input" placeholder="${cfg.key ? '••••••••••••••••' : 'Paste your API key here...'}" style="flex:1;margin:0;font-family:monospace;"/>
@@ -3955,7 +5932,7 @@ window.saveAIKey = async () => {
   const key = document.getElementById('ai-key-input').value.trim();
   if (!key) { toast('Paste a key first'); return; }
   await fsSet(up('settings/ai'), { key });
-  _aiKey = key;
+  _aiKey = null; // clear cache so next request re-reads the new key
   document.getElementById('ai-key-status').textContent = '✓ Key saved';
   document.getElementById('ai-key-status').style.color = 'var(--green)';
   toast('API key saved');
@@ -3974,13 +5951,29 @@ window.testAIKey = async () => {
 };
 
 // ── PAGE: MEALS ───────────────────────────
+let _mealsTab = 'chat';
+
 async function renderMealsPage() {
-  const mealLog = await fsColGet(up('meals')) || [];
+  const [mealLog, recipes] = await Promise.all([
+    fsColGet(up('meals')).then(r => r || []),
+    fsColGet(up('recipes')).then(r => r || [])
+  ]);
+
+  const tabStyle = (t) => _mealsTab === t
+    ? 'padding:6px 14px;border-radius:5px;font-size:0.72rem;cursor:pointer;background:var(--gold-bg);border:1px solid var(--gold-dim);color:var(--gold);'
+    : 'padding:6px 14px;border-radius:5px;font-size:0.72rem;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--soft);';
 
   let html = `
     <div class="section-group">
       <div class="section-label">Meals</div>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button style="${tabStyle('chat')}" onclick="setMealsTab('chat')">🍳 Cook</button>
+        <button style="${tabStyle('recipes')}" onclick="setMealsTab('recipes')">📖 Recipe Book ${recipes.length ? `<span style="font-size:0.6rem;background:var(--gold-dim);padding:1px 5px;border-radius:8px;">${recipes.length}</span>` : ''}</button>
+        <button style="${tabStyle('log')}" onclick="setMealsTab('log')">📝 Log</button>
+      </div>`;
 
+  if (_mealsTab === 'chat') {
+    html += `
       <div class="card">
         <div class="card-title">🥦 What's in your fridge?</div>
         <div class="mini-prompt">Enter ingredients then start chatting. Nut-free filter applied automatically.</div>
@@ -3988,9 +5981,32 @@ async function renderMealsPage() {
         <input type="text" id="fridge-extra" placeholder="Dietary notes (optional)..." style="margin-bottom:8px;"/>
         <button class="btn-gold" onclick="startMealsChat()" style="width:100%;">Start cooking chat</button>
       </div>
+      <div id="ai-meals-container"></div>`;
 
-      <div id="ai-meals-container"></div>
+  } else if (_mealsTab === 'recipes') {
+    html += `
+      <div class="card">
+        <div class="card-title">Recipe Book <span style="font-size:0.65rem;color:var(--muted);font-weight:400;">${recipes.length} saved</span></div>
+        <div class="mini-prompt">Recipes saved from AI suggestions. No AI needed to view these.</div>
+        ${recipes.length ? recipes.map(r => `
+          <div style="padding:10px;border-bottom:1px solid var(--border);">
+            <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;">
+              <div style="font-size:0.78rem;font-weight:700;color:var(--text);">${r.name}</div>
+              <button class="btn-x" onclick="deleteRecipe('${r.id}')" title="Delete">✕</button>
+            </div>
+            ${r.macros ? `<div style="font-size:0.65rem;color:var(--gold);margin-bottom:4px;">${r.macros}</div>` : ''}
+            ${r.ingredients ? `
+              <div style="font-size:0.68rem;color:var(--muted);margin-bottom:2px;font-weight:600;">Ingredients</div>
+              <div style="font-size:0.68rem;color:var(--soft);margin-bottom:6px;white-space:pre-wrap;">${r.ingredients}</div>` : ''}
+            ${r.steps ? `
+              <button class="btn" onclick="toggleRecipeSteps('${r.id}')" id="steps-toggle-${r.id}" style="font-size:0.62rem;padding:3px 8px;margin-bottom:4px;">▼ Show steps</button>
+              <div id="steps-body-${r.id}" style="display:none;font-size:0.68rem;color:var(--soft);white-space:pre-wrap;padding-top:6px;border-top:1px solid var(--border);">${r.steps}</div>` : ''}
+            <div style="font-size:0.6rem;color:var(--muted);margin-top:4px;">Saved ${fmtDate(r.date)}</div>
+          </div>`).join('') : '<div class="empty">No recipes saved yet — ask the AI to cook something and tap 📖 Save to Recipe Book</div>'}
+      </div>`;
 
+  } else {
+    html += `
       <div class="card">
         <div class="card-title">Meal Log</div>
         <div class="mini-prompt">Log what you ate today</div>
@@ -4000,18 +6016,20 @@ async function renderMealsPage() {
           <button class="btn-gold" onclick="logMeal()" style="padding:6px 12px;">Log</button>
         </div>
         <div id="meal-log-list">
-          ${mealLog.slice(0,10).map(m => `
-            <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.7rem;display:flex;justify-content:space-between;">
+          ${mealLog.slice(0,15).map(m => `
+            <div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;">
               <span style="color:var(--text);">${m.name}</span>
               <span style="color:var(--muted);font-size:0.62rem;">${fmtDate(m.date)}${m.notes ? ' — '+m.notes : ''}</span>
             </div>`).join('') || '<div class="empty">No meals logged yet</div>'}
         </div>
-      </div>
-    </div>
-  `;
+      </div>`;
+  }
 
+  html += `</div>`;
   document.getElementById('content').innerHTML = html;
 }
+
+window.setMealsTab = (t) => { _mealsTab = t; renderMealsPage(); };
 
 window.startMealsChat = () => {
   const ingredients = document.getElementById('fridge-input')?.value.trim();
@@ -4019,19 +6037,38 @@ window.startMealsChat = () => {
   const extra = document.getElementById('fridge-extra')?.value.trim() || '';
   const cont = document.getElementById('ai-meals-container');
   if (!cont) return;
-
-  // Re-init with fresh context from current fridge input
   _chats['meals-ai'] = null;
   cont.innerHTML = renderChatHTML('meals-ai', 'Cooking Assistant',
     'Ask for recipes, substitutions, macros, full steps — anything about cooking.',
     [
       { label: '🍳 Suggest 3 recipes', text: 'Suggest 3 recipes I can make with these ingredients' },
-      { label: '📊 Show macros', text: 'Give me macros for your first suggestion' },
-      { label: '📖 Full recipe', text: 'Give me the full recipe and steps for that one' }
+      { label: '📊 Macros', text: 'Give me the macros for that' },
+      { label: '📖 Full recipe', text: 'Give me the full recipe and steps' },
+      { label: '🔄 Substitute', text: 'What can I substitute if I don\'t have one of those ingredients?' }
     ]);
   initChat('meals-ai', () => ctxMeals(ingredients, extra));
-  // Auto-send first message
   window.aiChatQuick('meals-ai', 'Suggest 3 recipes I can make with these ingredients');
+};
+
+window.saveToRecipeBook = async (name, macros, ingredients, steps) => {
+  if (!name) { toast('No recipe name'); return; }
+  await fsColAdd(up('recipes'), { name, macros: macros||'', ingredients: ingredients||'', steps: steps||'', date: todayKey2() });
+  toast(`"${name}" saved to Recipe Book ✓`);
+};
+
+window.deleteRecipe = async (id) => {
+  if (!confirm('Delete this recipe?')) return;
+  await fsColDel(up('recipes'), id);
+  renderMealsPage();
+};
+
+window.toggleRecipeSteps = (id) => {
+  const body = document.getElementById(`steps-body-${id}`);
+  const btn = document.getElementById(`steps-toggle-${id}`);
+  if (!body || !btn) return;
+  const open = body.style.display !== 'none';
+  body.style.display = open ? 'none' : 'block';
+  btn.textContent = open ? '▼ Show steps' : '▲ Hide steps';
 };
 
 window.logMeal = async () => {
@@ -4043,6 +6080,123 @@ window.logMeal = async () => {
   renderMealsPage();
 };
 
+// ── APP-WIDE UX INIT ──────────────────────
+function initAppUX() {
+  // Swipe gestures — right swipe to open sidebar, left to close
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - touchStartX;
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar) return;
+    const isOpen = sidebar.classList.contains('open');
+    if (!isOpen && touchStartX < 30 && dx > 80) toggleSidebar();      // swipe right from edge
+    else if (isOpen && dx < -80) toggleSidebar();                      // swipe left to close
+  }, { passive: true });
+
+  // Ctrl+K / Cmd+K — open omnibar
+  document.addEventListener('keydown', e => {
+    if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+      e.preventDefault();
+      openOmnibar();
+    }
+    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+      e.preventDefault();
+      openAskJeOS();
+    }
+  });
+
+  // iOS install prompt
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  const isStandalone = window.navigator.standalone;
+  const installDismissed = localStorage.getItem('jeos_install_dismissed');
+  if (isIOS && !isStandalone && !installDismissed) {
+    const banner = document.createElement('div');
+    banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border2);padding:12px 16px;z-index:200;display:flex;align-items:center;justify-content:space-between;';
+    banner.innerHTML = `
+      <span style="font-size:0.72rem;color:var(--soft);">Tap <strong style="color:var(--text);">⎙ Share</strong> → <strong style="color:var(--text);">Add to Home Screen</strong> to install JE OS</span>
+      <button onclick="localStorage.setItem('jeos_install_dismissed','1');this.closest('div').remove()" style="background:none;border:none;color:var(--muted);font-size:1rem;cursor:pointer;padding:0 0 0 12px;">✕</button>`;
+    document.body.appendChild(banner);
+  }
+
+  // Inertia tracker — update daily_inertia on first action of the day
+  updateInertia();
+}
+
+// Inertia tracker
+async function updateInertia() {
+  if (!LIVE || !uid) return;
+  const k = todayKey2();
+  const inertiaDoc = await fsGet(up('user_data/inertia')) || { value: 0, lastDate: '' };
+  const today = k;
+  if (inertiaDoc.lastDate === today) return; // already updated today
+
+  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0,10); })();
+  let val = inertiaDoc.value || 0;
+
+  // If nothing logged yesterday, decay by 2
+  const yData = await fsGet(up(`daily/${yesterday}`));
+  const yHasData = yData && (yData.mood || yData.energy || yData.wins?.length || yData.journal);
+  if (!yHasData && inertiaDoc.lastDate !== yesterday) val = Math.max(0, val - 2);
+
+  await fsSet(up('user_data/inertia'), { value: val, lastDate: today });
+  renderInertia(val);
+}
+
+async function incrementInertia() {
+  if (!LIVE || !uid) return;
+  const doc = await fsGet(up('user_data/inertia')) || { value: 0, lastDate: '' };
+  if (doc.lastDate !== todayKey2()) return; // updateInertia handles today's first update
+  const newVal = (doc.value || 0) + 1;
+  await fsSet(up('user_data/inertia'), { value: newVal, lastDate: todayKey2() });
+  renderInertia(newVal);
+}
+
+function renderInertia(val) {
+  let el = document.getElementById('inertia-display');
+  if (!el) return;
+  const label = val >= 10 ? '🔥' : val >= 5 ? '⚡' : val >= 2 ? '→' : '○';
+  el.textContent = `${label} ${val}`;
+  el.title = `Momentum: ${val} — log anything to keep it going`;
+}
+
+// ── CONFETTI ──────────────────────────────
+function fireConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:9999;';
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const particles = Array.from({ length: 80 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -10,
+    vx: (Math.random() - 0.5) * 4,
+    vy: Math.random() * 3 + 2,
+    color: ['#c8a96e','#4caf7d','#5b8dee','#f0ad4e','#e87c6e'][Math.floor(Math.random()*5)],
+    size: Math.random() * 8 + 4,
+    rot: Math.random() * 360,
+    rotV: (Math.random() - 0.5) * 8
+  }));
+  let frame = 0;
+  const animate = () => {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy; p.vy += 0.1; p.rot += p.rotV;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot * Math.PI / 180);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.size/2, -p.size/2, p.size, p.size);
+      ctx.restore();
+    });
+    frame++;
+    if (frame < 120) requestAnimationFrame(animate);
+    else canvas.remove();
+  };
+  animate();
+}
+
 function boot(user) {
   updateHeader();
   if (!user) document.getElementById('uname').textContent = 'Offline';
@@ -4050,31 +6204,76 @@ function boot(user) {
   updateStreaks();
   updateOnlineStatus();
   idbFlushQueue();
+  initAppUX();
+  // Show FABs once logged in
+  const fab = document.getElementById('omni-fab');
+  if (fab) fab.style.display = 'flex';
+  const askFab = document.getElementById('ask-fab');
+  if (askFab) askFab.style.display = 'flex';
+
+  // iPhone Action Button deep-link: ?quicklog=<text>
+  const quicklog = new URLSearchParams(window.location.search).get('quicklog');
+  if (quicklog) {
+    // Strip the param from URL without reload
+    const url = new URL(window.location.href);
+    url.searchParams.delete('quicklog');
+    window.history.replaceState({}, '', url);
+    // Open omnibar pre-filled after a brief boot delay
+    setTimeout(() => {
+      openOmnibar();
+      const input = document.getElementById('omni-input');
+      if (input) { input.value = decodeURIComponent(quicklog); }
+    }, 600);
+  }
+  if (isSunday()) {
+    const seenKey = `jeos_sunday_seen_${weekKey()}`;
+    if (!localStorage.getItem(seenKey)) {
+      fsGet(up(`reviews/${weekKey()}`)).then(r => {
+        const hasScores = r && Object.keys(r.scores || {}).length > 0;
+        if (!hasScores) showSundayIntercept(seenKey);
+        else nav('today');
+      }).catch(() => nav('today'));
+      return; // nav called inside promise
+    }
+  }
   nav('today');
 }
 
-async function updateStreaks() {
-  let readStreak = 0;
-  let mainStreak = 0;
-  const today = new Date();
+function showSundayIntercept(seenKey) {
+  localStorage.setItem(seenKey, '1');
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;';
+  overlay.innerHTML = `
+    <div style="font-size:2rem;margin-bottom:16px;">📋</div>
+    <div style="font-family:var(--font-h);font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:8px;">Happy Sunday.</div>
+    <div style="font-size:0.85rem;color:var(--soft);margin-bottom:32px;max-width:280px;">Time to review the week. It takes 5 minutes and sets you up for the next 7 days.</div>
+    <button class="btn-gold" onclick="this.closest('div[style]').remove();nav('review')" style="padding:12px 32px;font-size:0.9rem;">Review my week →</button>
+    <button class="btn" onclick="this.closest('div[style]').remove();nav('today')" style="margin-top:12px;font-size:0.75rem;color:var(--muted);">Skip for now</button>
+  `;
+  document.body.appendChild(overlay);
+}
 
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
+async function updateStreaks() {
+  const today = new Date();
+  // Fetch all 365 daily docs in parallel
+  const keys = Array.from({ length: 365 }, (_, i) => {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    return d.toISOString().slice(0, 10);
+  });
+  const docs = await Promise.all(keys.map(k => fsGet(up(`daily/${k}`))));
+
+  let mainStreak = 0;
+  for (let i = 0; i < docs.length; i++) {
+    const v = docs[i];
     const hasAnyData = v && (v.mood || v.energy || v.gym?.push || v.gym?.pull || v.gym?.legs ||
       v.reading?.pages > 0 || (v.wins && v.wins.length > 0) || v.journal || v.phone?.mins > 0);
     if (i === 0) { if (hasAnyData) mainStreak++; }
     else { if (hasAnyData) mainStreak++; else break; }
   }
 
-  readStreak = 0;
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
+  let readStreak = 0;
+  for (let i = 0; i < docs.length; i++) {
+    const v = docs[i];
     const hasReading = v?.reading?.pages > 0 || v?.reading?.mins > 0;
     if (hasReading) readStreak++;
     else if (i > 0) break;
@@ -4092,7 +6291,7 @@ async function updateStreaks() {
     const weKey = we.toISOString().slice(0, 10);
     const hasActivity = [...padelDates].some(d => d >= wsKey && d <= weKey);
     if (hasActivity) padelStreak++;
-    else if (w > 0) break; // allow current week to be empty without breaking
+    else if (w > 0) break;
   }
 
   const mainEl = document.getElementById('main-streak');
@@ -4101,6 +6300,10 @@ async function updateStreaks() {
   if (mainEl) mainEl.textContent = mainStreak;
   if (readEl) readEl.textContent = readStreak;
   if (padelEl) padelEl.textContent = padelStreak;
+  // Award freeze if 7-day milestone hit
+  checkAndAwardFreeze();
+  // Load freeze count for sidebar
+  fsGet(up('user_data/streak_freezes')).then(f => renderFreezeCount(f?.count || 0));
 }
 
 // Keep for backwards compat (called from resetReadingStreak)
@@ -4110,7 +6313,8 @@ async function updateReadingStreak() {
 
 async function resetReadingStreak() {
   if (!confirm('Reset reading streak? This cannot be undone.')) return;
-  // Clear all reading entries in past 365 days
+  // Must use deleteField() — JS `delete v.reading` has no effect with setDoc merge:true;
+  // Firestore ignores missing fields in a merge write and leaves the existing data intact.
   const today = new Date();
   for (let i = 0; i < 365; i++) {
     const d = new Date(today);
@@ -4118,8 +6322,7 @@ async function resetReadingStreak() {
     const k = d.toISOString().slice(0, 10);
     const v = await fsGet(up(`daily/${k}`));
     if (v?.reading) {
-      delete v.reading;
-      await fsSet(up(`daily/${k}`), v);
+      await fsSet(up(`daily/${k}`), { reading: deleteField() });
     }
   }
   await updateReadingStreak();

@@ -1,7 +1,7 @@
 # JE OS — Complete Rebuild Changelog
 
 ## Date
-March 27, 2026
+March 27, 2026 — *Updated April 3, 2026 with provider abstraction*
 
 ## Overview
 Full rebuild of the JE OS dashboard with fixes for authentication, layout restructuring, visual hierarchy, mini prompts, sparklines, and comprehensive export functionality.
@@ -2679,5 +2679,35 @@ On low energy days (≤3), Priorities page hides effort-3 tasks and shows an amb
 
 ### 180. Jarvis Voice Routing
 `tryJarvisRoute(transcript)` intercepts `webkitSpeechRecognition` transcript before sending to Gemini. Regex matches "go to X", "open X", "navigate to X" etc. against a 25-entry route map. If matched: calls `nav(page)`, optionally speaks confirmation, returns `true` to skip AI call. Zero tokens for navigation commands.
+
+---
+
+## 🔄 Multi-Provider AI Abstraction Layer (2026-04-03)
+
+### 181. Provider Abstraction Layer
+Replaced hardcoded Gemini implementation with a `PROVIDERS` object. Four providers built: Google Gemini, Anthropic Claude, OpenAI, Kimi (Moonshot). Each provider declares: endpoint, models (fast + deep), message normalizer, request builder, response parser, auth key parameter name.
+
+`askAI()` now reads `_activeProvider` and `_providerKey`, dispatches to the right normalizer/builder/parser. No caller code changes required. Two new helper functions: `getAIProvider()`, `getProviderKey()`.
+
+Key storage moved from `settings/ai` (single key) to `user_data/provider_keys` (per-provider). Backward compat: `getAIKey()` checks old location first.
+
+### 182. Settings Page: Provider Selector
+Settings page expanded with:
+- Dropdown to select active provider (with model info displayed)
+- Per-provider API key input section (each shows status: "✓ Set" or "○ Not set")
+- Links to each provider's API key page (Google, Anthropic, OpenAI, Kimi)
+- Test connection button per provider (temporarily switches to that provider, tests, restores previous)
+
+### 183. Provider Switching Functions
+`window.changeAIProvider()` — updates `user_data/ai_config`, clears cache, toast confirms.
+`window.saveProviderKey(provider)` — saves key to `user_data/provider_keys`, clears cache.
+`window.deleteProviderKey(provider)` — removes provider key.
+`window.testProviderKey(provider)` — tests a single provider without making it active.
+
+### How It Works
+1. **Boot**: `getAIProvider()` reads `user_data/ai_config.provider` (defaults to 'google')
+2. **AI call**: `askAI()` reads provider name + key, looks up PROVIDERS[name], normalizes messages, builds request, sends, parses response
+3. **Switch**: User picks new provider in Settings → stored in `user_data/ai_config` → cache cleared → next `askAI()` call routes to new provider
+4. **Cost benefit**: You can swap to a cheaper model (OpenAI gpt-4o-mini) or more capable (Claude), or test new releases (Gemini-next, Claude-opus-5) without any code changes
 
 ---

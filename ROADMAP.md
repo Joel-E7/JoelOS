@@ -1,6 +1,6 @@
 # JE OS — Feature Roadmap
 
-> Last updated: 2026-03-30
+> Last updated: 2026-04-03
 > Items marked ✅ are live in production. Everything else is planned.
 
 ---
@@ -36,9 +36,10 @@
 | Reading + Padel + Day Streaks | Sidebar pills |
 | XSS Sanitisation | Exercise names and notes sanitised before storage and render |
 | Weekly Review Scores in AI | ctxInsights and ctxJournal include self-scores |
-| Settings Page | API key, voice picker, saved AI suggestions |
+| Settings Page | Provider selector, per-provider API keys, voice picker, saved AI suggestions |
 | Deload Detection (partial) | days_ago cap, deload flag in coach profile context |
 | Audio cue (rest timer) | speakText("Time is up") on rest complete — one line, done |
+| **Multi-Provider AI Abstraction** | Switch between Google Gemini, Anthropic Claude, OpenAI, Kimi without code changes |
 
 ---
 

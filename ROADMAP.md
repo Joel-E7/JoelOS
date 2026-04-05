@@ -5,7 +5,7 @@
 
 ---
 
-## ✅ Built & Shipped (44 Features)
+## ✅ Built & Shipped (47 Features)
 
 | Feature | Status |
 |---------|--------|
@@ -42,7 +42,12 @@
 | Dynamic Thinking Levels | THINK.FAST/NORMAL/DEEP routing |
 | Tone Detection | Automatic, 3-day rolling data |
 | Omni-Dump Mode | Brain dump → multi-destination routing |
-| ... | 12 more features |
+| Sleep Tracking (Manual) | Form-based sleep logging → Firestore, daily auto-popup reminder |
+| Sleep Score | WHOOP algorithm (duration, efficiency, stage quality, HRV, consistency) |
+| Sleep Stats Dashboard | Last night + 7d/30d/90d/YTD/all-time trends, sleep debt, consistency tracking |
+| Sleep Cycle Optimization | 450-630 min recommendations based on 90-min cycles + activity |
+| Bedtime Recommendations | Smart bedtime calc based on wake time + sleep need, adherence tracking |
+| ... | 8 more features |
 
 ---
 
@@ -99,7 +104,7 @@ Below is a comprehensive audit of what was planned, what shipped, what was backb
 |---|---|---|
 | **Calendar Sync / Reminders** | ❌ Never planned | User suggestion only, not in original ROADMAP |
 | **Email Notifications** | ❌ Never planned | Zero implementation, never scoped |
-| **Sleep Tracking** | ⏸️ Framework ready, data source missing | Code receives `d.sleep?.total_mins` but no input UI. Requires Tasker (Android) or manual iOS upload (not viable). Backburned. |
+| **Sleep Tracking** | ✅ **SHIPPED** | Manual form-based logging to Firestore. Daily auto-popup. Sleep score + stats dashboard. QR code bedtime tracker. Consistency monitoring. |
 | **Note Import (Notability/GoodNotes)** | ❌ No public API exists | Both apps export PDF only. Fallback: iOS Shortcuts → Firebase Cloud Functions (manual). Not viable for automated web integration. |
 | **NFC Tags** | ❌ Replaced with QR codes | QR codes work cross-platform; NFC = Chrome Android only |
 | **Padel Enhancements** | ⏸️ Backburned | Feature-complete, moved to backburner |
@@ -119,22 +124,23 @@ Below is a comprehensive audit of what was planned, what shipped, what was backb
 
 ---
 
-## 🔄 Backburner (Lower Priority)
+## 🔄 Phase 2: Next Priorities (Ready to Build)
 
-### Padel Enhancements
-- Court SVG heatmap (error zone tracking)
-- Shot-by-shot replay
+### Sleep Tracking Enhancements
+- [ ] **Strava API Integration** — Auto-import running activities, parse distance/duration/HR
+- [ ] **Adidas Run Club Integration** — Same as Strava, alternative data source
+- [ ] **Activity Effort Calculation** — Derive intensity from pace vs personal baseline + HR
+- [ ] **Sleep Correlation Analysis** — Visualize which activity types improve/worsen sleep quality
+- [ ] **Respiratory Rate Tracking** — If OnePlus Health provides time-series data in future
+
+**Why:** Core sleep tracking is shipped. These expand activity context for smarter recommendations without manual input.
+
+### Other Potential Enhancements
+- Padel court heatmap (error zone tracking)
+- Shot-by-shot match replay
 - Coach AI match analysis
 
-**Why:** Feature is already functional. Enhancements are nice-to-have.
-
-### Sleep Tracking
-- Manual iOS upload (not viable without system integration)
-- Tasker + OnePlus Watch integration (too complex for ROI)
-
-**Why:** iPhone + OnePlus Watch don't share data via Apple. Requires Tasker → OnePlus Health → Firebase pipeline (external tooling out of scope).
-
-**Alternative:** Track manually in Journal if needed.
+**Why:** Features are already functional. Enhancements are nice-to-have.
 
 ---
 
@@ -163,10 +169,10 @@ All high-value, achievable features are shipped. Remaining items either:
 
 ## 📊 By the Numbers
 
-- **44 features shipped**
-- **4 major features added this session**
-- **335 lines of code added**
-- **6904 total lines**
+- **47 features shipped** (+3 sleep tracking features)
+- **Sleep tracking fully implemented** this session
+- **~400 lines of code added** (sleep form, stats, calculations)
+- **~7140 total lines**
 - **0 blockers**
 
-**Status:** ✅ PRODUCTION READY
+**Status:** ✅ PRODUCTION READY — Sleep tracking complete. Ready for Phase 2 (Strava integration).

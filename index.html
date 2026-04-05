@@ -228,7 +228,7 @@ button{cursor:pointer;transition:all 0.15s;}
             <span class="ni-icon">📅</span>
             <span class="ni-label">Today</span>
           </div>
-          <div class="nav-item" onclick="window.openSleepTracker()">
+          <div class="nav-item" onclick="nav('sleep')">
             <span class="ni-icon">😴</span>
             <span class="ni-label">Sleep</span>
           </div>
@@ -893,6 +893,128 @@ function calculateAdherence(records, recommendedTimes) {
   
   return Math.round((adherent / records.length) * 100);
 }
+
+// â”€â”€ SLEEP STATS DASHBOARD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+async function renderSleepStatsPage() {
+  const mainContent = document.getElementById('main-content');
+  const records30 = await fetchSleepData(30);
+  const wakeTime = getWakeTimeForDate(new Date());
+
+  if (!records30.length) {
+    mainContent.innerHTML = `<div class="card" style="padding:40px; text-align:center;"><p style="color:var(--soft);">No sleep data logged yet. Start logging to see your stats!</p></div>`;
+    return;
+  }
+
+  const last = records30[0];
+  const sleepDebt30 = calculateSleepDebt(records30);
+  const consistency = calculateConsistency(records30);
+  const wakeConsistency = calculateWakeTimeConsistency(records30);
+
+  const lastScore = last.our_sleep_score || 0;
+  const lastDuration = (last.total_minutes / 60).toFixed(1);
+  const lastEff = last.sleep_efficiency || Math.round(((last.total_minutes - (last.awake_minutes || 0)) / last.total_minutes) * 100);
+
+  const avg30Sleep = Math.round(records30.reduce((s, r) => s + (r.total_minutes || 0), 0) / records30.length);
+  const avg30Score = Math.round(records30.reduce((s, r) => s + (r.our_sleep_score || 0), 0) / records30.length);
+
+  const recBedtime = getRecommendedBedtime(sleepTargetBase + (calculateSleepDebt(records30.slice(0, 1)) / 60), wakeTime);
+
+  mainContent.innerHTML = `<div style="padding:20px; max-width:900px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+      <h1 style="font-family:var(--font-h); margin:0;">Sleep Stats</h1>
+      <button onclick="window.openSleepTracker()" style="background:var(--gold); color:#000; border:none; border-radius:6px; padding:10px 20px; cursor:pointer; font-weight:600;">+ Log Sleep</button>
+    </div>
+
+    <div class="card" style="margin-bottom:25px;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="color:var(--gold); margin:0;">Sleep Schedule</h3>
+        <button onclick="window.editSleepSchedule()" style="background:var(--gold); color:#000; border:none; border-radius:6px; padding:6px 12px; cursor:pointer; font-weight:600;">Edit</button>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(7,1fr); gap:8px; font-size:0.8rem;">
+        <div style="text-align:center;"><div style="color:var(--soft);">Sun</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[0] || 480)}</div></div>
+        <div style="text-align:center;"><div style="color:var(--soft);">Mon</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[1] || 420)}</div></div>
+        <div style="text-align:center;"><div style="color:var(--soft);">Tue</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[2] || 420)}</div></div>
+        <div style="text-align:center;"><div style="color:var(--soft);">Wed</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[3] || 420)}</div></div>
+        <div style="text-align:center;"><div style="color:var(--soft);">Thu</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[4] || 420)}</div></div>
+        <div style="text-align:center;"><div style="color:var(--soft);">Fri</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[5] || 420)}</div></div>
+        <div style="text-align:center;"><div style="color:var(--soft);">Sat</div><div style="color:var(--text); font-weight:600;">${minutesToHHMM(wakeTimesPerDay[6] || 480)}</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:25px;">
+      <h3 style="color:var(--gold); margin:0 0 15px 0;">Last Night (${last.date})</h3>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px;">
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Score</div>
+          <div style="font-size:1.4rem; color:var(--gold); font-weight:700;">${lastScore}</div>
+          <div style="font-size:0.7rem; color:var(--soft);">/100</div>
+        </div>
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Duration</div>
+          <div style="font-size:1.4rem; color:var(--text); font-weight:700;">${lastDuration}h</div>
+        </div>
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Efficiency</div>
+          <div style="font-size:1.4rem; color:var(--text); font-weight:700;">${lastEff}%</div>
+        </div>
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Benchmark HR</div>
+          <div style="font-size:1.4rem; color:var(--text); font-weight:700;">${last.sleep_benchmark_hr || 'â€”'}</div>
+        </div>
+      </div>
+      <div style="background:var(--surface); padding:12px; border-radius:8px; border-left:3px solid var(--gold); margin-top:15px; font-size:0.85rem;">
+        <strong>Tonight:</strong> Bedtime ${recBedtime} (Target wake: ${minutesToHHMM(wakeTime)})
+      </div>
+    </div>
+
+    <div class="card">
+      <h3 style="color:var(--gold); margin:0 0 15px 0;">30-Day Summary</h3>
+      <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;">
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Avg Sleep</div>
+          <div style="font-size:1.3rem; color:var(--text); font-weight:700;">${(avg30Sleep/60).toFixed(1)}h</div>
+        </div>
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Avg Score</div>
+          <div style="font-size:1.3rem; color:var(--gold); font-weight:700;">${avg30Score}</div>
+        </div>
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Sleep Debt</div>
+          <div style="font-size:1.3rem; color:var(--text); font-weight:700;">${(sleepDebt30/60).toFixed(1)}h</div>
+        </div>
+        <div style="background:var(--surface2); padding:15px; border-radius:8px; text-align:center;">
+          <div style="font-size:0.75rem; color:var(--soft);">Logged</div>
+          <div style="font-size:1.3rem; color:var(--text); font-weight:700;">${records30.length}</div>
+        </div>
+      </div>
+      <div style="padding:15px; border-top:1px solid var(--border); font-size:0.8rem;">
+        <div style="margin-bottom:10px;"><strong style="color:var(--text);">Bedtime Consistency:</strong> <span style="color:var(--soft);">${consistency.avg} Â± ${consistency.stdDev}min | ${consistency.percentage}% consistent</span></div>
+        <div><strong style="color:var(--text);">Wake Time Consistency:</strong> <span style="color:var(--soft);">${wakeConsistency.avg} Â± ${wakeConsistency.stdDev}min | ${wakeConsistency.percentage}% consistent</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+window.editSleepSchedule = () => {
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  let html = `<div style="padding:20px;"><h3>Edit Sleep Schedule</h3>`;
+  days.forEach((day, i) => {
+    const time = minutesToHHMM(wakeTimesPerDay[i] || 420);
+    html += `<div style="margin-bottom:12px; display:flex; align-items:center; gap:10px;"><label style="width:100px; color:var(--text);">${day}:</label><input type="time" id="wake-${i}" value="${time}" style="padding:8px; border:1px solid var(--border); border-radius:6px; background:var(--surface2); color:var(--text);"></div>`;
+  });
+  html += `<div style="margin-top:20px;"><button onclick="window.saveSleepSchedule()" style="background:var(--gold); color:#000; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:600;">Save</button> <button onclick="renderSleepStatsPage()" style="background:var(--surface2); border:1px solid var(--border); color:var(--text); padding:10px 20px; border-radius:6px; cursor:pointer; margin-left:10px;">Cancel</button></div></div>`;
+  document.getElementById("main-content").innerHTML = html;
+}
+
+window.saveSleepSchedule = async () => {
+  for (let i = 0; i < 7; i++) {
+    const input = document.getElementById(`wake-${i}`);
+    if (input) wakeTimesPerDay[i] = hhmmToMinutes(input.value);
+  }
+  toast("Sleep schedule saved");
+  renderSleepStatsPage();
+}
+
 
 window.nav = (page, el) => {
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));

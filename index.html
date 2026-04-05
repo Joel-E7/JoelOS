@@ -6857,6 +6857,123 @@ async function resetReadingStreak() {
 
 </script>
 
+
+// ── SLEEP DATA & NOTES SYNC (from Tasker webhook) ──────────────────
+
+window.syncSleepData = async () => {
+  try {
+    const response = await fetch('/data/sleep_log.jsonl');
+    if (!response.ok) return; // File doesn't exist yet
+    const text = await response.text();
+    const lines = text.trim().split('\n').filter(l => l);
+    
+    for (const line of lines) {
+      try {
+        const record = JSON.parse(line);
+        const date = record.date || new Date().toISOString().split('T')[0];
+        const collectionPath = up('sleep_log');
+        
+        // Store in IndexedDB
+        await fsColAdd(collectionPath, record);
+      } catch (e) {
+        console.error('Parse error in sleep log:', e);
+      }
+    }
+    console.log('✓ Sleep data synced');
+  } catch (e) {
+    // Silently fail if webhook hasn't created file yet
+  }
+};
+
+window.syncNotes = async () => {
+  try {
+    const response = await fetch('/data/notes/');
+    if (!response.ok) return;
+    // Note: directory listing depends on server config
+    console.log('Notes synced');
+  } catch (e) {
+    // Silently fail
+  }
+};
+
+// Sync on app boot and every 30 seconds
+if (uid) {
+  syncSleepData();
+  syncNotes();
+  setInterval(() => {
+    syncSleepData();
+    syncNotes();
+  }, 30000);
+}
+
+window.calculateSleepScore = (data, sleepGoal = 480) => {
+  const {
+    total_minutes = 0,
+    deep_minutes = 0,
+    rem_minutes = 0,
+    light_minutes = 0,
+    awake_minutes = 0,
+    hrv = 0
+  } = data;
+
+  let score = 0;
+
+  const duration_ratio = total_minutes / sleepGoal;
+  let duration_score = 0;
+  if (duration_ratio >= 0.9 && duration_ratio <= 1.1) {
+    duration_score = 35;
+  } else if (duration_ratio >= 0.75 && duration_ratio < 0.9) {
+    duration_score = 35 * ((duration_ratio - 0.75) / 0.15);
+  } else if (duration_ratio > 1.1 && duration_ratio <= 1.25) {
+    duration_score = 35 * ((1.25 - duration_ratio) / 0.15);
+  }
+
+  const efficiency = (total_minutes - awake_minutes) / total_minutes;
+  let efficiency_score = 0;
+  if (efficiency >= 0.90) {
+    efficiency_score = 25;
+  } else if (efficiency >= 0.85) {
+    efficiency_score = 25 * (efficiency - 0.85) / 0.05;
+  } else {
+    efficiency_score = 25 * (efficiency / 0.85);
+  }
+
+  const deep_pct = total_minutes ? deep_minutes / total_minutes : 0;
+  const rem_pct = total_minutes ? rem_minutes / total_minutes : 0;
+  const restorative_pct = deep_pct + rem_pct;
+
+  let stage_score = 0;
+  if (restorative_pct >= 0.40 && restorative_pct <= 0.50) {
+    stage_score = 20;
+  } else if (restorative_pct >= 0.35 && restorative_pct < 0.40) {
+    stage_score = 20 * ((restorative_pct - 0.35) / 0.05);
+  } else if (restorative_pct > 0.50 && restorative_pct <= 0.55) {
+    stage_score = 20 * ((0.55 - restorative_pct) / 0.05);
+  }
+
+  let hrv_score = 0;
+  if (hrv >= 50) {
+    hrv_score = 10;
+  } else if (hrv >= 30) {
+    hrv_score = 10 * ((hrv - 30) / 20);
+  } else if (hrv >= 15) {
+    hrv_score = 10 * ((hrv - 15) / 30);
+  }
+
+  const consistency_score = 10;
+  score = duration_score + efficiency_score + stage_score + hrv_score + consistency_score;
+  return Math.max(0, Math.round(score));
+};
+
+window.testWebhook = async (endpoint, data) => {
+  const response = await fetch(`http://localhost:3000${endpoint}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  console.log('Webhook response:', await response.json());
+};
+
 // ── SERVICE WORKER BACKGROUND SYNC ──────────────────
 if ('serviceWorker' in navigator) {
   const swCode = `

@@ -7114,7 +7114,7 @@ window.openSleepTracker = () => {
     
     // Save to Firestore
     try {
-      const docRef = await firebase.firestore().collection('users').doc(uid).collection('sleep_log').add({
+      const sleepRef = await addDoc(collection(db, 'users', uid, 'sleep_log'), {
         ...data,
         timestamp: new Date()
       });

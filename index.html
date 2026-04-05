@@ -7102,12 +7102,12 @@ window.openSleepTracker = () => {
     
     const data = {
       date: new Date().toISOString().split('T')[0],
-      total_minutes: parseInt(document.getElementById('total_minutes').value) || 0,
+      total_minutes: parseInt(document.getElementById('total_minutes').value) || 480,
       deep_minutes: parseInt(document.getElementById('deep_minutes').value) || 0,
       rem_minutes: parseInt(document.getElementById('rem_minutes').value) || 0,
       light_minutes: parseInt(document.getElementById('light_minutes').value) || 0,
       awake_minutes: parseInt(document.getElementById('awake_minutes').value) || 0,
-      hrv: parseInt(document.getElementById('hrv').value) || 0,
+      hrv: parseInt(document.getElementById('hrv').value) || 45,
       resting_heart_rate: parseInt(document.getElementById('resting_heart_rate').value) || 0,
       avg_heart_rate_sleeping: parseInt(document.getElementById('avg_heart_rate_sleeping').value) || 0
     };

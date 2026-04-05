@@ -228,6 +228,10 @@ button{cursor:pointer;transition:all 0.15s;}
             <span class="ni-icon">📅</span>
             <span class="ni-label">Today</span>
           </div>
+          <div class="nav-item" onclick="window.openSleepTracker()">
+            <span class="ni-icon">😴</span>
+            <span class="ni-label">Sleep</span>
+          </div>
         </div>
         <div class="nav-section">
           <div class="nav-section-label">Weekly</div>
@@ -6855,7 +6859,6 @@ async function resetReadingStreak() {
 // Auth listener handles boot() when user authenticates
 // Removed boot(null) to prevent data access before uid is set
 
-</script>
 
 
 // ── SLEEP DATA & NOTES SYNC (from Tasker webhook) ──────────────────
@@ -7127,3 +7130,5 @@ window.openSleepTracker = () => {
   };
 };
 
+
+</script>

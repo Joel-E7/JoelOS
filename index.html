@@ -455,6 +455,8 @@ const C = {};
 let currentPage = 'today';
 let editState = { col: null, id: null, fields: [] };
 let viewingYesterday = false;
+let _toneCache = null;
+let _dailyRangeCache = {};
 
 // ── MACHINE CATALOGUE (declared early — used in nav renders object) ──
 const MACHINES = {
@@ -2181,7 +2183,6 @@ window.setStatsRange = (r) => { statsRange = r; renderStatsPage(); };
 // ── STATS: OVERVIEW CHARTS ───────────────
 
 // Per-render daily data cache — cleared on each renderStatsPage call
-let _dailyRangeCache = {};
 
 // Sanitise user-provided strings before injecting into innerHTML
 function sanitiseHtml(str) {
@@ -5458,7 +5459,6 @@ const PROVIDERS = {
 
 // Current active provider (loaded from settings or defaulted)
 let _activeProvider = 'google';
-$(cat /tmp/two_min_state.txt)
 let _providerKey = null;
 
 async function getAIProvider() {
@@ -6061,7 +6061,6 @@ Write exactly 3 bullet points starting with "•". Be direct. Call out patterns.
 };
 // Reads today's data, returns a tone directive appended to every AI context.
 // No extra API call — purely local logic on already-fetched data.
-let _toneCache = null; // cleared on page nav so it re-reads fresh each session
 
 async function getToneDirective() {
   if (_toneCache) return _toneCache;

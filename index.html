@@ -7019,3 +7019,111 @@ window.addEventListener('online', async () => {
 
 </body>
 </html>
+
+// ── SLEEP TRACKER (Firestore integration) ──────────────────
+
+window.openSleepTracker = () => {
+  // Show sleep form modal
+  const modal = document.createElement('div');
+  modal.id = 'sleep-modal';
+  modal.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  `;
+  
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:28px;max-width:500px;width:90%;max-height:90vh;overflow-y:auto;">
+      <h2 style="font-family:var(--font-h);font-size:1.2rem;margin-bottom:20px;color:var(--gold);">Log Sleep</h2>
+      
+      <form id="sleep-form" style="display:flex;flex-direction:column;gap:14px;">
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Total sleep (minutes)</label>
+          <input type="number" id="total_minutes" placeholder="480" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Deep sleep (minutes)</label>
+          <input type="number" id="deep_minutes" placeholder="110" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">REM sleep (minutes)</label>
+          <input type="number" id="rem_minutes" placeholder="145" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Light sleep (minutes)</label>
+          <input type="number" id="light_minutes" placeholder="165" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Awake (minutes)</label>
+          <input type="number" id="awake_minutes" placeholder="60" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Heart Rate Variability (HRV)</label>
+          <input type="number" id="hrv" placeholder="45" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Resting Heart Rate</label>
+          <input type="number" id="resting_heart_rate" placeholder="58" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Avg Heart Rate (sleeping)</label>
+          <input type="number" id="avg_heart_rate_sleeping" placeholder="62" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <button type="submit" style="background:var(--gold);border:none;border-radius:6px;color:#000;font-weight:600;padding:12px;cursor:pointer;margin-top:10px;">Submit</button>
+      </form>
+      
+      <button onclick="document.getElementById('sleep-modal').remove();" style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);padding:8px 16px;cursor:pointer;margin-top:10px;width:100%;">Close</button>
+    </div>
+  `;
+  
+  document.body.appendChild(modal);
+  
+  document.getElementById('sleep-form').onsubmit = async (e) => {
+    e.preventDefault();
+    
+    const data = {
+      date: new Date().toISOString().split('T')[0],
+      total_minutes: parseInt(document.getElementById('total_minutes').value) || 0,
+      deep_minutes: parseInt(document.getElementById('deep_minutes').value) || 0,
+      rem_minutes: parseInt(document.getElementById('rem_minutes').value) || 0,
+      light_minutes: parseInt(document.getElementById('light_minutes').value) || 0,
+      awake_minutes: parseInt(document.getElementById('awake_minutes').value) || 0,
+      hrv: parseInt(document.getElementById('hrv').value) || 0,
+      resting_heart_rate: parseInt(document.getElementById('resting_heart_rate').value) || 0,
+      avg_heart_rate_sleeping: parseInt(document.getElementById('avg_heart_rate_sleeping').value) || 0
+    };
+    
+    // Calculate score
+    data.our_sleep_score = calculateSleepScore(data);
+    
+    // Save to Firestore
+    try {
+      const docRef = await firebase.firestore().collection('users').doc(uid).collection('sleep_log').add({
+        ...data,
+        timestamp: new Date()
+      });
+      
+      toast(`✓ Sleep logged (Score: ${data.our_sleep_score}/100)`);
+      document.getElementById('sleep-modal').remove();
+    } catch (err) {
+      toast(`❌ Error: ${err.message}`);
+      console.error(err);
+    }
+  };
+};
+

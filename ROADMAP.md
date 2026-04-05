@@ -127,10 +127,6 @@ Intercept `webkitSpeechRecognition` transcript before sending to Gemini. Local r
 
 ---
 
-**Web NFC Tag Integration**
-`NDEFReader` API. Tap gym bag tag → `nav('workout')`. Tap bedside tag → log sleep timestamp. Chrome Android only. Zero cost.
-
----
 
 **Picture-in-Picture Rest Timer**
 Hidden `<canvas>` draws countdown, converted to video stream, `requestPictureInPicture()` pins to corner. Survives app switching. iOS 17+ promotes to Dynamic Island automatically.

@@ -457,6 +457,17 @@ let editState = { col: null, id: null, fields: [] };
 let viewingYesterday = false;
 let _toneCache = null;
 let _dailyRangeCache = {};
+let _sleepCache = {};
+let wakeTimesPerDay = {
+  0: 480,   // Sunday 8:00 AM
+  1: 420,   // Monday 7:00 AM
+  2: 420,   // Tuesday 7:00 AM
+  3: 420,   // Wednesday 7:00 AM
+  4: 420,   // Thursday 7:00 AM
+  5: 420,   // Friday 7:00 AM
+  6: 480,   // Saturday 8:00 AM
+};
+let sleepTargetBase = 450;  // 5 sleep cycles minimum
 
 // ── MACHINE CATALOGUE (declared early — used in nav renders object) ──
 const MACHINES = {
@@ -778,6 +789,109 @@ async function checkBurnout() {
     <span style="font-size:0.72rem;color:${color};">${icon} ${msg}</span>
     <button onclick="localStorage.setItem('${dismissKey}','1');this.closest('div').remove()" style="background:none;border:none;color:${color};cursor:pointer;font-size:0.9rem;padding:0 0 0 8px;flex-shrink:0;" title="Dismiss for today">✕</button>
   </div>`;
+}
+
+
+// ── SLEEP TRACKING FUNCTIONS ────────────────────────────────────
+async function fetchSleepData(days) {
+  if (_sleepCache[days]) return _sleepCache[days];
+  const sleepRecords = await fsColGet(up('sleep_log'));
+  if (!sleepRecords) return [];
+  
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - days);
+  const filtered = sleepRecords.filter(r => {
+    const rDate = new Date(r.date + 'T00:00:00Z');
+    return rDate >= cutoff;
+  }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  
+  _sleepCache[days] = filtered;
+  return filtered;
+}
+
+function getWakeTimeForDate(date) {
+  const d = new Date(date);
+  const dayOfWeek = d.getDay();
+  return wakeTimesPerDay[dayOfWeek] || 420;
+}
+
+function minutesToHHMM(minutes) {
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+}
+
+function hhmmToMinutes(hhmm) {
+  const [h, m] = hhmm.split(':').map(x => parseInt(x));
+  return h * 60 + m;
+}
+
+function getRecommendedBedtime(sleepNeeded, wakeTime) {
+  const wakeMin = typeof wakeTime === 'string' ? hhmmToMinutes(wakeTime) : wakeTime;
+  const bedMin = (wakeMin - sleepNeeded + 1440) % 1440;  // Handle overnight
+  return minutesToHHMM(bedMin);
+}
+
+function calculateSleepDebt(records, targetMins = 450) {
+  return records.reduce((total, r) => {
+    const deficit = Math.max(0, targetMins - (r.total_minutes || 0));
+    return total + deficit;
+  }, 0);
+}
+
+function calculateConsistency(records) {
+  if (!records.length) return { avg: 0, stdDev: 0, percentage: 0 };
+  
+  const bedtimes = records.map(r => {
+    if (!r.bedtime) return null;
+    const [h, m] = r.bedtime.split(':').map(x => parseInt(x));
+    return h * 60 + m;
+  }).filter(x => x !== null);
+  
+  if (!bedtimes.length) return { avg: 0, stdDev: 0, percentage: 0 };
+  
+  const avg = bedtimes.reduce((a, b) => a + b, 0) / bedtimes.length;
+  const variance = bedtimes.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / bedtimes.length;
+  const stdDev = Math.sqrt(variance);
+  
+  // Percentage within ±30 min of average
+  const withinRange = bedtimes.filter(t => Math.abs(t - avg) <= 30).length;
+  const percentage = (withinRange / bedtimes.length) * 100;
+  
+  return { avg: minutesToHHMM(Math.round(avg)), stdDev: Math.round(stdDev), percentage: Math.round(percentage) };
+}
+
+function calculateWakeTimeConsistency(records) {
+  if (!records.length) return { avg: 0, stdDev: 0, percentage: 0 };
+  
+  const wakeTimes = records.map(r => {
+    if (!r.wake_time) return null;
+    const [h, m] = r.wake_time.split(':').map(x => parseInt(x));
+    return h * 60 + m;
+  }).filter(x => x !== null);
+  
+  if (!wakeTimes.length) return { avg: 0, stdDev: 0, percentage: 0 };
+  
+  const avg = wakeTimes.reduce((a, b) => a + b, 0) / wakeTimes.length;
+  const variance = wakeTimes.reduce((sum, t) => sum + Math.pow(t - avg, 2), 0) / wakeTimes.length;
+  const stdDev = Math.sqrt(variance);
+  
+  const withinRange = wakeTimes.filter(t => Math.abs(t - avg) <= 30).length;
+  const percentage = (withinRange / wakeTimes.length) * 100;
+  
+  return { avg: minutesToHHMM(Math.round(avg)), stdDev: Math.round(stdDev), percentage: Math.round(percentage) };
+}
+
+function calculateAdherence(records, recommendedTimes) {
+  const adherent = records.filter((r, idx) => {
+    if (!r.bedtime) return false;
+    const recTime = recommendedTimes[idx];
+    const actual = hhmmToMinutes(r.bedtime);
+    const rec = hhmmToMinutes(recTime);
+    return Math.abs(actual - rec) <= 30;
+  }).length;
+  
+  return Math.round((adherent / records.length) * 100);
 }
 
 window.nav = (page, el) => {

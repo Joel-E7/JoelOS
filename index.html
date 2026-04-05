@@ -7202,6 +7202,27 @@ window.openSleepTracker = () => {
           <input type="number" id="avg_heart_rate_sleeping"  style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
         </div>
         
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Time fell asleep (HH:MM)</label>
+          <input type="time" id="fall_asleep_time" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Time woke up (HH:MM)</label>
+          <input type="time" id="wake_time" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Sleep efficiency (%)</label>
+          <input type="number" id="sleep_efficiency" min="0" max="100" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+          <div style="font-size:0.65rem;color:var(--soft);margin-top:2px;">Or leave blank to auto-calculate from awake time</div>
+        </div>
+        
+        <div>
+          <label style="font-size:0.75rem;color:var(--soft);display:block;margin-bottom:4px;">Sleep benchmark heart rate</label>
+          <input type="number" id="sleep_benchmark_hr" placeholder="62" style="width:100%;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:var(--font-m);"/>
+        </div>
+        
         <button type="submit" style="background:var(--gold);border:none;border-radius:6px;color:#000;font-weight:600;padding:12px;cursor:pointer;margin-top:10px;">Submit</button>
       </form>
       
@@ -7214,16 +7235,24 @@ window.openSleepTracker = () => {
   document.getElementById('sleep-form').onsubmit = async (e) => {
     e.preventDefault();
     
+    const total = parseInt(document.getElementById('total_minutes').value) || 480;
+    const awake = parseInt(document.getElementById('awake_minutes').value) || 0;
+    const efficiency = parseInt(document.getElementById('sleep_efficiency').value);
+    
     const data = {
       date: new Date().toISOString().split('T')[0],
-      total_minutes: parseInt(document.getElementById('total_minutes').value) || 480,
+      total_minutes: total,
       deep_minutes: parseInt(document.getElementById('deep_minutes').value) || 0,
       rem_minutes: parseInt(document.getElementById('rem_minutes').value) || 0,
       light_minutes: parseInt(document.getElementById('light_minutes').value) || 0,
-      awake_minutes: parseInt(document.getElementById('awake_minutes').value) || 0,
+      awake_minutes: awake,
       hrv: parseInt(document.getElementById('hrv').value) || 45,
       resting_heart_rate: parseInt(document.getElementById('resting_heart_rate').value) || 0,
-      avg_heart_rate_sleeping: parseInt(document.getElementById('avg_heart_rate_sleeping').value) || 0
+      avg_heart_rate_sleeping: parseInt(document.getElementById('avg_heart_rate_sleeping').value) || 0,
+      fall_asleep_time: document.getElementById('fall_asleep_time').value || '',
+      wake_time: document.getElementById('wake_time').value || '',
+      sleep_efficiency: efficiency || Math.round(((total - awake) / total) * 100),
+      sleep_benchmark_hr: parseInt(document.getElementById('sleep_benchmark_hr').value) || 0
     };
     
     // Calculate score

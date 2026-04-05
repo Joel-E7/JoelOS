@@ -7024,6 +7024,10 @@ window.addEventListener('online', async () => {
 // ── SLEEP TRACKER (Firestore integration) ──────────────────
 
 window.openSleepTracker = () => {
+  if (!uid) {
+    toast('Please sign in first');
+    return;
+  }
   // Show sleep form modal
   const modal = document.createElement('div');
   modal.id = 'sleep-modal';
@@ -7114,7 +7118,7 @@ window.openSleepTracker = () => {
     
     // Save to Firestore
     try {
-      const sleepRef = await addDoc(collection(db, 'users', uid, 'sleep_log'), {
+      const sleepRef = await addDoc(collection(db, up('sleep_log')), {
         ...data,
         timestamp: new Date()
       });

@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#080808">
+<meta name="theme-color" content="#000000">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="JE OS">
 <title>JE — OS</title>
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23080808' width='100' height='100'/><text x='50' y='75' font-size='60' font-weight='bold' text-anchor='middle' fill='%23c8a96e' font-family='Arial'>J</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%23000000' width='100' height='100'/><text x='50' y='72' font-size='58' font-weight='600' text-anchor='middle' fill='%233ecfcf' font-family='Georgia'>J</text></svg>">
 <!-- A real same-origin manifest, not a blob: URL built at runtime. iOS is unreliable with
      blob manifests, and on iOS web push only works once the app is on the Home Screen —
      so installability is a prerequisite for notifications, not a nicety. -->
@@ -17,192 +17,233 @@
 <!-- iOS ignores manifest icons for the Home Screen and uses this; without it you get a
      screenshot thumbnail. It also will not accept an SVG here. -->
 <link rel="apple-touch-icon" href="/icon-180.png">
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,640;1,9..144,500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#080808;--surface:#101010;--surface2:#161616;--surface3:#1c1c1c;
-  --border:#1e1e1e;--border2:#272727;--border3:#303030;
-  --text:#e4e0d8;--muted:#4a4a4a;--muted2:#333;--soft:#888;
-  --gold:#c8a96e;--gold-dim:#6b5530;--gold-bg:#1a1508;
+  --bg:#000000;--surface:#0a0e12;--surface2:#10161c;--surface3:#161e26;
+  --border:#1a242c;--border2:#243038;--border3:#31404a;
+  --text:#f1ece4;--muted:#6a7370;--muted2:#2a353c;--soft:#b4b8b2;
+  --gold:#3ecfcf;--gold-dim:#1a7a7a;--gold-bg:#062222;
   --green:#4caf7d;--green-bg:#0e1f14;
   --red:#e05a5a;--blue:#5b8dee;
-  --sidebar-w:220px;
-  --font-h:'Syne',sans-serif;--font-m:'DM Mono',monospace;
+  --sidebar-w:232px;
+  --font-h:'Fraunces',Georgia,serif;--font-m:'Atkinson Hyperlegible',system-ui,sans-serif;
+  --ink:rgba(62,207,207,0.08);
+  --shadow:none;
+  --on-accent:#041616;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{font-size:14px;-webkit-font-smoothing:antialiased;}
-body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height:100vh;line-height:1.5;overflow-x:hidden;}
-::-webkit-scrollbar{width:3px;height:3px;}
-::-webkit-scrollbar-thumb{background:var(--border3);border-radius:2px;}
+html{font-size:16px;-webkit-font-smoothing:antialiased;}
+body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height:100vh;line-height:1.55;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:#000 url('/bg.jpg') right center / cover no-repeat;opacity:0.5;pointer-events:none;z-index:0;}
+#auth-screen,#app{position:relative;z-index:1;}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
 
-/* ── AUTH ── */
-#auth-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px;}
-.auth-wrap{width:100%;max-width:340px;}
-.auth-logo{font-family:var(--font-h);font-size:3rem;font-weight:800;letter-spacing:-0.04em;margin-bottom:2px;}
+#auth-screen{display:flex;align-items:flex-end;justify-content:flex-start;min-height:100vh;padding:8vh 8vw 10vh;}
+.auth-wrap{width:100%;max-width:520px;}
+.auth-logo{font-family:var(--font-h);font-size:clamp(4.8rem,16vw,11rem);font-weight:640;font-optical-sizing:auto;letter-spacing:-0.055em;line-height:0.78;margin-bottom:18px;}
 .auth-logo span{color:var(--gold);}
-.auth-sub{font-size:0.62rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:36px;}
-.auth-card{background:var(--surface);border:1px solid var(--border2);border-radius:12px;padding:26px;}
-.auth-card h2{font-family:var(--font-h);font-size:1rem;font-weight:700;margin-bottom:3px;}
-.auth-card p{font-size:0.7rem;color:var(--soft);margin-bottom:22px;line-height:1.6;}
-#auth-err{font-size:0.7rem;color:var(--red);margin-top:10px;text-align:center;min-height:14px;}
+.auth-sub{font-size:1.05rem;color:var(--soft);font-style:italic;margin-bottom:36px;max-width:22em;}
+.auth-card{background:none;border:none;border-radius:0;padding:0;box-shadow:none;}
+.auth-card h2{font-family:var(--font-h);font-size:1.6rem;font-weight:640;margin-bottom:6px;}
+.auth-card p{font-size:0.95rem;color:var(--soft);margin-bottom:22px;line-height:1.5;}
+#auth-err{font-size:0.88rem;color:var(--red);margin-top:10px;min-height:16px;}
 
-/* ── APP SHELL ── */
 #app{display:none;min-height:100vh;}
 .app-layout{display:flex;min-height:100vh;}
 
-/* ── SIDEBAR ── */
-.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:width 0.25s cubic-bezier(0.4,0,0.2,1),transform 0.25s cubic-bezier(0.4,0,0.2,1);}
-.sidebar.collapsed{width:52px;}
+.sidebar{width:var(--sidebar-w);background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:width 0.25s cubic-bezier(0.4,0,0.2,1),transform 0.25s cubic-bezier(0.4,0,0.2,1);}
+.sidebar.collapsed{width:56px;}
 .sidebar.collapsed .logo-sub,.sidebar.collapsed .uname,.sidebar.collapsed .sync-dot,.sidebar.collapsed .nav-section-label,.sidebar.collapsed .ni-label,.sidebar.collapsed .sidebar-bottom .btn{display:none;}
-.sidebar.collapsed .streak-pill,.sidebar.collapsed .reading-streak-pill{flex-direction:column;align-items:center;gap:2px;padding:7px 6px;}
+.sidebar.collapsed .streak-pill,.sidebar.collapsed .reading-streak-pill{flex-direction:column;align-items:center;gap:2px;padding:6px 4px;}
 .sidebar.collapsed .streak-num,.sidebar.collapsed .rs-num{font-size:1rem;}
 .sidebar.collapsed .streak-info,.sidebar.collapsed .rs-info{display:none;}
-.sidebar.collapsed .sidebar-bottom{flex-direction:column;gap:6px;align-items:center;padding:10px 6px;}
-.sidebar.collapsed .sidebar-logo{padding:16px 14px;}
-.sidebar.collapsed .logo{font-size:1rem;}
-.sidebar.collapsed .sidebar-user{padding:12px 14px;justify-content:center;}
+.sidebar.collapsed .sidebar-bottom{grid-template-columns:1fr;padding:10px 6px;}
+.sidebar.collapsed .sidebar-logo{padding:18px 12px;}
+.sidebar.collapsed .logo{font-size:1.1rem;}
+.sidebar.collapsed .sidebar-user{padding:12px;justify-content:center;}
 .sidebar.collapsed .uav{margin:0;}
 .sidebar.collapsed .nav-item{padding:10px;justify-content:center;}
 .sidebar.collapsed .ni-icon{width:auto;font-size:1rem;}
 .sidebar.collapsed .nav-section{margin-bottom:10px;}
-.sidebar.collapsed .sidebar-bottom{padding:10px;display:flex;justify-content:center;}
-.sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border);}
-.logo{font-family:var(--font-h);font-weight:800;font-size:1.3rem;letter-spacing:-0.03em;}
+.sidebar-logo{padding:22px 20px 18px;}
+.logo{font-family:var(--font-h);font-weight:640;font-size:1.55rem;letter-spacing:-0.03em;line-height:1;}
 .logo span{color:var(--gold);}
-.logo-sub{font-size:0.56rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:1px;}
-.sidebar-user{padding:12px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;cursor:pointer;}
+.logo-sub{font-size:0.72rem;color:var(--muted);font-style:italic;margin-top:4px;letter-spacing:0;text-transform:none;}
+.sidebar-user{padding:12px 20px 14px;display:flex;align-items:center;gap:8px;cursor:pointer;}
 .sidebar-user:hover .uname{color:var(--text);}
-.uav{width:24px;height:24px;border-radius:50%;background:var(--gold-dim);object-fit:cover;flex-shrink:0;}
-.uname{font-size:0.68rem;color:var(--soft);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-.sync-dot{width:5px;height:5px;border-radius:50%;background:var(--muted2);transition:background 0.3s;flex-shrink:0;}
+.uav{width:22px;height:22px;border-radius:50%;background:var(--gold-dim);object-fit:cover;flex-shrink:0;}
+.uname{font-size:0.78rem;color:var(--soft);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sync-dot{width:6px;height:6px;border-radius:50%;background:var(--muted2);transition:background 0.3s;flex-shrink:0;}
 .sync-dot.syncing{background:var(--gold);animation:blink 0.8s infinite;}
 .sync-dot.synced{background:var(--green);}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
-.sidebar-nav{flex:1;padding:12px 10px;overflow-y:auto;}
+.sidebar-nav{flex:1;padding:10px 8px 10px 16px;overflow-y:auto;counter-reset:nav;}
 .nav-section{margin-bottom:18px;}
-.nav-section-label{font-size:0.56rem;letter-spacing:0.14em;text-transform:uppercase;color:var(--muted);padding:0 8px;margin-bottom:5px;}
-.nav-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:7px;cursor:pointer;transition:all 0.15s;color:var(--soft);font-size:0.73rem;border:1px solid transparent;user-select:none;}
-.nav-item:hover{background:var(--surface2);color:var(--text);}
-.nav-item.active{background:var(--gold-bg);color:var(--gold);border-color:var(--gold-dim);}
-.nav-item .ni-icon{font-size:0.9rem;width:16px;text-align:center;flex-shrink:0;}
+.nav-section-label{font-size:0.68rem;letter-spacing:0.04em;color:var(--muted);padding:0 10px;margin-bottom:6px;font-style:italic;}
+.nav-item{display:flex;align-items:baseline;gap:12px;padding:7px 8px;border-radius:0;cursor:pointer;transition:color 0.15s;color:var(--soft);font-size:1.02rem;border:none;border-left:0;user-select:none;counter-increment:nav;}
+.nav-item:hover{background:transparent;color:var(--text);}
+.nav-item.active{background:transparent;color:var(--text);font-weight:700;}
+.nav-item .ni-icon{display:none;}
+.nav-item::before{content:counter(nav,decimal-leading-zero);font-family:var(--font-h);font-size:0.68rem;color:var(--muted);letter-spacing:0.04em;width:1.7em;flex-shrink:0;}
+.nav-item.active::before{color:var(--gold);}
 .nav-item .ni-label{flex:1;}
-.sidebar-bottom{padding:12px 10px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:5px;}
-.streak-pill{display:flex;align-items:center;gap:8px;padding:9px 10px;background:var(--gold-bg);border:1px solid var(--gold-dim);border-radius:7px;border-left:3px solid var(--gold);}
-.streak-num{font-family:var(--font-h);font-size:1.4rem;font-weight:800;color:var(--gold);line-height:1;letter-spacing:-0.02em;}
-.streak-info{font-size:0.62rem;color:var(--soft);line-height:1.5;}
-.streak-info strong{color:var(--gold);display:block;font-size:0.65rem;}
+.sidebar-bottom{padding:18px 18px 22px;border-top:none;display:flex;flex-direction:column;gap:2px;}
+.sidebar-bottom>div:last-child{margin-top:10px;}
+.streak-pill{display:flex;flex-direction:row;align-items:baseline;gap:8px;padding:1px 0!important;background:transparent!important;border:none!important;border-radius:0!important;}
+.streak-num{font-family:var(--font-h);font-size:1.15rem;font-weight:640;color:var(--text)!important;line-height:1.2;letter-spacing:-0.03em;min-width:1.4em;}
+.streak-info{font-size:0.72rem;color:var(--muted);line-height:1.3;margin-top:0;}
+.streak-info br{display:inline;font-size:0;}
+.streak-info br::after{content:' ';}
+.streak-info strong{color:var(--soft);display:inline;font-size:0.72rem;font-weight:400;}
 
-/* ── MAIN CONTENT ── */
-.main{margin-left:var(--sidebar-w);flex:1;min-height:100vh;transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);}
-.sidebar.collapsed~.main,.sidebar.collapsed+.main{margin-left:52px;}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--bg);z-index:50;}
-.topbar-left{display:flex;align-items:center;gap:12px;}
-.hamburger{background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px;transition:color 0.15s;display:block;}
+.main{margin-left:var(--sidebar-w);flex:1;min-height:100dvh;display:flex;flex-direction:column;transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);}
+.sidebar.collapsed~.main,.sidebar.collapsed+.main{margin-left:56px;}
+.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:18px 24px;padding:22px 40px 6px;border-bottom:none;position:sticky;top:0;background:transparent;z-index:50;}
+.topbar-left{display:flex;align-items:flex-end;gap:14px;min-width:0;}
+.hamburger{background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px 0 10px;transition:color 0.15s;display:block;}
 .hamburger:hover{color:var(--text);}
-.page-title{font-family:var(--font-h);font-size:1rem;font-weight:700;color:var(--text);}
+.page-title{font-family:var(--font-h);font-size:clamp(2.2rem,5.2vw,4.6rem);font-weight:640;color:var(--text);letter-spacing:-0.055em;line-height:0.82;margin-bottom:0.12em;}
 .page-title span{color:var(--gold);}
-.topbar-right{display:flex;align-items:center;gap:10px;}
-.date-pill{font-size:0.65rem;color:var(--muted);}
-.date-pill strong{color:var(--soft);display:block;font-size:0.72rem;}
-#install-btn{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.62rem;padding:4px 9px;cursor:pointer;transition:all 0.15s;display:none;}
-#install-btn:hover{color:var(--gold);border-color:var(--gold-dim);}
-.content{padding:24px 28px 80px;}
+.hero-time{font-family:var(--font-h);font-size:clamp(2.2rem,5.2vw,4.6rem);font-weight:500;font-style:italic;color:var(--gold);line-height:0.82;letter-spacing:-0.05em;text-align:right;}
+.topbar-right{display:flex;align-items:flex-end;gap:12px;padding-bottom:8px;}
+.date-pill{font-size:0.8rem;color:var(--muted);text-align:left;font-style:italic;}
+.date-pill strong{color:var(--soft);display:inline;font-size:0.86rem;font-style:normal;font-weight:400;margin-right:0.4em;}
+#top-time{display:none;}
+#install-btn{background:none;border:1px solid var(--border2);border-radius:99px;color:var(--soft);font-family:var(--font-m);font-size:0.72rem;padding:4px 11px;cursor:pointer;transition:all 0.15s;display:none;}
+#install-btn:hover{color:var(--gold);border-color:var(--gold);}
+.board{display:flex;justify-content:space-between;align-items:center;gap:0.6rem 1.6rem;margin:4px 40px 10px;padding:0.62rem 1.5rem 0.68rem;flex-wrap:nowrap;background:rgba(5,8,10,0.72);border:1px solid rgba(62,207,207,0.14);border-radius:999px;order:1;backdrop-filter:blur(10px);}
+.board .streak-card{display:contents;}
+.board .streak-pill{flex:1 1 auto;min-width:0;align-items:baseline;gap:8px;}
+.board .streak-num{font-size:clamp(1.25rem,2vw,1.85rem);line-height:1;}
+.board .streak-info{margin-top:0;font-size:0.7rem;white-space:nowrap;}
+.sidebar-bottom{padding:16px 18px 22px;}
+.content{padding:8px 40px 12px;width:100%;max-width:none;flex:1;display:flex;flex-direction:column;min-height:0;order:2;}
+.topbar{order:0;}
+body[data-page="today"] .board{display:none;}
 
-/* ── LAYOUT GROUPS ── */
-.section-group{margin-bottom:32px;}
-.section-label{font-family:var(--font-h);font-size:0.8rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);padding:0 0 12px 0;margin-bottom:12px;border-bottom:1px solid var(--border);}
-/* Collapsed-by-default section. The forms are still there for when you want them,
-   but Quick Log is the intended path in — a wall of open inputs just buries it. */
-.fold{margin-bottom:12px;}
-.fold>summary{font-family:var(--font-h);font-size:0.8rem;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);padding:0 0 12px 0;margin-bottom:12px;border-bottom:1px solid var(--border);cursor:pointer;list-style:none;display:flex;align-items:center;gap:8px;user-select:none;}
+.section-group{margin-bottom:0;max-width:none;flex:1;display:flex;flex-wrap:wrap;gap:0.6rem 3.5rem;align-items:stretch;align-content:flex-start;}
+.section-group>.card,.section-group>#today-setup,.section-group>#today-drift-card{flex:1 1 100%;}
+.section-label{font-family:var(--font-h);font-size:0.95rem;font-weight:500;font-style:italic;letter-spacing:0;text-transform:none;color:var(--muted);padding:0;margin:1.6rem 0 0.6rem;border:none;flex:1 1 100%;}
+
+body[data-page="today"] .main{height:100dvh;max-height:100dvh;overflow:auto;}
+body[data-page="today"] .content{overflow:hidden;}
+.today-page{flex:1;display:flex;flex-direction:column;min-height:0;gap:0.85rem;}
+.today-folds{display:flex;flex-wrap:wrap;gap:0.4rem 3.5rem;flex:0 0 auto;align-items:flex-start;}
+.today-folds>.fold{margin:0;flex:1 1 280px;min-width:min(100%,280px);}
+.today-folds>.fold[open]{flex:1 1 100%;max-height:46vh;overflow:auto;}
+.today-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:1.05rem 1.1rem;min-height:22rem;align-content:stretch;}
+.today-grid .card{background:transparent!important;border:none!important;border-radius:0!important;padding:0;margin:0;}
+.today-grid>.habits-card,.today-grid>.today-cell,.today-grid>.streak-slot{min-height:0;overflow:auto;background:rgba(5,8,10,0.68)!important;border:1px solid rgba(62,207,207,0.14)!important;border-radius:22px!important;padding:1.15rem 1.3rem 1.2rem;box-shadow:0 16px 40px rgba(0,0,0,0.28);}
+.today-cell{display:flex;flex-direction:column;gap:1rem;}
+.habit-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer;color:var(--soft);font-size:0.98rem;line-height:1.35;}
+.habit-row input{width:15px;height:15px;margin-top:3px;flex-shrink:0;accent-color:var(--gold);}
+.habit-row:has(input:checked) span{color:var(--muted);text-decoration:line-through;}
+.today-freeze{flex:0 0 auto;display:flex;align-items:center;margin:0 108px 6px 0;padding:0.55rem 1.45rem;background:rgba(5,8,10,0.72);border:1px solid rgba(62,207,207,0.14);border-radius:999px;backdrop-filter:blur(10px);min-height:52px;}
+.today-freeze .streak-card{display:flex;flex-direction:row;align-items:baseline;width:100%;}
+.today-freeze .streak-pill{flex-direction:row;align-items:baseline;gap:12px;}
+.today-freeze .streak-num{font-size:clamp(1.25rem,2vw,1.75rem);line-height:1;}
+.today-freeze .streak-info{font-size:0.78rem;margin:0;}
+.streak-slot{display:flex;}
+.streak-slot .streak-card{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0.6rem;min-width:0;}
+.streak-slot .streak-pill{flex-direction:column;align-items:flex-start;gap:0.15rem;}
+.streak-slot .streak-num{font-size:clamp(2.6rem,5.2vw,4.6rem);line-height:0.82;}
+.streak-slot .streak-info{font-size:0.78rem;margin-top:0.15rem;}
+
+.fold{margin:0.4rem 0 0;flex:1 1 280px;min-width:min(100%,280px);}
+.fold>summary{font-family:var(--font-h);font-size:1.25rem;font-weight:640;letter-spacing:-0.02em;text-transform:none;color:var(--text);padding:0.35rem 0;margin:0;border:none;cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;user-select:none;}
 .fold>summary::-webkit-details-marker{display:none;}
-.fold>summary::before{content:'▸';font-size:0.7rem;transition:transform 0.15s;display:inline-block;}
-.fold[open]>summary::before{transform:rotate(90deg);}
-.fold>summary:hover{color:var(--soft);}
-.fold>summary .fold-count{margin-left:auto;font-size:0.62rem;font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);}
+.fold>summary::before{content:'';width:0.4em;height:0.4em;border-radius:50%;background:var(--gold);opacity:0.55;flex-shrink:0;transform:none;}
+.fold[open]>summary::before{opacity:1;}
+.fold>summary:hover{color:var(--gold);}
+.fold>summary .fold-count{margin-left:0.4em;font-size:0.85rem;font-weight:400;letter-spacing:0;text-transform:none;color:var(--muted);font-family:var(--font-m);font-style:italic;}
 
-/* ── CARDS ── */
-.card{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:14px;margin-bottom:12px;}
-.card-title{font-family:var(--font-h);font-size:0.82rem;font-weight:700;color:var(--text);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
-.empty{color:var(--soft);font-size:0.72rem;padding:8px 0;font-style:italic;}
-.mini-prompt{color:var(--soft);font-size:0.7rem;padding:6px;background:var(--surface2);border-radius:4px;margin-bottom:8px;border-left:2px solid var(--gold-dim);}
+.card{background:transparent!important;border:none!important;border-radius:0!important;padding:1.2rem 0 0.2rem;margin-bottom:0.2rem;box-shadow:none!important;}
+.card[onclick]{cursor:pointer;padding-top:0.2rem;max-width:none;}
+.card-title{font-family:var(--font-h);font-size:1.45rem;font-weight:640;color:var(--text);margin-bottom:6px;display:flex;align-items:baseline;justify-content:space-between;letter-spacing:-0.03em;}
+.empty{color:var(--muted);font-size:0.95rem;padding:4px 0 12px;font-style:italic;}
+.mini-prompt{color:var(--soft);font-size:0.95rem;padding:0 0 12px;background:none;border-radius:0;margin-bottom:0;border:none;font-style:italic;}
+.card [style*="border-bottom"]{border-bottom:none!important;padding-top:10px!important;padding-bottom:10px!important;}
 
-/* ── SPARKLINES ── */
-.sparkline-container{display:flex;align-items:flex-end;gap:1px;height:28px;margin-top:4px;}
-.sparkline-bar{flex:1;background:var(--gold);border-radius:1px;min-width:2px;}
+.sparkline-container{display:flex;align-items:flex-end;gap:2px;height:28px;margin-top:4px;}
+.sparkline-bar{flex:1;background:var(--gold);border-radius:1px 1px 0 0;min-width:2px;}
 .sparkline-bar.green{background:var(--green);}
 
-/* ── GRID ── */
 .ga{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
 
-/* ── OVERLAY ── */
-#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99;}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99;}
 #sidebar-overlay.show{display:block;}
 
-/* ── SUNDAY BANNER ── */
-.sunday-banner{display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--gold-dim);border-radius:8px;padding:11px 14px;margin-bottom:16px;}
+.sunday-banner{display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--gold-dim);border-radius:2px;padding:11px 14px;margin-bottom:16px;}
 .sunday-banner.show{display:flex;}
-.sunday-banner .sb-text{font-size:0.72rem;color:var(--soft);line-height:1.5;flex:1;}
+.sunday-banner .sb-text{font-size:0.82rem;color:var(--soft);line-height:1.5;flex:1;}
 .sunday-banner .sb-text strong{color:var(--gold);display:block;}
 
-/* ── FORMS ── */
-input[type="date"],input[type="text"],input[type="number"],select,textarea{width:100%;padding:6px 8px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);border-radius:4px;font-family:var(--font-m);font-size:0.73rem;margin-bottom:6px;}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);background:var(--surface3);}
+input[type="date"],input[type="text"],input[type="number"],input[type="email"],input[type="password"],input[type="time"],select,textarea{width:100%;padding:8px 10px;background:var(--bg);border:none;border-bottom:1px solid var(--border2);color:var(--text);border-radius:0;font-family:var(--font-m);font-size:0.92rem;margin-bottom:8px;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--gold);background:var(--surface2);}
 button{cursor:pointer;transition:all 0.15s;}
-.btn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.73rem;padding:6px 12px;}
-.btn:hover{background:var(--surface3);color:var(--text);}
-.btn-gold{background:var(--gold-bg);border:1px solid var(--gold-dim);color:var(--gold);font-family:var(--font-m);font-size:0.73rem;padding:6px 12px;border-radius:6px;}
-.btn-gold:hover{background:var(--gold);color:var(--bg);}
-.btn-x{background:none;border:none;color:var(--muted);padding:4px;font-size:0.8rem;cursor:pointer;}
+.btn{background:transparent;border:none;border-radius:0;color:var(--soft);font-family:var(--font-m);font-size:0.88rem;padding:4px 0;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px;}
+.btn:hover{background:transparent;color:var(--text);}
+.btn-gold{background:transparent;border:none;border-bottom:1px solid var(--gold);color:var(--gold);font-family:var(--font-h);font-size:1.05rem;padding:4px 0 3px;border-radius:0;font-weight:640;text-decoration:none;}
+.btn-gold:hover{filter:none;color:var(--text);border-bottom-color:var(--text);}
+.btn-gold:hover{filter:brightness(1.06);}
+.btn-x{background:none;border:none;color:var(--muted);padding:4px;font-size:0.9rem;cursor:pointer;}
 .btn-x:hover{color:var(--red);}
 
-/* ── MODAL ── */
-#edit-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;}
-.modal-content{background:var(--surface);border:1px solid var(--border2);border-radius:8px;padding:20px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto;}
-.modal-content h3{font-family:var(--font-h);font-size:0.9rem;font-weight:700;margin-bottom:14px;color:var(--text);}
-.lbl{font-size:0.7rem;color:var(--soft);display:block;margin-bottom:4px;}
-.del-confirm{font-size:0.72rem;color:var(--soft);display:flex;gap:8px;align-items:center;}
-.del-yes,.del-no{background:none;border:none;color:var(--gold);font-family:var(--font-m);font-size:0.65rem;cursor:pointer;padding:2px 4px;}
+#edit-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:200;align-items:center;justify-content:center;}
+.modal-content{background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:22px;width:90%;max-width:400px;max-height:80vh;overflow-y:auto;box-shadow:var(--shadow);}
+.modal-content h3{font-family:var(--font-h);font-size:1.2rem;font-weight:640;margin-bottom:14px;color:var(--text);}
+.lbl{font-size:0.78rem;color:var(--soft);display:block;margin-bottom:4px;font-style:italic;}
+.del-confirm{font-size:0.82rem;color:var(--soft);display:flex;gap:8px;align-items:center;}
+.del-yes,.del-no{background:none;border:none;color:var(--gold);font-family:var(--font-m);font-size:0.75rem;cursor:pointer;padding:2px 4px;}
 .del-no{color:var(--soft);}
 
-/* ── RESPONSIVE ── */
 @media(max-width:900px){
   .sidebar{transform:translateX(-100%);}
   .sidebar.open{transform:translateX(0);}
   .main{margin-left:0;}
-  .topbar{padding:12px 16px;}
-  .content{padding:16px;}
-  .page-title{font-size:0.9rem;}
-  /* The install button used to be hidden here, which removed it from the only place it
-     matters. On iOS, installing to the Home Screen is what makes web push work at all. */
+  .topbar{grid-template-columns:1fr auto;padding:16px 18px 4px;}
+  .hero-time{display:none;}
+  #top-time{display:inline;}
+  .content{padding:8px 18px 96px;}
+  .page-title{font-size:2.5rem;}
+  .board{margin:8px 18px 18px;padding:0.7rem 1rem;border-radius:18px;flex-wrap:wrap;gap:0.55rem 1rem;}
+  .board .streak-num{font-size:1.25rem;}
+  body[data-page="today"] .main{height:auto;max-height:none;overflow:visible;}
+  body[data-page="today"] .content{overflow:visible;}
+  .today-grid{grid-template-columns:1fr;grid-template-rows:auto;min-height:0;flex:none;}
+  .today-grid>.habits-card,.today-grid>.today-cell,.today-grid>.streak-slot{min-height:8.5rem;}
+  .today-freeze{border-radius:18px;margin-bottom:12px;}
+  .streak-slot .streak-num{font-size:2.4rem;}
+  .fold{flex:1 1 100%;}
 }
 
 @media(min-width:901px) and (max-width:1200px){
   .ga{grid-template-columns:1fr 1fr;}
 }
 
-.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;padding:12px 16px;font-size:0.7rem;color:var(--soft);z-index:300;animation:slideIn 0.3s;}
+.toast{position:fixed;bottom:20px;right:20px;background:var(--surface);border:1px solid var(--border);border-radius:2px;padding:12px 16px;font-size:0.84rem;color:var(--soft);z-index:300;animation:slideIn 0.3s;box-shadow:var(--shadow);}
 @keyframes slideIn{from{transform:translateY(20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 
-/* ── OMNIBAR FAB ── */
-#omni-fab{position:fixed;bottom:24px;right:24px;width:46px;height:46px;border-radius:50%;background:var(--gold);border:none;color:#080808;font-size:1.4rem;line-height:1;cursor:pointer;z-index:250;box-shadow:0 4px 16px rgba(200,169,110,0.3);transition:transform 0.15s,box-shadow 0.15s;display:none;align-items:center;justify-content:center;}
-#omni-fab:hover{transform:scale(1.08);box-shadow:0 6px 20px rgba(200,169,110,0.4);}
+#omni-fab{position:fixed;bottom:28px;right:28px;width:auto;height:auto;padding:13px 22px 12px;border-radius:999px;background:var(--gold);border:none;color:var(--on-accent);font-family:var(--font-h);font-size:1.15rem;font-weight:640;letter-spacing:-0.02em;line-height:1;cursor:pointer;z-index:250;transition:opacity 0.15s;display:none;align-items:center;justify-content:center;gap:8px;}
+#omni-fab:hover{opacity:0.88;}
+#ask-fab{width:auto!important;height:auto!important;padding:10px 14px!important;border-radius:999px!important;background:transparent!important;border:1px solid var(--border2)!important;font-size:0.8rem!important;}
 
-/* ── iOS SAFE AREA INSETS ── */
 .sidebar{padding-top:env(safe-area-inset-top);}
 .topbar{padding-top:max(16px,calc(env(safe-area-inset-top) + 4px));}
 #omni-fab{bottom:max(24px,calc(env(safe-area-inset-bottom) + 16px))!important;}
 #ask-fab{bottom:max(80px,calc(env(safe-area-inset-bottom) + 72px))!important;right:max(24px,env(safe-area-inset-right))!important;}
 .toast{bottom:max(20px,calc(env(safe-area-inset-bottom) + 12px))!important;}
-#omni-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:400;display:none;align-items:flex-end;justify-content:center;padding-bottom:0;}
+#omni-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.62);z-index:400;display:none;align-items:flex-end;justify-content:center;padding-bottom:0;}
 #omni-overlay.open{display:flex;}
-#omni-sheet{background:var(--surface);border-top:1px solid var(--border2);border-radius:16px 16px 0 0;width:100%;max-width:640px;padding:20px 20px 32px;animation:slideUp 0.2s ease;}
+#omni-sheet{background:var(--surface);border-top:1px solid var(--border);border-radius:4px 4px 0 0;width:100%;max-width:640px;padding:22px 22px 32px;animation:slideUp 0.2s ease;box-shadow:var(--shadow);}
 @keyframes slideUp{from{transform:translateY(40px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 @keyframes slideDown{from{transform:translateY(-20px);opacity:0;}to{transform:translateY(0);opacity:1;}}
-#omni-input{width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:var(--font-m);font-size:0.82rem;padding:12px 14px;resize:none;outline:none;line-height:1.5;}
-#omni-input:focus{border-color:var(--gold-dim);}
-#omni-result{margin-top:10px;font-size:0.7rem;color:var(--soft);min-height:24px;line-height:1.6;}
-#omni-dump-btn{background:var(--surface2);border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.65rem;padding:4px 10px;cursor:pointer;}
+#omni-input{width:100%;background:var(--bg);border:none;border-bottom:1px solid var(--border2);border-radius:0;color:var(--text);font-family:var(--font-m);font-size:1rem;padding:12px 2px;resize:none;outline:none;line-height:1.5;}
+#omni-input:focus{border-color:var(--gold);}
+#omni-result{margin-top:10px;font-size:0.86rem;color:var(--soft);min-height:24px;line-height:1.6;}
+#omni-dump-btn{background:transparent;border:1px solid var(--border2);border-radius:99px;color:var(--soft);font-family:var(--font-m);font-size:0.75rem;padding:4px 10px;cursor:pointer;}
 #omni-dump-btn:hover{color:var(--text);border-color:var(--border3);}
 </style>
 </head>
@@ -212,12 +253,12 @@ button{cursor:pointer;transition:all 0.15s;}
 <div id="auth-screen">
   <div class="auth-wrap">
     <div class="auth-logo">JE<span>.</span></div>
-    <div class="auth-sub">Personal Operating System</div>
+    <div class="auth-sub">A field notebook that remembers.</div>
     <div class="auth-card">
-      <h2>Sign in</h2>
-      <p>Use email + password — saves to your keychain for one-tap next time.</p>
-      <input id="auth-email" type="email" autocomplete="username" placeholder="Email" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:var(--font-m);font-size:0.76rem;padding:10px 12px;margin-bottom:8px;outline:none;"/>
-      <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Password" style="width:100%;background:var(--surface2);border:1px solid var(--border2);border-radius:7px;color:var(--text);font-family:var(--font-m);font-size:0.76rem;padding:10px 12px;margin-bottom:12px;outline:none;"/>
+      <h2>Come in</h2>
+      <p>Email and password. The phone will remember you next time.</p>
+      <input id="auth-email" type="email" autocomplete="username" placeholder="Email"/>
+      <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Password"/>
       <button class="btn-gold" style="width:100%;padding:11px;" onclick="window.doSignIn()">Sign in</button>
       <div style="display:flex;gap:8px;margin-top:8px;">
         <button class="btn" style="flex:1;font-size:0.68rem;" onclick="window.doRegister()">Create account</button>
@@ -236,7 +277,7 @@ button{cursor:pointer;transition:all 0.15s;}
     <aside class="sidebar" id="sidebar">
       <div class="sidebar-logo">
         <div class="logo">JE<span>.</span></div>
-        <div class="logo-sub">Personal OS</div>
+        <div class="logo-sub">field notes</div>
       </div>
       <div class="sidebar-user" onclick="window.doSignOut()">
         <img id="uav" class="uav" src="" onerror="this.style.display='none'">
@@ -282,29 +323,8 @@ button{cursor:pointer;transition:all 0.15s;}
         </div>
       </nav>
       <div class="sidebar-bottom">
-        <div class="streak-pill" style="border-left-color:var(--gold);">
-          <div class="streak-num" id="main-streak">0</div>
-          <div class="streak-info">Day<br><strong>Streak</strong></div>
-        </div>
-        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);border-left-color:#5b8dee;position:relative;">
-          <div class="streak-num" style="color:#5b8dee;" id="read-streak">0</div>
-          <div class="streak-info">Reading<br><strong>Days</strong></div>
-          <button onclick="resetReadingStreak()" style="position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);font-size:0.7rem;cursor:pointer;padding:2px 4px;border-radius:2px;transition:all 0.15s;" title="Reset streak" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">↻</button>
-        </div>
-        <div class="streak-pill" id="padel-streak-pill" style="background:var(--surface2);border-color:var(--border2);border-left-color:var(--green);">
-          <div class="streak-num" style="color:var(--green);" id="padel-streak">0</div>
-          <div class="streak-info">Padel<br><strong>Weeks</strong></div>
-        </div>
-        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);border-left-color:#f0ad4e;">
-          <div class="streak-num" style="color:#f0ad4e;font-size:0.8rem;" id="inertia-display">○ 0</div>
-          <div class="streak-info">Daily<br><strong>Momentum</strong></div>
-        </div>
-        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);border-left-color:#7ec8e3;">
-          <div class="streak-num" style="color:#7ec8e3;font-size:0.75rem;" id="freeze-count"></div>
-          <div class="streak-info">Streak<br><strong>Freezes</strong></div>
-        </div>
         <div style="position:relative;">
-          <button class="btn" onclick="toggleExportMenu()" style="width:100%;">⬇ Export</button>
+          <button class="btn" onclick="toggleExportMenu()" style="width:100%;">Export</button>
           <div id="export-menu" style="display:none;position:absolute;bottom:110%;left:0;right:0;background:var(--surface);border:1px solid var(--border2);border-radius:6px;overflow:hidden;z-index:50;">
             <button class="btn" onclick="window.doExportAll()" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">📦 Full JSON backup</button>
             <button class="btn" id="opfs-backup-btn" onclick="window.backupToOPFS()" style="width:100%;border:none;border-radius:0;border-bottom:1px solid var(--border);text-align:left;padding:8px 10px;">💾 Backup to file</button>
@@ -323,25 +343,57 @@ button{cursor:pointer;transition:all 0.15s;}
       <div class="topbar">
         <div class="topbar-left">
           <button class="hamburger" onclick="toggleSidebar()">☰</button>
-          <h1 class="page-title" id="page-title">Today</h1>
+          <div>
+            <h1 class="page-title" id="page-title">Today</h1>
+            <div class="date-pill"><strong id="top-date">—</strong><span id="top-time">—</span></div>
+          </div>
         </div>
+        <div class="hero-time" id="hero-time" aria-hidden="true">—</div>
         <div class="topbar-right">
-          <button id="yesterday-btn" onclick="toggleYesterday()" style="background:none;border:1px solid var(--border2);border-radius:6px;color:var(--soft);font-family:var(--font-m);font-size:0.65rem;padding:4px 8px;cursor:pointer;transition:all 0.15s;">←</button>
-          <div class="date-pill"><strong id="top-date">—</strong><span id="top-time">—</span></div>
+          <button id="yesterday-btn" onclick="toggleYesterday()" style="background:none;border:1px solid var(--border2);border-radius:99px;color:var(--soft);font-family:var(--font-m);font-size:0.7rem;padding:5px 10px;cursor:pointer;">←</button>
           <button id="install-btn" onclick="window.installPWA()" title="Add JE OS to your home screen">Install</button>
         </div>
       </div>
       <div class="content" id="content"></div>
+      <div class="board" id="board">
+        <div class="streak-card" id="streak-card-a">
+          <div class="streak-pill">
+            <div class="streak-num" id="main-streak">0</div>
+            <div class="streak-info">Day <strong>streak</strong></div>
+          </div>
+          <div class="streak-pill" style="position:relative;">
+            <div class="streak-num" id="read-streak">0</div>
+            <div class="streak-info">Reading <strong>days</strong></div>
+            <button onclick="resetReadingStreak()" title="Reset reading streak" style="position:absolute;top:0;right:0;background:none;border:none;color:var(--muted);font-size:0.75rem;cursor:pointer;">↻</button>
+          </div>
+          <div class="streak-pill" id="padel-streak-pill">
+            <div class="streak-num" id="padel-streak">0</div>
+            <div class="streak-info">Padel <strong>weeks</strong></div>
+          </div>
+        </div>
+        <div class="streak-card" id="streak-card-b">
+          <div class="streak-pill">
+            <div class="streak-num" id="inertia-display">0</div>
+            <div class="streak-info">Daily <strong>momentum</strong></div>
+          </div>
+        </div>
+        <div class="streak-card" id="streak-card-c">
+          <div class="streak-pill">
+            <div class="streak-num" id="freeze-count"></div>
+            <div class="streak-info">Streak <strong>freezes</strong></div>
+          </div>
+        </div>
+      </div>
     </main>
 
   </div>
 </div>
 
 <!-- OMNIBAR FAB -->
-<button id="omni-fab" onclick="openOmnibar()" title="Quick log (Ctrl+K)">+</button>
+<button id="omni-fab" onclick="openOmnibar()" title="Quick log (Ctrl+K)">log</button>
 
 <!-- ASK JE OS FAB -->
-<button id="ask-fab" onclick="openAskJeOS()" title="Ask JE OS (Ctrl+/)" style="position:fixed;bottom:80px;right:24px;width:42px;height:42px;border-radius:50%;background:var(--surface);border:1px solid var(--border2);color:var(--soft);font-size:1rem;cursor:pointer;z-index:250;box-shadow:0 2px 12px rgba(0,0,0,0.4);transition:transform 0.15s,color 0.15s;display:none;align-items:center;justify-content:center;" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--soft)'">🔍</button>
+<button id="ask-fab" onclick="openAskJeOS()" title="Ask JE OS (Ctrl+/)" style="position:fixed;bottom:88px;right:28px;cursor:pointer;z-index:250;display:none;align-items:center;justify-content:center;color:var(--soft);font-family:var(--font-h);">ask</button>
 
 <!-- ASK JE OS OVERLAY -->
 
@@ -377,7 +429,7 @@ button{cursor:pointer;transition:all 0.15s;}
     <div style="display:flex;gap:8px;margin-top:12px;align-items:center;">
       <button id="omni-submit" class="btn-gold" onclick="submitOmnibar()" style="flex:1;">Log it</button>
     </div>
-    <div style="font-size:0.6rem;color:var(--muted);margin-top:8px;text-align:center;">Gemini parses your input and logs it to the right place automatically</div>
+    <div style="font-size:0.72rem;color:var(--muted);margin-top:8px;text-align:center;font-style:italic;">Say it how it comes out. It files itself.</div>
   </div>
 </div>
 
@@ -852,7 +904,9 @@ window.nav = (page, el) => {
       if (n.getAttribute('onclick')?.includes(`'${page}'`)) n.classList.add('active');
     });
   }
+  restoreBoard();
   currentPage = page;
+  document.body.dataset.page = page;
   const renders = {
     today: renderTodayPage,
     commitments: renderCommitmentsPage,
@@ -883,6 +937,35 @@ function updateHeader() {
   const now = new Date();
   document.getElementById('top-date').textContent = now.toLocaleDateString('en-GB', { weekday: 'short', month: 'short', day: 'numeric' });
   document.getElementById('top-time').textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  const hero = document.getElementById('hero-time');
+  if (hero) hero.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
+function restoreBoard() {
+  const board = document.getElementById('board');
+  ['streak-card-a', 'streak-card-b', 'streak-card-c'].forEach(id => {
+    const el = document.getElementById(id);
+    if (board && el && el.parentElement !== board) board.appendChild(el);
+  });
+}
+
+function placeBoard() {
+  const a = document.getElementById('streak-card-a');
+  const b = document.getElementById('streak-card-b');
+  const c = document.getElementById('streak-card-c');
+  const slotA = document.getElementById('today-streak-a');
+  const slotB = document.getElementById('today-streak-b');
+  const slotC = document.getElementById('today-freeze');
+  if (slotA && slotB && slotC && a && b && c) {
+    slotA.appendChild(a);
+    slotB.appendChild(b);
+    slotC.appendChild(c);
+  } else {
+    restoreBoard();
+  }
+}
+
+function sizeFolds() {
 }
 
 function toggleSidebar() {
@@ -908,33 +991,42 @@ async function renderTodayPage() {
     fetchDailyRange(30),
   ]);
 
-  // Morning card (06:00–10:00 only, not when viewing yesterday)
   const hour = new Date().getHours();
   const showMorning = !viewingYesterday && hour >= 6 && hour < 10;
+  const [weekData, habitsData, habitsChecks] = await Promise.all([
+    fsGet(up(`weeks/${weekKey()}`)).then(r => r || {}),
+    fsGet(up('user_data/habits')).then(r => r || { items: [] }),
+    fsGet(up(`habit_checks/${todayKey2()}`)).then(r => r || {})
+  ]);
+  const priorities = (weekData.priorities || []).filter(p => !p.done).slice(0, 3);
+  ensureHabitIds(habitsData);
+  const habits = (habitsData.items || []).slice(0, 5);
+  const checkedCount = habits.filter(h => habitsChecks[h.id]).length;
   let morningHtml = '';
   if (showMorning) {
-    const [weekData, habitsData, habitsChecks] = await Promise.all([
-      fsGet(up(`weeks/${weekKey()}`)).then(r => r || {}),
-      fsGet(up('user_data/habits')).then(r => r || { items: [] }),
-      fsGet(up(`habit_checks/${todayKey2()}`)).then(r => r || {})
-    ]);
-    const priorities = (weekData.priorities || []).filter(p => !p.done).slice(0, 3);
-    ensureHabitIds(habitsData);
-    const habits = (habitsData.items || []).slice(0, 4);
-    const checkedCount = habits.filter(h => habitsChecks[h.id]).length;
     morningHtml = `
-      <div class="card" style="border-color:var(--gold-dim);background:linear-gradient(135deg,var(--gold-bg),var(--surface));">
-        <div class="card-title">☀️ Good morning</div>
+      <div class="card">
+        <div class="card-title">Good morning</div>
         ${priorities.length ? `
-          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Today's priorities</div>
-          ${priorities.map(p => `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0;border-left:2px solid var(--gold-dim);padding-left:8px;margin-bottom:4px;">→ ${sanitiseHtml(p.text)}</div>`).join('')}
-        ` : '<div style="font-size:0.7rem;color:var(--muted);">No priorities set this week — add some on the Priorities page.</div>'}
-        ${habits.length ? `
-          <div style="font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.08em;margin:8px 0 4px;">Habits today — ${checkedCount}/${habits.length}</div>
-          ${habits.map(h => `<div style="font-size:0.7rem;color:var(--soft);padding:2px 0;">${habitsChecks[h.id] ? '✓' : '○'} ${sanitiseHtml(h.action)}</div>`).join('')}
-        ` : ''}
+          <div style="font-size:0.72rem;color:var(--muted);font-style:italic;margin-bottom:8px;">This week's remaining</div>
+          ${priorities.map(p => `<div style="font-size:0.92rem;color:var(--soft);padding:4px 0 4px 10px;border-left:2px solid var(--gold-dim);margin-bottom:6px;">${sanitiseHtml(p.text)}</div>`).join('')}
+        ` : '<div class="empty">No priorities set this week.</div>'}
       </div>`;
   }
+  const glanceHtml = showMorning ? '' : `
+      <div class="card today-glance" id="today-glance">
+        <div class="card-title">On the board</div>
+        ${priorities.length ? priorities.map(p => `<div style="font-size:0.95rem;color:var(--soft);padding:5px 0 5px 10px;border-left:2px solid var(--gold-dim);margin-bottom:8px;">${sanitiseHtml(p.text)}</div>`).join('') : '<p class="mini-prompt">No open priorities this week.</p>'}
+      </div>`;
+  const habitsHtml = `
+      <div class="card" id="today-habits">
+        <div class="card-title">Habits <span class="habit-count" style="font-family:var(--font-m);font-size:0.85rem;font-weight:400;font-style:italic;color:var(--muted);">${habits.length ? `${checkedCount}/${habits.length}` : ''}</span></div>
+        ${habits.length ? habits.map(h => `
+          <label class="habit-row">
+            <input type="checkbox" ${habitsChecks[h.id] ? 'checked' : ''} onchange="toggleHabit('${h.id}')"/>
+            <span>${sanitiseHtml(h.action)}</span>
+          </label>`).join('') : `<p class="mini-prompt">Nothing to check off yet.</p><button class="btn" onclick="nav('commitments')">Add a habit</button>`}
+      </div>`;
 
   // Collapsing the trackers hides whether you've logged anything, which is exactly the
   // thing you need to see at a glance. So the fold header carries the count instead.
@@ -945,36 +1037,8 @@ async function renderTodayPage() {
   ].filter(Boolean).length;
 
   let html = `
-    <div class="section-group">
-      ${morningHtml}
-
-      <!-- QUICK LOG — primary entry point; parses natural language into multiple entries -->
-      <div class="card" style="border-color:var(--gold-dim);background:linear-gradient(135deg,var(--gold-bg),var(--surface));cursor:pointer;" onclick="openOmnibar()">
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div style="font-size:1.1rem;">⚡</div>
-          <div style="flex:1;min-width:0;">
-            <div style="font-family:var(--font-h);font-size:0.82rem;font-weight:700;color:var(--gold);">Quick Log</div>
-            <div style="font-size:0.66rem;color:var(--muted);margin-top:2px;">Just type it — "won padel 6-4 vs Dave, 2h OTJ on programming, read 30 pages, feeling wired"</div>
-          </div>
-          <div style="font-size:0.6rem;color:var(--muted);border:1px solid var(--border2);border-radius:4px;padding:3px 6px;white-space:nowrap;">Ctrl+K</div>
-        </div>
-      </div>
-
-      <!-- First-week checklist. Renders itself, and permanently retires once done. -->
-      <div id="today-setup" style="display:none;"></div>
-
-      <!-- Drift, high-severity only. Shown on Today just when something needs saying;
-           the full picture lives on Review. Gated so it can't become wallpaper. -->
-      <div id="today-drift-card" style="display:none;">
-        <div class="card" style="border-color:var(--red);background:rgba(224,90,90,0.04);">
-          <div class="card-title" style="justify-content:space-between;">
-            🌊 Drifting
-            <button class="btn" onclick="nav('review')" style="font-size:0.58rem;padding:2px 8px;">See all</button>
-          </div>
-          <div id="today-drift"></div>
-        </div>
-      </div>
-
+    <div class="today-page">
+    <div class="today-folds">
       <details class="fold">
         <summary>Log manually<span class="fold-count">${logged} of 7 logged today</span></summary>
 
@@ -1088,16 +1152,43 @@ async function renderTodayPage() {
 
       </details>
     </div>
+
+    <div class="today-grid">
+      <div class="habits-card">${habitsHtml}</div>
+
+      <div class="today-cell" id="today-side">
+        ${morningHtml}
+        <div id="today-setup" style="display:none;"></div>
+        <div id="today-drift-card" style="display:none;">
+          <div class="card">
+            <div class="card-title" style="justify-content:space-between;">
+              Drifting
+              <button class="btn" onclick="nav('review')">See all</button>
+            </div>
+            <div id="today-drift"></div>
+          </div>
+        </div>
+        ${glanceHtml}
+      </div>
+
+      <div class="streak-slot" id="today-streak-a"></div>
+      <div class="streak-slot" id="today-streak-b"></div>
+    </div>
+    <div class="today-freeze" id="today-freeze"></div>
+    </div>
   `;
 
+  restoreBoard();
   document.getElementById('content').innerHTML = html;
+  placeBoard();
   await renderTodayData(data);
   renderJournalPage('today-journal').catch(() => {}); // non-blocking; own Firestore reads
+  sizeFolds();
 
   // Both of these are enhancements: they own their own reads and must never block or
   // break the page if they fail.
   if (!viewingYesterday) {
-    renderSetup('today-setup').catch(() => {});
+    renderSetup('today-setup').catch(() => {}).finally(() => sizeFolds());
   }
 
   // Surface drift on Today only when something is actually urgent — and never when
@@ -1111,7 +1202,7 @@ async function renderTodayPage() {
       _driftActions = _driftActions.filter(a => a.container !== 'today-drift');
       body.innerHTML = driftRowsHTML(urgent, 'today-drift');
       card.style.display = '';
-    }).catch(() => {}); // drift is enhancement, never block the page
+    }).catch(() => {}).finally(() => sizeFolds());
   }
 }
 
@@ -4739,6 +4830,16 @@ async function setHabitCheck(id, value) {
 
 window.toggleHabit = async (id) => {
   await setHabitCheck(id);
+  if (currentPage === 'today') {
+    const box = document.getElementById('today-habits');
+    if (box) {
+      const n = box.querySelectorAll('input:checked').length;
+      const t = box.querySelectorAll('input[type="checkbox"]').length;
+      const c = box.querySelector('.habit-count');
+      if (c) c.textContent = t ? `${n}/${t}` : '';
+    }
+    return;
+  }
   await renderHabitsPage();
 };
 
@@ -6539,7 +6640,7 @@ async function checkAndAwardFreeze() {
 
 function renderFreezeCount(count) {
   const el = document.getElementById('freeze-count');
-  if (el) el.textContent = count > 0 ? `🧊 ×${count}` : '';
+  if (el) el.textContent = count > 0 ? String(count) : '0';
 }
 
 // ── SUNDAY EXECUTIVE SUMMARY ─────────────
@@ -7063,6 +7164,10 @@ window.testAIKey = async () => {
 function initAppUX() {
   if (_uxInit) return;
   _uxInit = true;
+  window.addEventListener('resize', () => sizeFolds());
+  document.addEventListener('toggle', e => {
+    if (e.target?.classList?.contains('fold')) requestAnimationFrame(sizeFolds);
+  }, true);
   // Listen for SW background sync signal — delegate flush to main thread (which has Firebase auth)
   navigator.serviceWorker?.addEventListener('message', e => {
     if (e.data?.type === 'jeos-sync') idbFlushQueue();
@@ -7419,33 +7524,24 @@ async function renderSetup(containerId) {
     return;
   }
 
+  const glance = document.getElementById('today-glance');
+  if (glance) glance.style.display = 'none';
   const doneCount = steps.length - remaining.length;
   card.style.display = '';
   card.innerHTML = `
-    <div class="card" style="border-color:var(--gold-dim);">
-      <div class="card-title" style="justify-content:space-between;">
-        Getting set up
-        <span style="font-size:0.6rem;color:var(--muted);font-weight:400;">${doneCount} of ${steps.length}</span>
-      </div>
-      <div style="height:4px;background:var(--surface2);border-radius:2px;margin:2px 0 10px;">
-        <div style="height:100%;width:${(doneCount / steps.length * 100).toFixed(0)}%;background:var(--gold);border-radius:2px;transition:width 0.4s;"></div>
-      </div>
+    <div class="card">
+      <div class="card-title">Still to set</div>
+      <p class="mini-prompt">${doneCount} of ${steps.length} done. ${
+        remaining.length === 1 ? 'One left.' :
+        remaining.length === 2 ? 'Almost there.' :
+        'A couple of minutes.'}</p>
       ${remaining.map(s => `
-        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border);">
-          <span style="color:var(--muted);flex-shrink:0;">○</span>
-          <div style="flex:1;min-width:0;">
-            <div style="font-size:0.72rem;color:var(--soft);">${s.label}</div>
-            <div style="font-size:0.6rem;color:var(--muted);">${s.hint}</div>
-          </div>
-          <button class="btn" onclick="${s.go}" style="font-size:0.58rem;padding:3px 9px;flex-shrink:0;">Do it</button>
-        </div>`).join('')}
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
-        <span style="font-size:0.58rem;color:var(--muted);">${
-          remaining.length === 1 ? 'One left.' :
-          remaining.length === 2 ? 'Almost done.' :
-          'Takes about two minutes.'}</span>
-        <button class="btn" onclick="dismissSetup()" style="font-size:0.56rem;padding:2px 8px;">Hide this</button>
-      </div>
+        <p style="margin:0 0 1rem;line-height:1.45;">
+          <span style="color:var(--text);">${s.label}.</span>
+          <span style="color:var(--muted);"> ${s.hint}</span>
+          <button class="btn" onclick="${s.go}">Do it</button>
+        </p>`).join('')}
+      <button class="btn" onclick="dismissSetup()">Hide this</button>
     </div>`;
 }
 
@@ -7453,6 +7549,8 @@ window.dismissSetup = () => {
   localStorage.setItem(SETUP_KEY, '1');
   const c = document.getElementById('today-setup');
   if (c) c.style.display = 'none';
+  const glance = document.getElementById('today-glance');
+  if (glance) glance.style.display = '';
   toast('Hidden — everything is still in Settings and Commitments');
 };
 

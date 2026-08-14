@@ -1,0 +1,23 @@
+# Firebase / Google service-account keys — never commit
+*firebase-adminsdk*.json
+*-adminsdk-*.json
+serviceAccount*.json
+
+# Secrets and env
+.env
+.env.*
+*.pem
+
+# Firebase / Node
+.firebase/
+node_modules/
+
+# Local build artefacts (must not ship with hosting)
+*.cjs
+_body.mjs
+_live_snapshot/
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

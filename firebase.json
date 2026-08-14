@@ -1,0 +1,39 @@
+{
+  "hosting": {
+    "public": ".",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      ".git/**",
+      ".firebase/**",
+      "**/node_modules/**",
+      "*.cjs",
+      "_body.mjs",
+      "*.md",
+      "*.txt",
+      ".github/**",
+      "functions/**",
+      "webhook.py",
+      "_live_snapshot/**",
+      "*firebase-adminsdk*.json",
+      "*-adminsdk-*.json"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache, no-store, must-revalidate"
+          }
+        ]
+      }
+    ]
+  }
+}

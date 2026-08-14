@@ -133,7 +133,7 @@ async function weeklyDigest(uid, mondayKey) {
 exports.energyReminderScheduler = onSchedule({
   schedule: 'every 15 minutes',
   timeZone: ZONE,
-  region: 'europe-west2'
+  region: 'us-central1'
 }, async () => {
   const now = nowInZone();
   const users = await db.collection('users').listDocuments();

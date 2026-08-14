@@ -16,6 +16,7 @@ node_modules/
 *.cjs
 _body.mjs
 _live_snapshot/
+_scratch/
 
 # OS
 Thumbs.db

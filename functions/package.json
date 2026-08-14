@@ -1,0 +1,13 @@
+{
+  "name": "joelos-functions",
+  "description": "JE OS scheduled energy + weekly digest pushes",
+  "engines": {
+    "node": "22"
+  },
+  "main": "index.js",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "firebase-functions": "^6.3.2"
+  }
+}

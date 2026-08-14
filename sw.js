@@ -6,7 +6,7 @@ firebase.initializeApp({
   apiKey: "AIzaSyB5QdQaXq72UNK1oCRDfZPZHm2-31LBsz0",
   authDomain: "joelos.firebaseapp.com",
   projectId: "joelos",
-  storageBucket: "joelos.appspot.com",
+  storageBucket: "joelos.firebasestorage.app",
   messagingSenderId: "571313050682",
   appId: "1:571313050682:web:fadbacf90a567891891103"
 });
@@ -69,7 +69,7 @@ self.addEventListener('notificationclick', e => {
 // ── ASSET CACHING ─────────────────────────
 // Bump this when the cached shell must be discarded — the activate handler deletes
 // every cache whose name doesn't match, so a new name is what forces the refresh.
-const CACHE = 'jeos-v2';
+const CACHE = 'jeos-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -91,6 +91,10 @@ self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.hostname !== self.location.hostname) return;
+  const dest = e.request.destination;
+  const isDoc = e.request.mode === 'navigate' || dest === 'document' ||
+    url.pathname === '/' || url.pathname.endsWith('.html') || url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.webmanifest');
   e.respondWith(
     caches.match(e.request).then(cached => {
       const net = fetch(e.request).then(resp => {
@@ -100,7 +104,8 @@ self.addEventListener('fetch', e => {
         }
         return resp;
       }).catch(() => cached);
-      return cached || net;
+      // HTML/JS must be network-first or deploys look like they didn't land.
+      return isDoc ? net : (cached || net);
     })
   );
 });

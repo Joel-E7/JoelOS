@@ -291,7 +291,7 @@ button{cursor:pointer;transition:all 0.15s;}
           <div class="streak-info">Reading<br><strong>Days</strong></div>
           <button onclick="resetReadingStreak()" style="position:absolute;top:4px;right:4px;background:none;border:none;color:var(--muted);font-size:0.7rem;cursor:pointer;padding:2px 4px;border-radius:2px;transition:all 0.15s;" title="Reset streak" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--muted)'">↻</button>
         </div>
-        <div class="streak-pill" style="background:var(--surface2);border-color:var(--border2);border-left-color:var(--green);">
+        <div class="streak-pill" id="padel-streak-pill" style="background:var(--surface2);border-color:var(--border2);border-left-color:var(--green);">
           <div class="streak-num" style="color:var(--green);" id="padel-streak">0</div>
           <div class="streak-info">Padel<br><strong>Weeks</strong></div>
         </div>
@@ -435,6 +435,7 @@ let _quickWins = {};
 // second account's nav is built from this, and inheriting the first account's module
 // list would put pages in the sidebar that person never chose.
 let _modulesCache = null;
+let _uxInit = false;
 
 if (LIVE) {
   const app = initializeApp(FIREBASE_CONFIG);
@@ -444,11 +445,17 @@ if (LIVE) {
   // Force session persistence for iOS Safari
   setPersistence(auth, browserLocalPersistence).catch(e => console.warn('Persistence error:', e));
 
-  // Handle FCM messages when app is in foreground — show a toast instead of a system notification
+  // Same contract as sw.js: scheduled pushes are data-only, so title/body live on payload.data.
   onMessage(messaging, payload => {
-    const body = payload.notification?.body || 'Time to log your energy!';
-    toast('🔔 ' + body);
+    const d = payload.data || {};
+    const body = d.body || payload.notification?.body || 'Time to log your energy!';
+    const title = d.title || payload.notification?.title;
+    toast('🔔 ' + (title && title !== body ? `${title} — ${body}` : body));
   });
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('/sw.js').catch(e => console.warn('SW register failed:', e.message));
+  }
 
 } else {
   document.getElementById('auth-screen').style.display = 'none';
@@ -559,6 +566,9 @@ if (LIVE) {
     _dailyRangeCache = {};
     _toneCache = null;
     _modulesCache = null;
+    _aiKey = null;
+    _activeProvider = 'google';
+    if (typeof _chats === 'object') Object.keys(_chats).forEach(k => { delete _chats[k]; });
     if (u) {
       uid = u.uid;
       const av = document.getElementById('uav');
@@ -578,8 +588,38 @@ if (LIVE) {
 
 // ── FIRESTORE HELPERS ────────────────────
 const up = path => uid ? `users/${uid}/${path}` : path;
-const todayKey = () => new Date().toISOString().slice(0, 10);
-const weekKey = () => { const d = new Date(); const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1); return d.toISOString().slice(0, 10); };
+/** Local calendar YYYY-MM-DD. Never toISOString() — BST midnight is the previous UTC day. */
+function localDayKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+function localMonthKey(d = new Date()) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+function mondayOf(d = new Date()) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const day = x.getDay() || 7;
+  x.setDate(x.getDate() - day + 1);
+  return x;
+}
+const todayKey = () => localDayKey();
+const weekKey = () => localDayKey(mondayOf());
+function weekWindow(mondayKey) {
+  const start = new Date(mondayKey + 'T00:00');
+  const end = new Date(start);
+  end.setDate(end.getDate() + 7);
+  return { start, end };
+}
+function inWeek(iso, mondayKey) {
+  if (!iso || !mondayKey) return false;
+  const at = new Date(iso);
+  if (isNaN(at)) {
+    const k = String(iso).slice(0, 10);
+    const { start, end } = weekWindow(mondayKey);
+    return k >= localDayKey(start) && k < localDayKey(end);
+  }
+  const { start, end } = weekWindow(mondayKey);
+  return at >= start && at < end;
+}
 
 // ── INDEXEDDB OFFLINE LAYER ──────────────
 const IDB_NAME = 'jeos', IDB_VER = 1;
@@ -706,8 +746,17 @@ async function fsGet(path) {
   }
 }
 
+function isDeleteSentinel(v) {
+  try { return typeof v?.isEqual === 'function' && v.isEqual(deleteField()); } catch { return false; }
+}
 async function fsSet(path, data) {
-  await idbSet(path, data); // always write locally first
+  const prev = (await idbGet(path)) || {};
+  const merged = { ...prev };
+  Object.entries(data || {}).forEach(([k, v]) => {
+    if (isDeleteSentinel(v)) delete merged[k];
+    else merged[k] = v;
+  });
+  await idbSet(path, merged);
   if (!LIVE) return;
   if (!navigator.onLine) {
     await idbQueueWrite(path, data);
@@ -773,7 +822,7 @@ function syncPulse() { const el = document.getElementById('sync-status'); el.cla
 
 // ── UI HELPERS ───────────────────────────
 function toast(msg, ms = 2500) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), ms); }
-function todayKey2() { return new Date().toISOString().slice(0, 10); }
+function todayKey2() { return todayKey(); }
 function isSunday() { return new Date().getDay() === 0; }
 function fmtDate(d) { return new Date(d + 'T00:00').toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }); }
 function mLbl(m) { return new Date(`${m}-01`).toLocaleDateString('en-GB', { month: 'short' }); }
@@ -1069,7 +1118,7 @@ async function renderTodayPage() {
 async function renderTodayData(data) {
   // Apply bio-responsive theme based on today's energy
   applyBioTheme(data.energy ?? null);
-  const readData = data.reading ? `<div>${data.reading.title ? `<strong>${data.reading.title}</strong> • ` : ''}${data.reading.pages}p • ${data.reading.mins}m</div>` : '<div class="empty">No reading logged yet</div>';
+  const readData = data.reading ? `<div>${data.reading.title ? `<strong>${sanitiseHtml(data.reading.title)}</strong> • ` : ''}${data.reading.pages}p • ${data.reading.mins}m</div>` : '<div class="empty">No reading logged yet</div>';
   document.getElementById('read-display').innerHTML = readData;
 
   // Populate reading title autocomplete from cached daily range (fsColGet on daily doesn't work
@@ -1088,11 +1137,11 @@ async function renderTodayData(data) {
   renderEnergyEntries(data);
 
   // Update wins
-  const winsHtml = (data.wins || []).map((w, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${w}</span><button class="btn-x" onclick="delWin(${i})">✕</button></div>`).join('');
+  const winsHtml = (data.wins || []).map((w, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${sanitiseHtml(w)}</span><button class="btn-x" onclick="delWin(${i})">✕</button></div>`).join('');
   document.getElementById('wins-display').innerHTML = winsHtml || '<div class="empty">No wins yet — every action counts</div>';
 
   // Update resistance
-  const resistHtml = (data.resistance || []).map((r, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${r}</span><button class="btn-x" onclick="delResist(${i})">✕</button></div>`).join('');
+  const resistHtml = (data.resistance || []).map((r, i) => `<div style="padding:6px;background:var(--surface2);border-radius:4px;font-size:0.7rem;display:flex;justify-content:space-between;align-items:center;"><span>${sanitiseHtml(r)}</span><button class="btn-x" onclick="delResist(${i})">✕</button></div>`).join('');
   document.getElementById('resist-display').innerHTML = resistHtml || '<div class="empty">What you avoid reveals what you need</div>';
 
   if (data.gratitude) {
@@ -1128,7 +1177,7 @@ window.generateRetrospective = async (days) => {
     fsColGet(up('padel'))
   ]);
 
-  const cutoff = new Date(Date.now() - days * 864e5).toISOString().split('T')[0];
+  const cutoff = localDayKey(new Date(Date.now() - days * 864e5));
   const padelW = (padel||[]).filter(p=>p.date>=cutoff);
   const mean = arr => arr.length ? (arr.reduce((s,v)=>s+v,0)/arr.length).toFixed(1) : 'n/a';
 
@@ -1789,7 +1838,7 @@ function modMonthKey() { const n = new Date(); return `${n.getFullYear()}-${Stri
  * with the same pattern only because it starts from `new Date()` with a live time on it.
  */
 function modDayKey(d) {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  return localDayKey(d);
 }
 
 /** Monday of the week containing dateStr — matches the app's weekKey() convention. */
@@ -2916,7 +2965,7 @@ function renderJournalList(entries) {
         <span style="font-size:0.7rem;color:var(--text);font-weight:600;">${fmtDate(e.date)}</span>
         ${e.type ? `<span style="font-size:0.58rem;color:var(--muted);text-transform:uppercase;">${e.type}</span>` : ''}
       </div>
-      <div style="font-size:0.7rem;color:var(--soft);margin-bottom:4px;max-height:40px;overflow:hidden;">${e.text.length > 100 ? e.text.slice(0, 100) + '…' : e.text}</div>
+      <div style="font-size:0.7rem;color:var(--soft);margin-bottom:4px;max-height:40px;overflow:hidden;">${sanitiseHtml(e.text.length > 100 ? e.text.slice(0, 100) + '…' : e.text)}</div>
       <div style="display:flex;gap:4px;">
         <button class="btn-x" onclick="openEditModal('Journal','journal','${e.id}',[{key:'text',label:'Entry',type:'textarea',rows:5,value:'${(e.text||'').replace(/"/g,'&quot;')}'}])">✎</button>
         <button class="btn-x" onclick="delJournal('${e.id}')">✕</button>
@@ -3090,6 +3139,8 @@ let statsRange = 30;
 
 async function renderStatsPage() {
   _dailyRangeCache = {}; // clear per-render cache
+  const padelEnabled = (await getActiveModules().catch(() => [])).some(m => m.id === 'padel');
+  if (statsTab === 'padel' && !padelEnabled) statsTab = 'overview';
   const tabBtnStyle = (t) => statsTab === t
     ? 'padding:6px 14px;border-radius:5px;font-family:var(--font-m);font-size:0.72rem;cursor:pointer;background:var(--gold-bg);border:1px solid var(--gold-dim);color:var(--gold);'
     : 'padding:6px 14px;border-radius:5px;font-family:var(--font-m);font-size:0.72rem;cursor:pointer;background:var(--surface2);border:1px solid var(--border2);color:var(--soft);';
@@ -3103,7 +3154,7 @@ async function renderStatsPage() {
       <!-- TAB BAR -->
       <div style="display:flex;gap:6px;margin-bottom:16px;flex-wrap:wrap;">
         <button style="${tabBtnStyle('overview')}" onclick="setStatsTab('overview')">Overview</button>
-        <button style="${tabBtnStyle('padel')}" onclick="setStatsTab('padel')">🎾 Padel</button>
+        ${padelEnabled ? `<button style="${tabBtnStyle('padel')}" onclick="setStatsTab('padel')">🎾 Padel</button>` : ''}
         <button style="${tabBtnStyle('wrapped')}" onclick="setStatsTab('wrapped')">🎁 Wrapped</button>
       </div>
   `;
@@ -3366,7 +3417,7 @@ async function fetchDailyRange(days) {
   const now = new Date();
   const keys = Array.from({ length: days }, (_, i) => {
     const d = new Date(now); d.setDate(d.getDate() - (days - 1 - i));
-    return d.toISOString().slice(0, 10);
+    return localDayKey(d);
   });
   const values = await Promise.all(keys.map(k => fsGet(up(`daily/${k}`))));
   const result = keys.map((k, i) => ({ date: k, ...(values[i] || {}) }));
@@ -3516,7 +3567,7 @@ async function renderRevChart() {
   for (let i = 11; i >= 0; i--) {
     const d = new Date(); d.setDate(d.getDate() - (i * 7));
     const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1);
-    weeks.push(d.toISOString().slice(0, 10));
+    weeks.push(localDayKey(d));
   }
   const reviews = await Promise.all(weeks.map(w => fsGet(up(`reviews/${w}`)).then(r => r ? { wk: w, ...r } : null)));
   const valid = reviews.filter(Boolean);
@@ -3597,7 +3648,7 @@ async function renderPadelStats() {
   const mCounts = {};
   for (let i = 5; i >= 0; i--) {
     const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const m = d.toISOString().slice(0, 7);
+    const m = localMonthKey(d);
     months.push(m);
     mCounts[m] = { sessions: 0, matches: 0 };
   }
@@ -3804,7 +3855,7 @@ function renderMoodEntries(data) {
           <span style="font-size:1.3rem;">${moods[e.mood]}</span>
           <div style="flex:1;min-width:0;">
             <div style="font-size:0.72rem;color:var(--text);font-weight:600;">${moodLabels[e.mood]} <span style="color:var(--muted);font-weight:400;font-size:0.65rem;">${e.time}</span></div>
-            ${e.trigger ? `<div style="font-size:0.68rem;color:var(--soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.trigger}</div>` : ''}
+            ${e.trigger ? `<div style="font-size:0.68rem;color:var(--soft);margin-top:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${sanitiseHtml(e.trigger)}</div>` : ''}
           </div>
           <button class="btn-x" onclick="editMoodEntry(${i})" title="Edit">✎</button>
           <button class="btn-x" onclick="delMoodEntry(${i})" title="Delete">✕</button>
@@ -3887,29 +3938,31 @@ window.delMoodEntry = async (i) => {
 
 const ENERGY_LABELS = ['Wake-up', 'Midday', 'Bedtime'];
 
+async function applyEnergyReading(k, raw) {
+  const val = Math.min(10, Math.max(1, Math.round(Number(raw))));
+  if (!val) return { ok: false, reason: 'bad' };
+  const data = await fsGet(up(`daily/${k}`)) || {};
+  if (!data.energies) {
+    data.energies = data.energy ? [{ value: data.energy, label: ENERGY_LABELS[0], ts: 0 }] : [];
+  }
+  if (data.energies.length >= 3) return { ok: false, reason: 'full', data };
+  const label = ENERGY_LABELS[data.energies.length];
+  data.energies.push({ value: val, label, ts: Date.now() });
+  data.energy = Math.round(data.energies.reduce((s, e) => s + e.value, 0) / data.energies.length);
+  await fsSet(up(`daily/${k}`), data);
+  return { ok: true, data, label, val };
+}
+
 async function setEnergy(v) {
   const val = parseInt(v);
   if (!val) { toast('Move the slider first'); return; }
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
-  const data = await fsGet(up(`daily/${k}`)) || {};
-
-  // Migrate old flat energy to array
-  if (!data.energies) {
-    data.energies = data.energy ? [{ value: data.energy, label: ENERGY_LABELS[0], ts: 0 }] : [];
-  }
-  if (data.energies.length >= 3) { toast('Max 3 energy readings per day'); return; }
-
-  const label = ENERGY_LABELS[data.energies.length];
-  data.energies.push({ value: val, label, ts: Date.now() });
-  // Keep legacy energy = average for backwards compat
-  data.energy = Math.round(data.energies.reduce((s, e) => s + e.value, 0) / data.energies.length);
-
-  await fsSet(up(`daily/${k}`), data);
-
+  const r = await applyEnergyReading(k, val);
+  if (!r.ok) { toast(r.reason === 'full' ? 'Max 3 energy readings per day' : 'Move the slider first'); return; }
   const indicator = document.getElementById('energy-saved');
-  if (indicator) { indicator.textContent = `✓ ${label} ${val}/10`; indicator.style.opacity = '1'; setTimeout(() => indicator.style.opacity = '0', 2000); }
-  toast(`${label} energy ${val}/10 logged`);
-  renderEnergyEntries(data);
+  if (indicator) { indicator.textContent = `✓ ${r.label} ${r.val}/10`; indicator.style.opacity = '1'; setTimeout(() => indicator.style.opacity = '0', 2000); }
+  toast(`${r.label} energy ${r.val}/10 logged`);
+  renderEnergyEntries(r.data);
 }
 
 function renderEnergyEntries(data) {
@@ -3968,7 +4021,12 @@ async function addReading() {
   if (!pages || !mins) { toast('Both pages and minutes are required'); return; }
   const k = viewingYesterday ? getYesterdayKey() : todayKey2();
   const data = await fsGet(up(`daily/${k}`)) || {};
-  data.reading = { title, pages, mins };
+  const prev = data.reading || { pages: 0, mins: 0, title: '' };
+  data.reading = {
+    pages: (prev.pages || 0) + pages,
+    mins: (prev.mins || 0) + mins,
+    title: title || prev.title || ''
+  };
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('read-title').value = '';
   document.getElementById('read-pages').value = '';
@@ -4000,7 +4058,7 @@ async function addWin() {
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.wins = data.wins || [];
   if (data.wins.length >= 10) { toast('10 wins logged — that\'s enough for one day!'); return; }
-  data.wins.push(val);
+  data.wins.push(sanitiseHtml(val));
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('win-input').value = '';
   await renderTodayData(data);
@@ -4022,7 +4080,7 @@ async function addResist() {
   const data = await fsGet(up(`daily/${k}`)) || {};
   data.resistance = data.resistance || [];
   if (data.resistance.length >= 10) { toast('Cap reached — clear one first'); return; }
-  data.resistance.push(val);
+  data.resistance.push(sanitiseHtml(val));
   await fsSet(up(`daily/${k}`), data);
   document.getElementById('resist-input').value = '';
   await renderTodayData(data);
@@ -4069,10 +4127,15 @@ async function saveDailyJournal() {
 function getYesterdayKey() {
   const d = new Date();
   d.setDate(d.getDate() - 1);
-  return d.toISOString().split('T')[0];
+  return localDayKey(d);
 }
 
 async function toggleYesterday() {
+  if (currentPage !== 'today') {
+    viewingYesterday = true;
+    nav('today');
+    return;
+  }
   viewingYesterday = !viewingYesterday;
   const btn = document.getElementById('yesterday-btn');
   if (viewingYesterday) {
@@ -4216,18 +4279,20 @@ function renderPriorityArchive(archive) {
     document.getElementById('p-archive').innerHTML = '<div class="empty">No completed priorities yet</div>';
     return;
   }
-  
-  const items = archive.items || [];
-  const completed = items.length;
+  const wk = weekKey();
+  const items = (archive.items || []).filter(p => inWeek(p.completed_at, wk));
+  if (!items.length) {
+    document.getElementById('p-archive').innerHTML = '<div class="empty">Nothing completed this week yet</div>';
+    return;
+  }
   let html = `
     <div style="padding:8px;background:var(--surface2);border-radius:4px;margin-bottom:6px;">
-      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;">✓ Completed this week — ${completed} items</div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-bottom:4px;">✓ Completed this week — ${items.length} items</div>
       <div style="font-size:0.7rem;color:var(--soft);">
-        ${items.map(p => `<div style="margin:2px 0;">• ${p.text}</div>`).join('')}
+        ${items.map(p => `<div style="margin:2px 0;">• ${sanitiseHtml(p.text)}</div>`).join('')}
       </div>
     </div>
   `;
-  
   document.getElementById('p-archive').innerHTML = html;
 }
 
@@ -4338,14 +4403,18 @@ window.doExportAll = async () => {
   const exportData = { exported: new Date().toISOString(), uid };
 
   // Collections in parallel
-  const cols = ['padel', 'journal', 'uni_log', 'habits'];
+  const cols = ['padel', 'journal', 'uni_log'];
   const colResults = await Promise.all(cols.map(c => fsColGet(up(c))));
   cols.forEach((c, i) => { exportData[c] = colResults[i]; });
+  exportData.habits = await fsGet(up('user_data/habits'));
+  exportData.profile = await fsGet(up('user_data/profile'));
+  exportData.modules = await fsGet(up('user_data/modules'));
+  exportData.priority_archive = await fsGet(up('archives/priority_archive'));
 
   // 365 daily docs in parallel
   const dailyKeys = Array.from({ length: 365 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - i);
-    return d.toISOString().slice(0, 10);
+    return localDayKey(d);
   });
   const dailyDocs = await Promise.all(dailyKeys.map(k => fsGet(up(`daily/${k}`))));
   exportData.daily = {};
@@ -4355,7 +4424,7 @@ window.doExportAll = async () => {
   const weekKeys = Array.from({ length: 52 }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - (i * 7));
     const day = d.getDay() || 7; d.setDate(d.getDate() - day + 1);
-    return d.toISOString().slice(0, 10);
+    return localDayKey(d);
   });
   const [weekDocs, reviewDocs, energyDocs] = await Promise.all([
     Promise.all(weekKeys.map(k => fsGet(up(`weeks/${k}`)))),
@@ -4372,7 +4441,7 @@ window.doExportAll = async () => {
   const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = `je-os-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  a.download = `je-os-backup-${localDayKey()}.json`;
   a.click();
   URL.revokeObjectURL(a.href);
   toast('Export downloaded');
@@ -4452,8 +4521,11 @@ window.setPrioritiesData = setPrioritiesData;
 window.saveObsession = saveObsession;
 // Journal functions
 window.delJournal = delJournal;
+window.saveJournal = saveJournal;
 // Review functions
 window.setReviewScore = setReviewScore;
+window.saveReview = saveReview;
+window.saveEnergyMap = saveEnergyMap;
 // UI functions
 window.toggleSidebar = toggleSidebar;
 window.selectMoodForEntry = selectMoodForEntry;
@@ -4492,7 +4564,7 @@ window.doExportCSV = async (type = 'daily') => {
     const rows = [['date','mood','mood_trigger','energy','reading_title','reading_pages','reading_mins','phone_mins','gratitude','wins','resistance','journal']];
     for (let i = 364; i >= 0; i--) {
       const d = new Date(); d.setDate(d.getDate() - i);
-      const k = d.toISOString().slice(0,10);
+      const k = localDayKey(d);
       const v = await fsGet(up(`daily/${k}`));
       if (v) rows.push([k, v.mood||'', v.mood_trigger||'', v.energy||'', v.reading?.title||'', v.reading?.pages||'', v.reading?.mins||'', v.phone?.mins||'', v.gratitude||'', (v.wins||[]).join('|'), (v.resistance||[]).join('|'), (v.journal||'').replace(/\n/g,' ')]);
     }
@@ -4615,8 +4687,8 @@ function renderHabitsList(items, todayChecks) {
       <div style="display:flex;align-items:flex-start;gap:10px;padding:10px;background:var(--surface2);border-radius:4px;margin-bottom:6px;border-left:3px solid ${checked ? 'var(--green)' : 'var(--border2)'};">
         <input type="checkbox" ${checked ? 'checked' : ''} onchange="toggleHabit('${h.id}')" style="width:16px;height:16px;cursor:pointer;flex-shrink:0;margin-top:2px;"/>
         <div style="flex:1;">
-          <div style="font-size:0.72rem;color:var(--soft);">After <span style="color:var(--gold);">${h.anchor}</span></div>
-          <div style="font-size:0.75rem;font-weight:600;color:${checked ? 'var(--soft)' : 'var(--text)'};${checked ? 'text-decoration:line-through;' : ''}">I will ${h.action}</div>
+          <div style="font-size:0.72rem;color:var(--soft);">After <span style="color:var(--gold);">${sanitiseHtml(h.anchor)}</span></div>
+          <div style="font-size:0.75rem;font-weight:600;color:${checked ? 'var(--soft)' : 'var(--text)'};${checked ? 'text-decoration:line-through;' : ''}">I will ${sanitiseHtml(h.action)}</div>
           ${h.duration ? `<div style="font-size:0.62rem;color:var(--muted);">${h.duration}</div>` : ''}
           <div style="font-size:0.62rem;color:var(--muted);margin-top:4px;">🔥 ${h.streak||0} day streak</div>
         </div>
@@ -4705,7 +4777,7 @@ async function renderCorrelationHints() {
   const nextDayEnergy = (dateStr) => {
     const n = new Date(dateStr + 'T00:00');
     n.setDate(n.getDate() + 1);
-    return byDate[n.toISOString().slice(0, 10)]?.energy;
+    return byDate[localDayKey(n)]?.energy;
   };
   const heavyAfter = [], lightAfter = [];
   data.filter(d => d.phone?.mins > 0).forEach(d => {
@@ -4829,7 +4901,7 @@ function recentWeekKeys(n) {
   const day = d.getDay() || 7;
   d.setDate(d.getDate() - day + 1);
   for (let i = 0; i < n; i++) {
-    out.push(d.toISOString().slice(0, 10));
+    out.push(localDayKey(d));
     d.setDate(d.getDate() - 7);
   }
   return out;
@@ -5242,7 +5314,7 @@ Supported action types:
 - complete_priority: { "action": "complete_priority", "data": { "text": string } }
 - add_backburner: { "action": "add_backburner", "data": { "text": string, "effort": 1|2|3 } }
 - open_page: { "action": "open_page", "data": { "page": ${pageKeys.map(p => `"${p}"`).join('|')} } }
-- journal_entry: { "action": "journal_entry", "data": { "text": string, "type": "reflection"|"gratitude"|"vent"|"idea" } }
+- journal_entry: { "action": "journal_entry", "data": { "text": string, "type": "daily"|"weekly"|"insight"|"goal"|"free" } }
 ${modLines.length ? `\nThis person's tracking modules:\n${modLines.join('\n')}` : ''}
 
 Rules:
@@ -5263,7 +5335,7 @@ ${modRules.length ? modRules.join('\n') : ''}
 ${habitNames.length ? `\nTheir current habits: ${habitNames.map(h => `"${h}"`).join(', ')}` : '\nThey have no habits set up — never emit check_habit.'}
 ${priorityNames.length ? `Their open priorities this week: ${priorityNames.map(p => `"${p}"`).join(', ')}` : 'They have no open priorities — never emit complete_priority.'}
 - Today's date is ${today}
-
+${_omniDumpMode ? '- This is a brain dump: extract EVERY distinct action, do not stop at the first one.\n' : ''}
 User input: "${text.replace(/"/g, '\\"')}"`;
 
   // A full brain dump can legitimately produce 8+ actions; 400 tokens truncated the JSON
@@ -5355,10 +5427,9 @@ async function omniExecute(actions) {
         await fsSet(up(`daily/${today}`), d);
         log.push(`${['','😔','😐','😊','😄','🔥'][clampedMood]} Mood ${clampedMood}/5`);
       } else if (a.action === 'log_energy') {
-        const d = await fsGet(up(`daily/${today}`)) || {};
-        d.energy = Math.min(10, Math.max(1, a.data.energy));
-        await fsSet(up(`daily/${today}`), d);
-        log.push(`⚡ Energy ${d.energy}/10`);
+        const r = await applyEnergyReading(today, a.data.energy);
+        if (!r.ok) { log.push(r.reason === 'full' ? '⚡ Energy not added — 3 readings already logged today' : '⚡ Energy not added'); continue; }
+        log.push(`⚡ ${r.label} energy ${r.val}/10`);
       } else if (a.action === 'log_reading') {
         const d = await fsGet(up(`daily/${today}`)) || {};
         // Accumulate across multiple sessions in a day rather than overwriting
@@ -5442,8 +5513,14 @@ async function omniExecute(actions) {
         log.push(`→ Opening ${a.data.page}`);
         setTimeout(() => nav(a.data.page), 800);
       } else if (a.action === 'journal_entry') {
-        await fsColAdd(up('journal'), { text: sanitiseHtml(a.data.text), type: a.data.type || 'reflection', date: today });
-        log.push(`📝 Journal (${a.data.type || 'reflection'})`);
+        const typeMap = { reflection: 'insight', gratitude: 'daily', vent: 'free', idea: 'insight' };
+        const allowed = ['daily', 'weekly', 'insight', 'goal', 'free'];
+        const type = typeMap[a.data.type] || (allowed.includes(a.data.type) ? a.data.type : 'daily');
+        const text = sanitiseHtml(a.data.text);
+        await fsColAdd(up('journal'), { text, type, date: today });
+        const d = await fsGet(up(`daily/${today}`)) || {};
+        if (!d.journal) { d.journal = text; await fsSet(up(`daily/${today}`), d); }
+        log.push(`📝 Journal (${type})`);
       }
     } catch(e) {
       log.push(`⚠ Failed: ${a.action}`);
@@ -5617,7 +5694,7 @@ window.submitAskJeOS = async () => {
 
   // Step 1: cheap classifier call — identify which collection(s) to fetch
   const classifyPrompt = `You are a query classifier for a personal life-tracking app. Given a user question, return ONLY a JSON array of relevant data sources. No explanation.
-Available sources: "daily" (mood, energy, resistance, wins, reading, phone usage), "padel" (matches, opponents, results), "journal" (journal entries, thoughts), "uni_log" (study sessions, OTJ hours), "priorities" (weekly goals, backburner), "habits" (habit streaks).
+Available sources: "daily" (mood, energy, resistance, wins, reading, phone usage), "padel" (matches, opponents, results), "journal" (journal entries, thoughts), "uni_log" (study sessions, OTJ hours), "priorities" (weekly goals, backburner), "habits" (habit streaks), "modules" (custom tracking modules such as books or baking).
 Return 1-3 most relevant sources. Example: ["daily","padel"]
 Question: "${q.replace(/"/g,'\\"')}"`;
 
@@ -5632,7 +5709,7 @@ Question: "${q.replace(/"/g,'\\"')}"`;
   // Step 2: fetch only relevant data slices
   const today = todayKey2();
   const cutoff90 = new Date(); cutoff90.setDate(cutoff90.getDate() - 90);
-  const cutoffStr = cutoff90.toISOString().slice(0,10);
+  const cutoffStr = localDayKey(cutoff90);
   const fetches = {};
 
   await Promise.all(sources.map(async src => {
@@ -5659,6 +5736,14 @@ Question: "${q.replace(/"/g,'\\"')}"`;
     } else if (src === 'habits') {
       const hd = await fsGet(up('user_data/habits')) || { items: [] };
       fetches.habits = (hd.items||[]).map(h => `After ${h.anchor} → ${h.action} (streak: ${h.streak||0})`).join('\n') || 'none';
+    } else if (src === 'modules') {
+      const mods = (await getActiveModules().catch(() => [])).filter(m => !m.native);
+      const chunks = [];
+      for (const m of mods) {
+        const rows = await fsColGet(up(modCollection(m))).then(r => r || []).catch(() => []);
+        chunks.push(`${m.name}: ` + (rows.slice(0, 25).map(r => `${r.date} ${modSummary(m, r)}`).join('; ') || 'none'));
+      }
+      fetches.modules = chunks.join('\n') || 'none';
     }
   }));
 
@@ -5711,7 +5796,7 @@ async function renderWrappedPage(targetId = slotFor('stats-wrapped')) {
   // Daily data — fetch full year (365 docs)
   const yearKeys = Array.from({ length: 365 }, (_, i) => {
     const d = new Date(now); d.setDate(d.getDate() - (364 - i));
-    return d.toISOString().slice(0,10);
+    return localDayKey(d);
   }).filter(k => k >= yearStart);
   const yearVals = await Promise.all(yearKeys.map(k => fsGet(up(`daily/${k}`))));
   const dailyData = yearKeys.map((k,i) => ({ date: k, ...(yearVals[i]||{}) })).filter(d => Object.keys(d).length > 1);
@@ -5866,7 +5951,7 @@ window.backupToOPFS = async () => {
 
     // Fetch last 365 days of daily data
     const now = new Date();
-    const dailyKeys = Array.from({length:365},(_,i)=>{ const d=new Date(now); d.setDate(d.getDate()-(364-i)); return d.toISOString().slice(0,10); });
+    const dailyKeys = Array.from({length:365},(_,i)=>{ const d=new Date(now); d.setDate(d.getDate()-(364-i)); return localDayKey(d); });
     const dailyVals = await Promise.all(dailyKeys.map(k => fsGet(up(`daily/${k}`))));
     const daily = dailyKeys.map((k,i) => dailyVals[i] ? { date:k, ...dailyVals[i] } : null).filter(Boolean);
 
@@ -5932,7 +6017,7 @@ async function renderLifeRadar(days = 30) {
   const HABIT_SAMPLE_DAYS = Math.min(14, days);
   const habitCheckKeys = Array.from({ length: HABIT_SAMPLE_DAYS }, (_, i) => {
     const d = new Date(); d.setDate(d.getDate() - i);
-    return d.toISOString().slice(0, 10);
+    return localDayKey(d);
   });
 
   const [dailyData, padelSessions, habitsData, uniEntries, habitCheckDocs] = await Promise.all([
@@ -5945,7 +6030,7 @@ async function renderLifeRadar(days = 30) {
   ensureHabitIds(habitsData);
 
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - days);
-  const cutoffStr = cutoff.toISOString().slice(0, 10);
+  const cutoffStr = localDayKey(cutoff);
 
   // ── Score each axis 0-10 ──
   // PADEL: matches played in range, capped at 8 = 10
@@ -5987,12 +6072,15 @@ async function renderLifeRadar(days = 30) {
     : 0;
   const moodScore = Math.min(10, Math.round((avgMoodRaw / 5) * 10));
 
+  const activeIds = (await getActiveModules().catch(() => [])).map(m => m.id);
   const axes = [
-    { label: 'Padel',   score: padelScore, color: '#4caf7d' },
-    { label: 'Uni',     score: uniScore,   color: '#5b8dee' },
-    { label: 'Reading', score: readScore,  color: '#e0a05a' },
-    { label: 'Mood',    score: moodScore,  color: '#c87ee0' },
+    ...(activeIds.includes('padel') ? [{ label: 'Padel', score: padelScore, color: '#4caf7d' }] : []),
+    ...(activeIds.includes('uni') ? [{ label: 'Uni', score: uniScore, color: '#5b8dee' }] : []),
+    { label: 'Reading', score: readScore, color: '#e0a05a' },
+    { label: 'Mood', score: moodScore, color: '#c87ee0' },
+    ...(habitCount > 0 ? [{ label: 'Habits', score: habitScore, color: '#7ec8e3' }] : []),
   ];
+  if (axes.length < 3) axes.push({ label: 'Logged', score: Math.min(10, dailyData.filter(d => d.mood || d.energy).length), color: '#c8a96e' });
 
   // ── Draw ──
   const ctx = canvas.getContext('2d');
@@ -6286,11 +6374,12 @@ async function askAI(messages, maxTokens = 800, thinkingLevel = THINK.NORMAL) {
 }
 
 function aiFormatResponse(text) {
-  return text.split('\n').filter(l => l.trim()).map(l => {
-    if (/^\*\*(.+)\*\*$/.test(l)) return `<div style="font-size:0.72rem;font-weight:700;color:var(--text);margin:8px 0 4px;">${l.replace(/\*\*/g,'')}</div>`;
-    if (/^[\*\-•]\s/.test(l)) return `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0 3px 10px;border-left:2px solid var(--gold-dim);">${l.replace(/^[\*\-•]\s/,'')}</div>`;
-    if (/^\d+\.\s/.test(l)) return `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0;">${l}</div>`;
-    return `<div style="font-size:0.72rem;color:var(--soft);padding:2px 0;">${l}</div>`;
+  return String(text || '').split('\n').filter(l => l.trim()).map(l => {
+    const safe = sanitiseHtml(l);
+    if (/^\*\*(.+)\*\*$/.test(l)) return `<div style="font-size:0.72rem;font-weight:700;color:var(--text);margin:8px 0 4px;">${safe.replace(/\*\*/g,'')}</div>`;
+    if (/^[\*\-•]\s/.test(l)) return `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0 3px 10px;border-left:2px solid var(--gold-dim);">${safe.replace(/^[\*\-•]\s/,'')}</div>`;
+    if (/^\d+\.\s/.test(l)) return `<div style="font-size:0.72rem;color:var(--soft);padding:3px 0;">${safe}</div>`;
+    return `<div style="font-size:0.72rem;color:var(--soft);padding:2px 0;">${safe}</div>`;
   }).join('');
 }
 
@@ -6321,7 +6410,7 @@ function renderChatHTML(id, title, subtitle, quickBtns = []) {
     <div class="card" style="border-color:var(--gold-dim);" id="ai-card-${id}">
       <div class="card-title" style="justify-content:space-between;">
         <span>✨ ${title}</span>
-        <div style="display:flex;gap:6px;align-items:center;"><span style="font-size:0.6rem;color:var(--muted);">Gemini Flash Lite</span></div>
+        <div style="display:flex;gap:6px;align-items:center;"><span style="font-size:0.6rem;color:var(--muted);">${(PROVIDERS[_activeProvider] || PROVIDERS.google).name}</span></div>
       </div>
       ${subtitle ? `<div class="mini-prompt">${subtitle}</div>` : ''}
       <div id="chat-thread-${id}" style="max-height:320px;overflow-y:auto;margin-bottom:8px;"></div>
@@ -6476,7 +6565,7 @@ window.generateWeeklySummary = async () => {
   const padelMatches = weekPadel.filter(p => p.type === 'match');
   const padelWins = padelMatches.filter(p => p.result === 'win').length;
   const archiveDoc = await fsGet(up('archives/priority_archive')) || { items: [] };
-  const thisWeekDone = (archiveDoc.items || []).filter(p => p.completed_at?.startsWith(wk)).length;
+  const thisWeekDone = (archiveDoc.items || []).filter(p => inWeek(p.completed_at, wk)).length;
   const scores = reviewData.scores || {};
   const scoreStr = Object.entries(scores).map(([k,v]) => `${k}: ${v}/10`).join(', ') || 'not scored';
 
@@ -6972,6 +7061,8 @@ window.testAIKey = async () => {
 
 // ── APP-WIDE UX INIT ──────────────────────
 function initAppUX() {
+  if (_uxInit) return;
+  _uxInit = true;
   // Listen for SW background sync signal — delegate flush to main thread (which has Firebase auth)
   navigator.serviceWorker?.addEventListener('message', e => {
     if (e.data?.type === 'jeos-sync') idbFlushQueue();
@@ -7026,7 +7117,7 @@ async function updateInertia() {
   const today = k;
   if (inertiaDoc.lastDate === today) return; // already updated today
 
-  const yesterday = (() => { const d = new Date(); d.setDate(d.getDate() - 1); return d.toISOString().slice(0,10); })();
+  const yesterday = getYesterdayKey();
   let val = inertiaDoc.value || 0;
 
   // If nothing logged yesterday, decay by 2
@@ -7166,15 +7257,14 @@ function boot(user) {
 }
 
 function showSundayIntercept(seenKey) {
-  localStorage.setItem(seenKey, '1');
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:var(--bg);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center;';
   overlay.innerHTML = `
     <div style="font-size:2rem;margin-bottom:16px;">📋</div>
     <div style="font-family:var(--font-h);font-size:1.4rem;font-weight:800;color:var(--text);margin-bottom:8px;">Happy Sunday.</div>
     <div style="font-size:0.85rem;color:var(--soft);margin-bottom:32px;max-width:280px;">Time to review the week. It takes 5 minutes and sets you up for the next 7 days.</div>
-    <button class="btn-gold" onclick="this.closest('div[style]').remove();nav('review')" style="padding:12px 32px;font-size:0.9rem;">Review my week →</button>
-    <button class="btn" onclick="this.closest('div[style]').remove();nav('today')" style="margin-top:12px;font-size:0.75rem;color:var(--muted);">Skip for now</button>
+    <button class="btn-gold" onclick="localStorage.setItem('${seenKey}','1');this.closest('div[style]').remove();nav('review')" style="padding:12px 32px;font-size:0.9rem;">Review my week →</button>
+    <button class="btn" onclick="localStorage.setItem('${seenKey}','1');this.closest('div[style]').remove();nav('today')" style="margin-top:12px;font-size:0.75rem;color:var(--muted);">Skip for now</button>
   `;
   document.body.appendChild(overlay);
 }
@@ -7184,9 +7274,12 @@ async function updateStreaks() {
   // Fetch all 365 daily docs in parallel
   const keys = Array.from({ length: 365 }, (_, i) => {
     const d = new Date(today); d.setDate(d.getDate() - i);
-    return d.toISOString().slice(0, 10);
+    return localDayKey(d);
   });
   const docs = await Promise.all(keys.map(k => fsGet(up(`daily/${k}`))));
+  const freezeDoc = await fsGet(up('user_data/streak_freezes')) || { count: 0, lastAwardedStreak: 0, covered: [] };
+  freezeDoc.covered = freezeDoc.covered || [];
+  let freezeDirty = false;
 
   let mainStreak = 0;
   for (let i = 0; i < docs.length; i++) {
@@ -7194,12 +7287,29 @@ async function updateStreaks() {
     const hasAnyData = v && (v.mood || v.moods?.length || v.energy || v.gratitude ||
       v.reading?.pages > 0 || v.wins?.length > 0 || v.resistance?.length > 0 ||
       v.journal || v.phone?.mins > 0);
-    if (i === 0) { if (hasAnyData) mainStreak++; }
-    else { if (hasAnyData) mainStreak++; else break; }
+    const covered = freezeDoc.covered.includes(keys[i]);
+    if (i === 0) {
+      if (hasAnyData || covered) mainStreak++;
+    } else if (hasAnyData || covered) {
+      mainStreak++;
+    } else if ((freezeDoc.count || 0) > 0) {
+      freezeDoc.count -= 1;
+      freezeDoc.covered.push(keys[i]);
+      freezeDirty = true;
+      mainStreak++;
+    } else {
+      break;
+    }
   }
+  if (freezeDirty) await fsSet(up('user_data/streak_freezes'), freezeDoc);
 
+  const readReset = await fsGet(up('user_data/reading_reset')).then(r => r?.after || '').catch(() => '');
   let readStreak = 0;
   for (let i = 0; i < docs.length; i++) {
+    if (readReset && keys[i] <= readReset) {
+      if (i > 0) break;
+      continue;
+    }
     const v = docs[i];
     const hasReading = v?.reading?.pages > 0 || v?.reading?.mins > 0;
     if (hasReading) readStreak++;
@@ -7214,8 +7324,8 @@ async function updateStreaks() {
   for (let w = 0; w < 52; w++) {
     const ws = new Date(today); ws.setDate(today.getDate() - dayOfWeek + 1 - (w * 7));
     const we = new Date(ws); we.setDate(ws.getDate() + 6);
-    const wsKey = ws.toISOString().slice(0, 10);
-    const weKey = we.toISOString().slice(0, 10);
+    const wsKey = localDayKey(ws);
+    const weKey = localDayKey(we);
     const hasActivity = [...padelDates].some(d => d >= wsKey && d <= weKey);
     if (hasActivity) padelStreak++;
     else if (w > 0) break;
@@ -7227,6 +7337,9 @@ async function updateStreaks() {
   if (mainEl) mainEl.textContent = mainStreak;
   if (readEl) readEl.textContent = readStreak;
   if (padelEl) padelEl.textContent = padelStreak;
+  const padelOn = (await getActiveModules().catch(() => [])).some(m => m.id === 'padel');
+  const padelPill = document.getElementById('padel-streak-pill');
+  if (padelPill) padelPill.style.display = padelOn ? '' : 'none';
   // Award freeze if 7-day milestone hit
   checkAndAwardFreeze();
   // Load freeze count for sidebar
@@ -7239,20 +7352,10 @@ async function updateReadingStreak() {
 }
 
 async function resetReadingStreak() {
-  if (!confirm('Reset reading streak? This cannot be undone.')) return;
-  // Must use deleteField() — JS `delete v.reading` has no effect with setDoc merge:true;
-  // Firestore ignores missing fields in a merge write and leaves the existing data intact.
-  const today = new Date();
-  for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
-    d.setDate(d.getDate() - i);
-    const k = d.toISOString().slice(0, 10);
-    const v = await fsGet(up(`daily/${k}`));
-    if (v?.reading) {
-      await fsSet(up(`daily/${k}`), { reading: deleteField() });
-    }
-  }
+  if (!confirm('Reset the reading streak counter? Your reading history is kept.')) return;
+  await fsSet(up('user_data/reading_reset'), { after: todayKey() });
   await updateReadingStreak();
+  toast('Reading streak reset');
 }
 
 // ── FIRST WEEK ────────────────────────────
@@ -7363,18 +7466,10 @@ window.dismissSetup = () => {
  */
 async function commitQuickEnergy(val) {
   if (!LIVE || !uid || !(val >= 1 && val <= 10)) return;
-  const k = todayKey2();
-  const data = await fsGet(up(`daily/${k}`)) || {};
-  if (!data.energies) {
-    data.energies = data.energy ? [{ value: data.energy, label: ENERGY_LABELS[0], ts: 0 }] : [];
-  }
-  if (data.energies.length >= 3) { toast('Already logged 3 energy readings today'); return; }
-  const label = ENERGY_LABELS[data.energies.length];
-  data.energies.push({ value: val, label, ts: Date.now() });
-  data.energy = Math.round(data.energies.reduce((s, e) => s + e.value, 0) / data.energies.length);
-  await fsSet(up(`daily/${k}`), data);
+  const r = await applyEnergyReading(todayKey2(), val);
+  if (!r.ok) { if (r.reason === 'full') toast('Already logged 3 energy readings today'); return; }
   _driftCache = null;
-  toast(`${label} energy ${val}/10 logged`);
+  toast(`${r.label} energy ${r.val}/10 logged`);
   if (currentPage === 'today') nav('today');
 }
 

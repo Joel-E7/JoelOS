@@ -100,7 +100,12 @@ body::before{content:'';position:fixed;inset:0;background:#000 url('/bg.jpg') ri
 
 .main{margin-left:var(--sidebar-w);flex:1;min-height:100dvh;display:flex;flex-direction:column;transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);}
 .sidebar.collapsed~.main,.sidebar.collapsed+.main{margin-left:56px;}
-.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:18px 24px;padding:16px 40px 2px;border-bottom:none;position:sticky;top:0;background:transparent;z-index:50;}
+.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:18px 24px;padding:16px 40px 2px;border-bottom:none;position:relative;background:transparent;z-index:1;}
+.add-row{display:flex;gap:8px;align-items:stretch;margin-bottom:8px;}
+.add-row input,.add-row select{width:auto;margin:0;height:40px;padding:8px 10px;box-sizing:border-box;}
+.add-row input{flex:1;min-width:0;}
+.add-row select{flex:0 0 auto;min-width:7.2rem;}
+.add-row .btn,.add-row .btn-gold{flex-shrink:0;height:40px;padding:0 12px;display:inline-flex;align-items:center;}
 .topbar-left{display:flex;align-items:flex-end;gap:14px;min-width:0;}
 .hamburger{background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px 0 10px;transition:color 0.15s;display:block;}
 .hamburger:hover{color:var(--text);}
@@ -3035,14 +3040,14 @@ async function renderPrioritiesPage(targetId = slotFor('commit-priorities')) {
       <div class="card">
         <div class="card-title">Priorities (Up to 5)</div>
         <div class="mini-prompt">What matters most this week?</div>
-        <div style="display:grid;grid-template-columns:1fr 2fr 1fr;gap:6px;margin-bottom:8px;align-items:stretch;">
-          <select id="p-tag" style="padding:6px 8px;">
+        <div class="add-row">
+          <select id="p-tag">
             <option value="Professional">Professional</option>
             <option value="Health">Health</option>
             <option value="Personal">Personal</option>
           </select>
-          <input type="text" placeholder="Add priority..." id="p-input" style="padding:6px 8px;"/>
-          <button class="btn-gold" onclick="addPriority()" style="padding:6px 8px;height:auto;">Add</button>
+          <input type="text" placeholder="Add priority..." id="p-input"/>
+          <button class="btn-gold" onclick="addPriority()">Add</button>
         </div>
         ${energy <= 3 ? `<div style="font-size:0.68rem;color:#c8a030;padding:6px 8px;background:rgba(200,160,48,0.08);border-radius:4px;margin-bottom:8px;">⚡ Low energy day — showing quick tasks only. <button class="btn" onclick="document.querySelectorAll('.effort-high').forEach(el=>el.style.display='');this.closest('div').remove()" style="font-size:0.6rem;padding:2px 6px;margin-left:6px;">Show all</button></div>` : ''}
         <div id="p-list"></div>
@@ -3054,14 +3059,14 @@ async function renderPrioritiesPage(targetId = slotFor('commit-priorities')) {
           <span style="font-size:0.6rem;color:var(--muted);font-weight:400;">Ideas for later</span>
         </div>
         <div class="mini-prompt">Capture it here so it's not rattling around your head. Promote to next week during Sunday review.</div>
-        <div style="display:flex;gap:6px;margin-bottom:8px;align-items:center;">
-          <select id="bb-effort" style="width:80px;padding:4px 6px;font-size:0.68rem;" title="Effort level">
-            <option value="1">⚡ Quick</option>
-            <option value="2" selected>🔧 Medium</option>
-            <option value="3">🏋️ Heavy</option>
+        <div class="add-row">
+          <select id="bb-effort" title="Effort level">
+            <option value="1">Quick</option>
+            <option value="2" selected>Medium</option>
+            <option value="3">Heavy</option>
           </select>
-          <input type="text" id="bb-input" placeholder="Add to backburner..." style="flex:1;margin:0;"/>
-          <button class="btn" onclick="addBackburner()" style="padding:6px 10px;flex-shrink:0;">+ Add</button>
+          <input type="text" id="bb-input" placeholder="Add to backburner..."/>
+          <button class="btn-gold" onclick="addBackburner()">Add</button>
         </div>
         <div id="bb-list"></div>
       </div>

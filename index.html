@@ -176,8 +176,8 @@ body[data-page="today"] .content{overflow:hidden;flex:1;min-height:0;}
 
 .ga{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px;}
 
-#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99;}
-#sidebar-overlay.show{display:block;}
+#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99;pointer-events:none;}
+#sidebar-overlay.show{display:block;pointer-events:auto;}
 
 .sunday-banner{display:none;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--gold-dim);border-radius:2px;padding:11px 14px;margin-bottom:16px;}
 .sunday-banner.show{display:flex;}
@@ -286,6 +286,7 @@ button{cursor:pointer;transition:all 0.15s;}
 <!-- APP -->
 <div id="app">
   <div class="app-layout">
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
     <!-- SIDEBAR -->
     <aside class="sidebar" id="sidebar">
@@ -452,8 +453,6 @@ button{cursor:pointer;transition:all 0.15s;}
     </div>
   </div>
 </div>
-
-<div id="sidebar-overlay" onclick="toggleSidebar()"></div>
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
@@ -7118,7 +7117,13 @@ window.testAIKey = async () => {
 function initAppUX() {
   if (_uxInit) return;
   _uxInit = true;
-  window.addEventListener('resize', () => sizeFolds());
+  window.addEventListener('resize', () => {
+    sizeFolds();
+    if (window.innerWidth > 900) {
+      document.getElementById('sidebar')?.classList.remove('open');
+      document.getElementById('sidebar-overlay')?.classList.remove('show');
+    }
+  });
   document.addEventListener('toggle', e => {
     if (e.target?.classList?.contains('fold')) requestAnimationFrame(sizeFolds);
   }, true);

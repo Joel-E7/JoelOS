@@ -204,33 +204,32 @@ button{cursor:pointer;transition:all 0.15s;}
 .del-no{color:var(--soft);}
 
 @media(max-width:900px){
-  .sidebar{transform:translateX(-100%);}
-  .sidebar.open{transform:translateX(0);}
+  .sidebar{transform:translateX(-100%);pointer-events:none;visibility:hidden;}
+  .sidebar.open{transform:translateX(0);pointer-events:auto;visibility:visible;box-shadow:12px 0 40px rgba(0,0,0,0.55);}
   .main{margin-left:0;}
+  .hamburger{position:relative;z-index:110;}
   .topbar{grid-template-columns:1fr auto;padding:12px 16px 2px;}
   .hero-time{display:none;}
   #top-time{display:inline;}
-  .content{padding:6px 16px 88px;}
+  .content{padding:6px 16px 96px;}
   .page-title{font-size:2rem;}
   .board{margin:8px 16px 18px;padding:0.7rem 1rem;border-radius:18px;flex-wrap:wrap;gap:0.55rem 1rem;}
   .board .streak-num{font-size:1.25rem;}
-  body[data-page="today"] .main{min-height:100dvh;height:100dvh;overflow:hidden;}
-  body[data-page="today"] .content{overflow:hidden;padding:6px 16px 80px;}
-  .today-page{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto minmax(0,1fr) minmax(0,1fr) auto;gap:0.5rem 0.65rem;height:100%;}
-  .today-page>.fold-log{grid-column:1;grid-row:1;}
-  .today-page>.fold-write{grid-column:2;grid-row:1;}
-  .today-page>.fold[open]{grid-column:1/-1;max-height:38vh;overflow:auto;}
-  .today-page>#today-setup{grid-column:1/-1;grid-row:2;padding:0.5rem 0.8rem;max-height:18vh;overflow:auto;}
-  .today-page>#today-setup .card-title{font-size:1rem;margin-bottom:4px;}
-  .today-page>#slot-day{grid-column:1;grid-row:3;}
-  .today-page>#slot-read{grid-column:2;grid-row:3;}
-  .today-page>#slot-padel{grid-column:1;grid-row:4;}
-  .today-page>#slot-mom{grid-column:2;grid-row:4;}
-  .today-page>.today-freeze{grid-column:1/-1;grid-row:5;border-radius:16px;margin:0;}
-  .today-page>.streak-slot{min-height:0;padding:0.75rem 0.85rem;}
-  .today-page>.streak-slot .streak-num{font-size:clamp(2.2rem,11vw,3.4rem);}
-  .today-page>.streak-slot .streak-info{font-size:0.78rem;}
-  .setup-grid{grid-template-columns:1fr 1fr;gap:0.15rem 0.8rem;}
+  body[data-page="today"] .main{min-height:100dvh;height:auto;max-height:none;overflow:visible;}
+  body[data-page="today"] .content{overflow:visible;padding:6px 16px 96px;}
+  .today-page{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:none;height:auto;min-height:0;gap:0.7rem 0.65rem;}
+  .today-page>.fold,.today-page>#today-setup,.today-page>.today-freeze{grid-column:1/-1;grid-row:auto;}
+  .today-page>.fold-log,.today-page>.fold-write{grid-column:1/-1;}
+  .today-page>#slot-day,.today-page>#slot-read,.today-page>#slot-padel,.today-page>#slot-mom{grid-column:auto;grid-row:auto;}
+  .today-page>.fold>summary{flex-wrap:nowrap;}
+  .today-page>.fold[open]{max-height:none;background:rgba(5,8,10,0.88);border:1px solid rgba(62,207,207,0.14);border-radius:16px;padding:0.75rem 0.95rem 1rem;overflow:visible;}
+  .today-page>#today-setup{padding:0.65rem 0.9rem;max-height:none;}
+  .today-page>#today-setup .card-title{font-size:1.05rem;margin-bottom:6px;}
+  .today-page>.streak-slot{min-height:6.2rem;padding:0.8rem 0.95rem;}
+  .today-page>.streak-slot .streak-num{font-size:clamp(2.1rem,12vw,3.2rem);}
+  .today-page>.streak-slot .streak-info{font-size:0.8rem;}
+  .today-page>.today-freeze{border-radius:16px;margin:0;}
+  .setup-grid{grid-template-columns:1fr;gap:0.35rem;}
   .fold{flex:1 1 100%;}
 }
 

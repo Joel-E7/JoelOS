@@ -33,10 +33,10 @@
   --on-accent:#041616;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-html{font-size:16px;-webkit-font-smoothing:antialiased;}
-body{background:var(--bg);color:var(--text);font-family:var(--font-m);min-height:100vh;line-height:1.55;overflow-x:hidden;}
+html{font-size:16px;-webkit-font-smoothing:antialiased;background:#000;color-scheme:dark;height:100%;}
+body{background:#000;color:var(--text);font-family:var(--font-m);min-height:100%;min-height:100dvh;width:100%;line-height:1.55;overflow-x:hidden;}
 body::before{content:'';position:fixed;inset:0;background:#000 url('/bg.jpg') right center / cover no-repeat;opacity:0.5;pointer-events:none;z-index:0;}
-#auth-screen,#app{position:relative;z-index:1;}
+#auth-screen,#app{position:relative;z-index:1;min-height:100dvh;width:100%;background:transparent;}
 ::-webkit-scrollbar{width:4px;height:4px;}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px;}
 
@@ -50,8 +50,8 @@ body::before{content:'';position:fixed;inset:0;background:#000 url('/bg.jpg') ri
 .auth-card p{font-size:0.95rem;color:var(--soft);margin-bottom:22px;line-height:1.5;}
 #auth-err{font-size:0.88rem;color:var(--red);margin-top:10px;min-height:16px;}
 
-#app{display:none;min-height:100vh;}
-.app-layout{display:flex;min-height:100vh;}
+#app{display:none;min-height:100dvh;width:100%;background:#000;}
+.app-layout{display:flex;min-height:100dvh;width:100%;}
 
 .sidebar{width:var(--sidebar-w);background:var(--bg);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:width 0.25s cubic-bezier(0.4,0,0.2,1),transform 0.25s cubic-bezier(0.4,0,0.2,1);}
 .sidebar.collapsed{width:56px;}
@@ -100,7 +100,7 @@ body::before{content:'';position:fixed;inset:0;background:#000 url('/bg.jpg') ri
 
 .main{margin-left:var(--sidebar-w);flex:1;min-height:100dvh;display:flex;flex-direction:column;transition:margin-left 0.25s cubic-bezier(0.4,0,0.2,1);}
 .sidebar.collapsed~.main,.sidebar.collapsed+.main{margin-left:56px;}
-.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:18px 24px;padding:22px 40px 6px;border-bottom:none;position:sticky;top:0;background:transparent;z-index:50;}
+.topbar{display:grid;grid-template-columns:auto 1fr auto;align-items:end;gap:18px 24px;padding:16px 40px 2px;border-bottom:none;position:sticky;top:0;background:transparent;z-index:50;}
 .topbar-left{display:flex;align-items:flex-end;gap:14px;min-width:0;}
 .hamburger{background:none;border:none;color:var(--soft);cursor:pointer;font-size:1.1rem;padding:4px 0 10px;transition:color 0.15s;display:block;}
 .hamburger:hover{color:var(--text);}
@@ -127,29 +127,33 @@ body[data-page="today"] .board{display:none;}
 .section-group>.card,.section-group>#today-setup,.section-group>#today-drift-card{flex:1 1 100%;}
 .section-label{font-family:var(--font-h);font-size:0.95rem;font-weight:500;font-style:italic;letter-spacing:0;text-transform:none;color:var(--muted);padding:0;margin:1.6rem 0 0.6rem;border:none;flex:1 1 100%;}
 
-body[data-page="today"] .main{height:100dvh;max-height:100dvh;overflow:auto;}
-body[data-page="today"] .content{overflow:hidden;}
-.today-page{flex:1;display:flex;flex-direction:column;min-height:0;gap:0.85rem;}
-.today-folds{display:flex;flex-wrap:wrap;gap:0.4rem 3.5rem;flex:0 0 auto;align-items:flex-start;}
-.today-folds>.fold{margin:0;flex:1 1 280px;min-width:min(100%,280px);}
-.today-folds>.fold[open]{flex:1 1 100%;max-height:46vh;overflow:auto;}
-.today-grid{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr);gap:1.05rem 1.1rem;min-height:22rem;align-content:stretch;}
-.today-grid .card{background:transparent!important;border:none!important;border-radius:0!important;padding:0;margin:0;}
-.today-grid>.habits-card,.today-grid>.today-cell,.today-grid>.streak-slot{min-height:0;overflow:auto;background:rgba(5,8,10,0.68)!important;border:1px solid rgba(62,207,207,0.14)!important;border-radius:22px!important;padding:1.15rem 1.3rem 1.2rem;box-shadow:0 16px 40px rgba(0,0,0,0.28);}
-.today-cell{display:flex;flex-direction:column;gap:1rem;}
-.habit-row{display:flex;align-items:flex-start;gap:10px;padding:8px 0;cursor:pointer;color:var(--soft);font-size:0.98rem;line-height:1.35;}
-.habit-row input{width:15px;height:15px;margin-top:3px;flex-shrink:0;accent-color:var(--gold);}
-.habit-row:has(input:checked) span{color:var(--muted);text-decoration:line-through;}
-.today-freeze{flex:0 0 auto;display:flex;align-items:center;margin:0 108px 6px 0;padding:0.55rem 1.45rem;background:rgba(5,8,10,0.72);border:1px solid rgba(62,207,207,0.14);border-radius:999px;backdrop-filter:blur(10px);min-height:52px;}
-.today-freeze .streak-card{display:flex;flex-direction:row;align-items:baseline;width:100%;}
+body[data-page="today"] .main{min-height:100dvh;height:100dvh;background:transparent;}
+body[data-page="today"] .content{overflow:hidden;flex:1;min-height:0;}
+.today-page{flex:1;min-height:0;height:100%;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto auto minmax(0,1fr) minmax(0,1fr) auto;gap:0.65rem 1rem;align-content:stretch;}
+.today-page>.fold{margin:0;min-width:0;}
+.today-page>.fold-log{grid-column:1;grid-row:1;}
+.today-page>.fold-write{grid-column:2;grid-row:1;}
+.today-page>.fold[open]{grid-column:1/-1;max-height:40vh;overflow:auto;}
+.today-page>#today-setup{grid-column:1/-1;grid-row:2;background:rgba(5,8,10,0.68);border:1px solid rgba(62,207,207,0.14);border-radius:18px;padding:0.7rem 1.15rem 0.75rem;}
+.today-page>#today-setup:empty{display:none;padding:0;border:0;background:none;}
+.today-page>#today-setup .card-title{font-size:1.15rem;margin-bottom:4px;}
+.today-page>#today-setup .mini-prompt{padding:0 0 8px;font-size:0.88rem;}
+.today-page>#slot-day{grid-column:1;grid-row:3;}
+.today-page>#slot-read{grid-column:2;grid-row:3;}
+.today-page>#slot-padel{grid-column:1;grid-row:4;}
+.today-page>#slot-mom{grid-column:2;grid-row:4;}
+.today-page>.today-freeze{grid-column:1/-1;grid-row:5;}
+.setup-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0.15rem 1.4rem;}
+.setup-grid p{margin:0;line-height:1.35;font-size:0.88rem;display:flex;align-items:baseline;justify-content:space-between;gap:8px;}
+.today-page .card{background:transparent!important;border:none!important;border-radius:0!important;padding:0;margin:0;}
+.today-page>.streak-slot{min-height:0;display:flex;flex-direction:column;align-items:stretch;background:rgba(5,8,10,0.68)!important;border:1px solid rgba(62,207,207,0.14)!important;border-radius:22px!important;padding:1.05rem 1.35rem 0.95rem;box-shadow:0 16px 40px rgba(0,0,0,0.28);}
+.today-page>.streak-slot .streak-pill{flex:1;min-height:0;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:0.4rem;height:100%;}
+.today-page>.streak-slot .streak-info{order:-1;font-size:0.95rem;margin:0;}
+.today-page>.streak-slot .streak-num{font-size:clamp(3.8rem,12vh,8.2rem);line-height:0.78;margin-top:auto;}
+.today-freeze{display:flex;align-items:center;margin:0;padding:0.55rem 1.45rem;background:rgba(5,8,10,0.72);border:1px solid rgba(62,207,207,0.14);border-radius:999px;backdrop-filter:blur(10px);min-height:52px;}
 .today-freeze .streak-pill{flex-direction:row;align-items:baseline;gap:12px;}
 .today-freeze .streak-num{font-size:clamp(1.25rem,2vw,1.75rem);line-height:1;}
 .today-freeze .streak-info{font-size:0.78rem;margin:0;}
-.streak-slot{display:flex;}
-.streak-slot .streak-card{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;gap:0.6rem;min-width:0;}
-.streak-slot .streak-pill{flex-direction:column;align-items:flex-start;gap:0.15rem;}
-.streak-slot .streak-num{font-size:clamp(2.6rem,5.2vw,4.6rem);line-height:0.82;}
-.streak-slot .streak-info{font-size:0.78rem;margin-top:0.15rem;}
 
 .fold{margin:0.4rem 0 0;flex:1 1 280px;min-width:min(100%,280px);}
 .fold>summary{font-family:var(--font-h);font-size:1.25rem;font-weight:640;letter-spacing:-0.02em;text-transform:none;color:var(--text);padding:0.35rem 0;margin:0;border:none;cursor:pointer;list-style:none;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;user-select:none;}
@@ -212,9 +216,10 @@ button{cursor:pointer;transition:all 0.15s;}
   .board .streak-num{font-size:1.25rem;}
   body[data-page="today"] .main{height:auto;max-height:none;overflow:visible;}
   body[data-page="today"] .content{overflow:visible;}
-  .today-grid{grid-template-columns:1fr;grid-template-rows:auto;min-height:0;flex:none;}
-  .today-grid>.habits-card,.today-grid>.today-cell,.today-grid>.streak-slot{min-height:8.5rem;}
-  .today-freeze{border-radius:18px;margin-bottom:12px;}
+  .today-page{display:flex;flex-direction:column;min-height:0;}
+  .today-page>.fold[open]{max-height:none;}
+  .today-page>.streak-slot{min-height:8.5rem;}
+  .today-freeze{border-radius:18px;margin:0 0 12px;}
   .streak-slot .streak-num{font-size:2.4rem;}
   .fold{flex:1 1 100%;}
 }
@@ -356,32 +361,26 @@ button{cursor:pointer;transition:all 0.15s;}
       </div>
       <div class="content" id="content"></div>
       <div class="board" id="board">
-        <div class="streak-card" id="streak-card-a">
-          <div class="streak-pill">
-            <div class="streak-num" id="main-streak">0</div>
-            <div class="streak-info">Day <strong>streak</strong></div>
-          </div>
-          <div class="streak-pill" style="position:relative;">
-            <div class="streak-num" id="read-streak">0</div>
-            <div class="streak-info">Reading <strong>days</strong></div>
-            <button onclick="resetReadingStreak()" title="Reset reading streak" style="position:absolute;top:0;right:0;background:none;border:none;color:var(--muted);font-size:0.75rem;cursor:pointer;">↻</button>
-          </div>
-          <div class="streak-pill" id="padel-streak-pill">
-            <div class="streak-num" id="padel-streak">0</div>
-            <div class="streak-info">Padel <strong>weeks</strong></div>
-          </div>
+        <div class="streak-pill" id="pill-day">
+          <div class="streak-num" id="main-streak">0</div>
+          <div class="streak-info">Day <strong>streak</strong></div>
         </div>
-        <div class="streak-card" id="streak-card-b">
-          <div class="streak-pill">
-            <div class="streak-num" id="inertia-display">0</div>
-            <div class="streak-info">Daily <strong>momentum</strong></div>
-          </div>
+        <div class="streak-pill" id="pill-read" style="position:relative;">
+          <div class="streak-num" id="read-streak">0</div>
+          <div class="streak-info">Reading <strong>days</strong></div>
+          <button onclick="resetReadingStreak()" title="Reset reading streak" style="position:absolute;top:0;right:0;background:none;border:none;color:var(--muted);font-size:0.75rem;cursor:pointer;">↻</button>
         </div>
-        <div class="streak-card" id="streak-card-c">
-          <div class="streak-pill">
-            <div class="streak-num" id="freeze-count"></div>
-            <div class="streak-info">Streak <strong>freezes</strong></div>
-          </div>
+        <div class="streak-pill" id="pill-padel">
+          <div class="streak-num" id="padel-streak">0</div>
+          <div class="streak-info">Padel <strong>weeks</strong></div>
+        </div>
+        <div class="streak-pill" id="pill-mom">
+          <div class="streak-num" id="inertia-display">0</div>
+          <div class="streak-info">Daily <strong>momentum</strong></div>
+        </div>
+        <div class="streak-pill" id="pill-freeze">
+          <div class="streak-num" id="freeze-count"></div>
+          <div class="streak-info">Streak <strong>freezes</strong></div>
         </div>
       </div>
     </main>
@@ -941,28 +940,29 @@ function updateHeader() {
   if (hero) hero.textContent = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
 }
 
+const STREAK_SLOTS = [
+  ['pill-day', 'slot-day'],
+  ['pill-read', 'slot-read'],
+  ['pill-padel', 'slot-padel'],
+  ['pill-mom', 'slot-mom'],
+  ['pill-freeze', 'today-freeze']
+];
+
 function restoreBoard() {
   const board = document.getElementById('board');
-  ['streak-card-a', 'streak-card-b', 'streak-card-c'].forEach(id => {
+  STREAK_SLOTS.forEach(([id]) => {
     const el = document.getElementById(id);
     if (board && el && el.parentElement !== board) board.appendChild(el);
   });
 }
 
 function placeBoard() {
-  const a = document.getElementById('streak-card-a');
-  const b = document.getElementById('streak-card-b');
-  const c = document.getElementById('streak-card-c');
-  const slotA = document.getElementById('today-streak-a');
-  const slotB = document.getElementById('today-streak-b');
-  const slotC = document.getElementById('today-freeze');
-  if (slotA && slotB && slotC && a && b && c) {
-    slotA.appendChild(a);
-    slotB.appendChild(b);
-    slotC.appendChild(c);
-  } else {
-    restoreBoard();
-  }
+  const ready = STREAK_SLOTS.every(([pillId, slotId]) =>
+    document.getElementById(pillId) && document.getElementById(slotId));
+  if (!ready) { restoreBoard(); return; }
+  STREAK_SLOTS.forEach(([pillId, slotId]) => {
+    document.getElementById(slotId).appendChild(document.getElementById(pillId));
+  });
 }
 
 function sizeFolds() {
@@ -991,43 +991,6 @@ async function renderTodayPage() {
     fetchDailyRange(30),
   ]);
 
-  const hour = new Date().getHours();
-  const showMorning = !viewingYesterday && hour >= 6 && hour < 10;
-  const [weekData, habitsData, habitsChecks] = await Promise.all([
-    fsGet(up(`weeks/${weekKey()}`)).then(r => r || {}),
-    fsGet(up('user_data/habits')).then(r => r || { items: [] }),
-    fsGet(up(`habit_checks/${todayKey2()}`)).then(r => r || {})
-  ]);
-  const priorities = (weekData.priorities || []).filter(p => !p.done).slice(0, 3);
-  ensureHabitIds(habitsData);
-  const habits = (habitsData.items || []).slice(0, 5);
-  const checkedCount = habits.filter(h => habitsChecks[h.id]).length;
-  let morningHtml = '';
-  if (showMorning) {
-    morningHtml = `
-      <div class="card">
-        <div class="card-title">Good morning</div>
-        ${priorities.length ? `
-          <div style="font-size:0.72rem;color:var(--muted);font-style:italic;margin-bottom:8px;">This week's remaining</div>
-          ${priorities.map(p => `<div style="font-size:0.92rem;color:var(--soft);padding:4px 0 4px 10px;border-left:2px solid var(--gold-dim);margin-bottom:6px;">${sanitiseHtml(p.text)}</div>`).join('')}
-        ` : '<div class="empty">No priorities set this week.</div>'}
-      </div>`;
-  }
-  const glanceHtml = showMorning ? '' : `
-      <div class="card today-glance" id="today-glance">
-        <div class="card-title">On the board</div>
-        ${priorities.length ? priorities.map(p => `<div style="font-size:0.95rem;color:var(--soft);padding:5px 0 5px 10px;border-left:2px solid var(--gold-dim);margin-bottom:8px;">${sanitiseHtml(p.text)}</div>`).join('') : '<p class="mini-prompt">No open priorities this week.</p>'}
-      </div>`;
-  const habitsHtml = `
-      <div class="card" id="today-habits">
-        <div class="card-title">Habits <span class="habit-count" style="font-family:var(--font-m);font-size:0.85rem;font-weight:400;font-style:italic;color:var(--muted);">${habits.length ? `${checkedCount}/${habits.length}` : ''}</span></div>
-        ${habits.length ? habits.map(h => `
-          <label class="habit-row">
-            <input type="checkbox" ${habitsChecks[h.id] ? 'checked' : ''} onchange="toggleHabit('${h.id}')"/>
-            <span>${sanitiseHtml(h.action)}</span>
-          </label>`).join('') : `<p class="mini-prompt">Nothing to check off yet.</p><button class="btn" onclick="nav('commitments')">Add a habit</button>`}
-      </div>`;
-
   // Collapsing the trackers hides whether you've logged anything, which is exactly the
   // thing you need to see at a glance. So the fold header carries the count instead.
   const logged = [
@@ -1038,8 +1001,7 @@ async function renderTodayPage() {
 
   let html = `
     <div class="today-page">
-    <div class="today-folds">
-      <details class="fold">
+      <details class="fold fold-log">
         <summary>Log manually<span class="fold-count">${logged} of 7 logged today</span></summary>
 
       <div class="card">
@@ -1133,7 +1095,7 @@ async function renderTodayPage() {
 
       </details>
 
-      <details class="fold">
+      <details class="fold fold-write">
         <summary>Writing<span class="fold-count">${data.journal ? '✓ noted today' : 'note + journal'}</span></summary>
 
       <!-- Two writing surfaces now sit together, so their roles have to be obvious.
@@ -1151,30 +1113,13 @@ async function renderTodayPage() {
       <div id="today-journal"></div>
 
       </details>
-    </div>
 
-    <div class="today-grid">
-      <div class="habits-card">${habitsHtml}</div>
-
-      <div class="today-cell" id="today-side">
-        ${morningHtml}
-        <div id="today-setup" style="display:none;"></div>
-        <div id="today-drift-card" style="display:none;">
-          <div class="card">
-            <div class="card-title" style="justify-content:space-between;">
-              Drifting
-              <button class="btn" onclick="nav('review')">See all</button>
-            </div>
-            <div id="today-drift"></div>
-          </div>
-        </div>
-        ${glanceHtml}
-      </div>
-
-      <div class="streak-slot" id="today-streak-a"></div>
-      <div class="streak-slot" id="today-streak-b"></div>
-    </div>
-    <div class="today-freeze" id="today-freeze"></div>
+      <div id="today-setup"></div>
+      <div class="streak-slot" id="slot-day"></div>
+      <div class="streak-slot" id="slot-read"></div>
+      <div class="streak-slot" id="slot-padel"></div>
+      <div class="streak-slot" id="slot-mom"></div>
+      <div class="today-freeze" id="today-freeze"></div>
     </div>
   `;
 
@@ -7443,8 +7388,8 @@ async function updateStreaks() {
   if (readEl) readEl.textContent = readStreak;
   if (padelEl) padelEl.textContent = padelStreak;
   const padelOn = (await getActiveModules().catch(() => [])).some(m => m.id === 'padel');
-  const padelPill = document.getElementById('padel-streak-pill');
-  if (padelPill) padelPill.style.display = padelOn ? '' : 'none';
+  const padelPill = document.getElementById('pill-padel');
+  if (padelPill && currentPage !== 'today') padelPill.style.display = padelOn ? '' : 'none';
   // Award freeze if 7-day milestone hit
   checkAndAwardFreeze();
   // Load freeze count for sidebar
@@ -7524,25 +7469,18 @@ async function renderSetup(containerId) {
     return;
   }
 
-  const glance = document.getElementById('today-glance');
-  if (glance) glance.style.display = 'none';
   const doneCount = steps.length - remaining.length;
-  card.style.display = '';
+  card.style.display = 'block';
   card.innerHTML = `
-    <div class="card">
-      <div class="card-title">Still to set</div>
-      <p class="mini-prompt">${doneCount} of ${steps.length} done. ${
-        remaining.length === 1 ? 'One left.' :
-        remaining.length === 2 ? 'Almost there.' :
-        'A couple of minutes.'}</p>
+    <div class="card-title">Get to know me <span style="font-family:var(--font-m);font-size:0.85rem;font-weight:400;font-style:italic;color:var(--muted);">${doneCount} of ${steps.length}</span></div>
+    <div class="setup-grid">
       ${remaining.map(s => `
-        <p style="margin:0 0 1rem;line-height:1.45;">
-          <span style="color:var(--text);">${s.label}.</span>
-          <span style="color:var(--muted);"> ${s.hint}</span>
+        <p>
+          <span style="color:var(--text);">${s.label}</span>
           <button class="btn" onclick="${s.go}">Do it</button>
         </p>`).join('')}
-      <button class="btn" onclick="dismissSetup()">Hide this</button>
-    </div>`;
+    </div>
+    <button class="btn" onclick="dismissSetup()" style="margin-top:6px;">Hide this</button>`;
 }
 
 window.dismissSetup = () => {

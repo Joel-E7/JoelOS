@@ -280,9 +280,8 @@ button{cursor:pointer;transition:all 0.15s;}
       <input id="auth-email" type="email" autocomplete="username" placeholder="Email"/>
       <input id="auth-pass" type="password" autocomplete="current-password" placeholder="Password"/>
       <button class="btn-gold" style="width:100%;padding:11px;" onclick="window.doSignIn()">Sign in</button>
-      <div style="display:flex;gap:8px;margin-top:8px;">
-        <button class="btn" style="flex:1;font-size:0.68rem;" onclick="window.doRegister()">Create account</button>
-        <button class="btn" style="flex:1;font-size:0.68rem;" onclick="window.doReset()">Forgot password</button>
+      <div style="margin-top:8px;">
+        <button class="btn" style="font-size:0.68rem;" onclick="window.doReset()">Forgot password</button>
       </div>
       <div id="auth-err"></div>
     </div>
@@ -570,16 +569,7 @@ window.doSignIn = async () => {
 };
 
 window.doRegister = async () => {
-  _authErr('');
-  const email = document.getElementById('auth-email').value.trim();
-  const pass = document.getElementById('auth-pass').value;
-  if (!email || !pass) return _authErr('Enter an email and password to register.');
-  if (pass.length < 6) return _authErr('Password must be at least 6 characters.');
-  try {
-    await createUserWithEmailAndPassword(auth, email, pass);
-  } catch (e) {
-    _authErr(e.code === 'auth/email-already-in-use' ? 'Account already exists — sign in instead.' : e.message);
-  }
+  _authErr('Accounts are invite-only. Ask Joel to add you.');
 };
 
 window.doReset = async () => {

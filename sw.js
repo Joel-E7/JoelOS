@@ -69,7 +69,7 @@ self.addEventListener('notificationclick', e => {
 // ── ASSET CACHING ─────────────────────────
 // Bump this when the cached shell must be discarded — the activate handler deletes
 // every cache whose name doesn't match, so a new name is what forces the refresh.
-const CACHE = 'jeos-v3';
+const CACHE = 'jeos-v4';
 
 self.addEventListener('install', e => {
   self.skipWaiting();

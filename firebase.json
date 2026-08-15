@@ -27,6 +27,7 @@
       "functions/**",
       "webhook.py",
       "_live_snapshot/**",
+      "_scratch/**",
       "*firebase-adminsdk*.json",
       "*-adminsdk-*.json"
     ],

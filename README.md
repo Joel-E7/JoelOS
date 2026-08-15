@@ -29,3 +29,5 @@ npx serve -l 4173
 ```
 
 Accounts: turn off public registration in Firebase Auth if this is just for you (and maybe one other person). Add extra users in the Firebase Console → Authentication → Users.
+
+Recent work on this tree includes Grok (xAI).

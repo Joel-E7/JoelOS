@@ -3,32 +3,169 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>JE OS — template</title>
+<meta name="theme-color" content="#000000">
+<title>JE OS — template preview</title>
 <link rel="icon" href="icon-192-v4.png">
 <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,640;1,9..144,500&display=swap" rel="stylesheet">
 <style>
-  :root { --gold:#3ecfcf; --text:#f1ece4; --soft:#b4b8b2; --muted:#6a7370; }
-  * { box-sizing:border-box; margin:0; padding:0; }
-  html,body { min-height:100%; background:#000; color:var(--text); font-family:'Atkinson Hyperlegible',system-ui,sans-serif; }
-  body::before { content:''; position:fixed; inset:0; background:#000 url('bg.jpg') right center / cover no-repeat; opacity:0.5; pointer-events:none; }
-  main { position:relative; min-height:100dvh; padding:10vh 8vw 12vh; display:flex; align-items:flex-end; }
-  .wrap { max-width:34rem; }
-  h1 { font-family:'Fraunces',Georgia,serif; font-size:clamp(4.5rem,14vw,9rem); font-weight:640; letter-spacing:-0.055em; line-height:0.78; margin-bottom:18px; }
-  h1 span { color:var(--gold); }
-  .sub { font-size:1.05rem; color:var(--soft); font-style:italic; margin-bottom:28px; max-width:22em; }
-  p { color:var(--soft); line-height:1.55; margin-bottom:1.1rem; max-width:34em; }
-  a { color:var(--gold); }
-  .meta { font-size:0.88rem; color:var(--muted); font-style:italic; }
+:root{
+  --bg:#000;--text:#f1ece4;--muted:#6a7370;--soft:#b4b8b2;
+  --gold:#3ecfcf;--gold-dim:#1a7a7a;--border:#1a242c;--border2:#243038;
+  --font-h:'Fraunces',Georgia,serif;--font-m:'Atkinson Hyperlegible',system-ui,sans-serif;
+  --sidebar-w:220px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{background:#000;color:var(--text);font-family:var(--font-m);min-height:100%;color-scheme:dark;}
+body::before{content:'';position:fixed;inset:0;background:#000 url('bg.jpg') right center/cover no-repeat;opacity:0.5;pointer-events:none;z-index:0;}
+.shell{position:relative;z-index:1;display:flex;min-height:100dvh;}
+.sidebar{width:var(--sidebar-w);border-right:1px solid var(--border);padding:22px 16px 20px;flex-shrink:0;}
+.logo{font-family:var(--font-h);font-size:1.5rem;font-weight:640;letter-spacing:-0.03em;}
+.logo span{color:var(--gold);}
+.logo-sub{font-size:0.72rem;color:var(--muted);font-style:italic;margin:4px 0 22px;}
+.nav{counter-reset:n;}
+.nav button{display:flex;align-items:baseline;gap:12px;width:100%;background:none;border:none;color:var(--soft);font:inherit;font-size:1.02rem;padding:7px 6px;cursor:pointer;text-align:left;}
+.nav button::before{content:counter(n,decimal-leading-zero);counter-increment:n;font-family:var(--font-h);font-size:0.68rem;color:var(--muted);width:1.7em;}
+.nav button.on,.nav button:hover{color:var(--text);}
+.nav button.on::before{color:var(--gold);}
+.main{flex:1;min-width:0;display:flex;flex-direction:column;padding:18px 36px 22px;}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:10px;}
+.page-title{font-family:var(--font-h);font-size:clamp(2.2rem,5vw,4.2rem);font-weight:640;letter-spacing:-0.055em;line-height:0.82;}
+.date{font-size:0.8rem;color:var(--muted);font-style:italic;margin-top:8px;}
+.clock{font-family:var(--font-h);font-size:clamp(2rem,4.6vw,4rem);font-weight:500;font-style:italic;color:var(--gold);line-height:0.82;}
+.banner{font-size:0.82rem;color:var(--soft);font-style:italic;margin:0 0 12px;max-width:40em;}
+.banner a{color:var(--gold);}
+.today{flex:1;display:grid;grid-template-columns:1fr 1fr;grid-template-rows:auto minmax(140px,1fr) minmax(140px,1fr) auto;gap:0.7rem 1rem;min-height:0;}
+details.fold{min-width:0;}
+details.fold summary{font-family:var(--font-h);font-size:1.2rem;font-weight:640;cursor:pointer;list-style:none;display:flex;align-items:baseline;gap:10px;}
+details.fold summary::-webkit-details-marker{display:none;}
+details.fold summary::before{content:'';width:0.4em;height:0.4em;border-radius:50%;background:var(--gold);opacity:0.6;}
+details.fold[open] summary::before{opacity:1;}
+details.fold .count{font-family:var(--font-m);font-size:0.85rem;font-weight:400;font-style:italic;color:var(--muted);}
+details.fold[open]{grid-column:1/-1;background:rgba(5,8,10,0.82);border:1px solid rgba(62,207,207,0.14);border-radius:16px;padding:0.8rem 1rem 1rem;}
+.fold-body{margin-top:12px;color:var(--soft);font-size:0.95rem;}
+.fold-body p{margin:0 0 8px;}
+.slot{background:rgba(5,8,10,0.68);border:1px solid rgba(62,207,207,0.14);border-radius:22px;padding:1rem 1.2rem;display:flex;flex-direction:column;justify-content:space-between;min-height:8rem;}
+.slot .lbl{font-size:0.9rem;color:var(--muted);}
+.slot .lbl strong{color:var(--soft);font-weight:400;}
+.slot .num{font-family:var(--font-h);font-size:clamp(2.8rem,7vw,5.2rem);font-weight:640;line-height:0.8;letter-spacing:-0.04em;}
+.freeze{grid-column:1/-1;display:flex;align-items:baseline;gap:12px;padding:0.55rem 1.4rem;background:rgba(5,8,10,0.72);border:1px solid rgba(62,207,207,0.14);border-radius:999px;}
+.freeze .num{font-family:var(--font-h);font-size:1.5rem;font-weight:640;}
+.freeze .lbl{font-size:0.78rem;color:var(--muted);}
+.panel{display:none;flex:1;}
+.panel.on{display:block;}
+.card{margin:1.2rem 0;max-width:40rem;}
+.card h3{font-family:var(--font-h);font-size:1.45rem;font-weight:640;margin-bottom:6px;}
+.card p{color:var(--soft);font-style:italic;margin-bottom:12px;}
+.row{display:flex;gap:8px;align-items:stretch;}
+.row input,.row select{flex:1;height:40px;padding:8px 10px;background:#000;border:none;border-bottom:1px solid var(--border2);color:var(--text);font:inherit;}
+.row select{flex:0 0 7.2rem;}
+.ghost{color:var(--gold);font-family:var(--font-h);background:none;border:none;border-bottom:1px solid var(--gold);padding:4px 0;}
+@media(max-width:900px){
+  .sidebar{display:none;}
+  .main{padding:14px 16px 28px;}
+  .today{grid-template-columns:1fr 1fr;grid-template-rows:auto auto auto auto auto;}
+  details.fold{grid-column:1/-1;}
+  .clock{display:none;}
+}
 </style>
 </head>
 <body>
-<main>
-  <div class="wrap">
-    <h1>JE<span>.</span></h1>
-    <p class="sub">A field notebook template. Not a live account.</p>
-    <p>This page is only a preview of the look. The real app is private. Fork the repo, plug in your own Firebase project, and host it yourself.</p>
-    <p class="meta"><a href="https://github.com/Joel-E7/JoelOS">github.com/Joel-E7/JoelOS</a></p>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="logo">JE<span>.</span></div>
+    <div class="logo-sub">field notes · template</div>
+    <nav class="nav">
+      <button class="on" data-p="today">Today</button>
+      <button data-p="commit">Commitments</button>
+      <button data-p="padel">Padel</button>
+      <button data-p="review">Review</button>
+    </nav>
+  </aside>
+  <div class="main">
+    <p class="banner">Static preview — sample numbers, no login, no live data. <a href="https://github.com/Joel-E7/JoelOS">Fork the template</a> and point it at your own Firebase.</p>
+    <div class="top">
+      <div>
+        <h1 class="page-title" id="title">Today</h1>
+        <div class="date">A Saturday in the sample week</div>
+      </div>
+      <div class="clock">19:12</div>
+    </div>
+
+    <section class="panel on" id="today">
+      <div class="today">
+        <details class="fold">
+          <summary>Log manually <span class="count">3 of 7 logged</span></summary>
+          <div class="fold-body">
+            <p>Mood, energy, reading, phone, wins, resistance, gratitude — one place, no separate apps.</p>
+            <p>In the real app this is live. Here it’s just a taste.</p>
+          </div>
+        </details>
+        <details class="fold">
+          <summary>Writing <span class="count">noted today</span></summary>
+          <div class="fold-body">
+            <p>A daily note that counts toward the streak, plus a longer journal.</p>
+          </div>
+        </details>
+        <div class="slot"><div class="lbl">Day <strong>streak</strong></div><div class="num">12</div></div>
+        <div class="slot"><div class="lbl">Reading <strong>days</strong></div><div class="num">8</div></div>
+        <div class="slot"><div class="lbl">Padel <strong>weeks</strong></div><div class="num">4</div></div>
+        <div class="slot"><div class="lbl">Daily <strong>momentum</strong></div><div class="num">6</div></div>
+        <div class="freeze"><div class="num">2</div><div class="lbl">Streak <strong>freezes</strong></div></div>
+      </div>
+    </section>
+
+    <section class="panel" id="commit">
+      <div class="card">
+        <h3>Priorities</h3>
+        <p>Up to five things that matter this week.</p>
+        <div class="row">
+          <select disabled><option>Health</option></select>
+          <input disabled value="Get to bed before 23:00">
+          <button class="ghost" type="button">Add</button>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Backburner</h3>
+        <p>Capture it so it isn’t rattling around your head.</p>
+        <div class="row">
+          <select disabled><option>Medium</option></select>
+          <input disabled value="Restring the padel racket">
+          <button class="ghost" type="button">Add</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="padel">
+      <div class="card">
+        <h3>Log activity</h3>
+        <p>Session or competitive match — opponent, sets, what you struggled with.</p>
+        <div class="row">
+          <button class="ghost" type="button">Session</button>
+          <button class="ghost" type="button">Match</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" id="review">
+      <div class="card">
+        <h3>Weekly review</h3>
+        <p>Scores, drift, and a Sunday pass over what moved and what didn’t.</p>
+        <p>Professional · Health · Personal · Relationships · Learning</p>
+      </div>
+    </section>
   </div>
-</main>
+</div>
+<script>
+const titles = { today:'Today', commit:'Commitments', padel:'Padel', review:'Weekly Review' };
+document.querySelectorAll('.nav button').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.nav button').forEach(b => b.classList.remove('on'));
+    btn.classList.add('on');
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('on'));
+    document.getElementById(btn.dataset.p).classList.add('on');
+    document.getElementById('title').textContent = titles[btn.dataset.p];
+  };
+});
+</script>
 </body>
 </html>

@@ -201,12 +201,3 @@ exports.energyReminderScheduler = onSchedule({
     }
   }
 });
-
-// Client sign-up is closed. Add people (e.g. Joel's girlfriend) in the Firebase
-// Console → Authentication → Users → Add user. Admin-created accounts skip this.
-const { beforeUserCreated } = require('firebase-functions/v2/identity');
-const { HttpsError } = require('firebase-functions/v2/https');
-
-exports.blockPublicSignups = beforeUserCreated(() => {
-  throw new HttpsError('permission-denied', 'Accounts are invite-only.');
-});
